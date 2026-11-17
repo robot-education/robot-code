@@ -70,6 +70,8 @@ export enum BearingSize
     MM_5,
     annotation { "Name" : "6 mm" }
     MM_6,
+    annotation { "Name" : "7 mm" }
+    MM_7,
     annotation { "Name" : "8 mm" }
     MM_8,
     annotation { "Name" : "9 mm" }
@@ -128,6 +130,8 @@ export enum BearingDimensions
     OD_1_375_X_0_438,
     annotation { "Name" : "8 mm OD x 2 mm" }
     MM_8_X_2,
+    annotation { "Name" : "8 mm OD x 2.5 mm" }
+    MM_8_X_2_5,
     annotation { "Name" : "9 mm OD x 2.5 mm" }
     MM_9_X_2_5,
     annotation { "Name" : "9 mm OD x 3 mm" }
@@ -245,6 +249,7 @@ export const BEARING_BORES = {
         BearingSize.MM_4 : { "diameter" : 4 * millimeter },
         BearingSize.MM_5 : { "diameter" : 5 * millimeter },
         BearingSize.MM_6 : { "diameter" : 6 * millimeter },
+        BearingSize.MM_7 : { "diameter" : 7 * millimeter },
         BearingSize.MM_8 : { "diameter" : 8 * millimeter },
         BearingSize.MM_9 : { "diameter" : 9 * millimeter },
         BearingSize.MM_10 : { "diameter" : 10 * millimeter },
@@ -546,8 +551,26 @@ export const BEARINGS = {
                     }
                 },
                 BearingSize.MM_5 : {
+                    BearingDimensions.MM_8_X_2_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 8 * millimeter, "width" : 2.5 * millimeter, "name" : "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 9 * millimeter, "width" : 3 * millimeter, "name" : "5 mm Round Radial Bearing (9 mm OD x 3 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (10 mm OD x 4 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (11 mm OD x 4 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_13_X_4 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (13 mm OD x 4 mm)", "partNumber" : "695ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "name" : "5 mm Round Radial Bearing (14 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "name" : "5 mm Round Radial Bearing (16 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_19_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm)", "partNumber" : "635ZZ", "material" : STEEL, "appearance" : STEEL_GRAY },
@@ -560,6 +583,20 @@ export const BEARINGS = {
                     },
                     BearingDimensions.MM_17_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 17 * millimeter, "width" : 6 * millimeter, "name" : "6 mm Round Radial Bearing (17 mm OD x 6 mm)", "partNumber" : "606ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_7 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "name" : "7 mm Round Radial Bearing (14 mm OD x 5 mm)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "7 mm Round Radial Bearing (19 mm OD x 6 mm)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.SEALED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "7 mm Round Radial Bearing (19 mm OD x 6 mm, Sealed)", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_22_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.SEALED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_8 : {
@@ -1232,8 +1269,44 @@ export const BEARINGS = {
                     }
                 },
                 BearingSize.MM_5 : {
+                    BearingDimensions.MM_8_X_2_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 8 * millimeter, "width" : 2.5 * millimeter, "name" : "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K104", "url" : "https://www.mcmaster.com/7804K104/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_9_X_3 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 9 * millimeter, "width" : 3 * millimeter, "name" : "5 mm Round Radial Bearing (9 mm OD x 3 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K105", "url" : "https://www.mcmaster.com/7804K105/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_10_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 10 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (10 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K106", "url" : "https://www.mcmaster.com/7804K106/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_11_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 11 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (11 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K107", "url" : "https://www.mcmaster.com/7804K107/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_13_X_4 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 13 * millimeter, "width" : 4 * millimeter, "name" : "5 mm Round Radial Bearing (13 mm OD x 4 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K108", "url" : "https://www.mcmaster.com/7804K108/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "name" : "5 mm Round Radial Bearing (14 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K109", "url" : "https://www.mcmaster.com/7804K109/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_16_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "name" : "5 mm Round Radial Bearing (16 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "6153K15", "url" : "https://www.mcmaster.com/6153K15/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
                     BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm)", "vendor" : "McMaster-Carr", "partNumber" : "5972K263", "url" : "https://www.mcmaster.com/5972K263/", "material" : STEEL, "appearance" : STEEL_GRAY },
                         BearingSeal.OPEN : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "5972K197", "url" : "https://www.mcmaster.com/5972K197/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    }
+                },
+                BearingSize.MM_7 : {
+                    BearingDimensions.MM_14_X_5 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 14 * millimeter, "width" : 5 * millimeter, "name" : "7 mm Round Radial Bearing (14 mm OD x 5 mm)", "vendor" : "McMaster-Carr", "partNumber" : "7804K114", "url" : "https://www.mcmaster.com/7804K114/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_19_X_6 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "7 mm Round Radial Bearing (19 mm OD x 6 mm)", "vendor" : "McMaster-Carr", "partNumber" : "4481N11", "url" : "https://www.mcmaster.com/4481N11/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.SEALED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "name" : "7 mm Round Radial Bearing (19 mm OD x 6 mm, Sealed)", "vendor" : "McMaster-Carr", "partNumber" : "5972K225", "url" : "https://www.mcmaster.com/5972K225/", "material" : STEEL, "appearance" : STEEL_GRAY }
+                    },
+                    BearingDimensions.MM_22_X_7 : {
+                        BearingSeal.SHIELDED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm)", "vendor" : "McMaster-Carr", "partNumber" : "6153K27", "url" : "https://www.mcmaster.com/6153K27/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.SEALED : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)", "vendor" : "McMaster-Carr", "partNumber" : "5972K502", "url" : "https://www.mcmaster.com/5972K502/", "material" : STEEL, "appearance" : STEEL_GRAY },
+                        BearingSeal.OPEN : { "outerDiameter" : 22 * millimeter, "width" : 7 * millimeter, "name" : "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)", "vendor" : "McMaster-Carr", "partNumber" : "6153K114", "url" : "https://www.mcmaster.com/6153K114/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_8 : {

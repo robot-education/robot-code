@@ -92,8 +92,9 @@ BearingSeal = Enum(
     ["SHIELDED", "SEALED", "OPEN", "NONE"],
     {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open", "NONE": "None"},
 )
-# Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but a bushing's acetal
-MATERIALS = {"STEEL": "Steel", "ACETAL": "Acetal"}
+# Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but a bushing's acetal and
+# some of McMaster-Carr's 440C stainless
+MATERIALS = {"STEEL": "Steel", "STAINLESS_STEEL": "Stainless Steel", "ACETAL": "Acetal"}
 
 
 def material(type: str) -> str:
@@ -126,7 +127,7 @@ SIZES = [
     Size("IN_1_4", "1/4 in", 0.25),
     Size("IN_5_8", "5/8 in", 0.625),
     Size("IN_3_4", "3/4 in", 0.75),
-    *(Size(f"MM_{value}", f"{value} mm", value, "mm") for value in (4, 5, 6, 8, 9, 10, 12, 15, 17, 25, 30, 32, 35, 80, 120)),
+    *(Size(f"MM_{value}", f"{value} mm", value, "mm") for value in (4, 5, 6, 7, 8, 9, 10, 12, 15, 17, 25, 30, 32, 35, 80, 120)),
 ]
 SIZES_BY_ID = {size.id: size for size in SIZES}
 BearingSize = Enum("BearingSize", [size.id for size in SIZES], {size.id: size.name for size in SIZES})
@@ -300,6 +301,8 @@ def flange(vendor: str, size: str, dimensions: str) -> tuple[str, str]:
 class Stock:
     part_number: str | None = None
     url: str | None = None
+    # A key of MATERIALS
+    material: str = "STEEL"
 
 
 def _option_names(part: dict, record: dict) -> dict[str, str]:
@@ -391,15 +394,19 @@ def mcmaster_url(part_number: str) -> str:
 
 def _mcmaster_bearings() -> Bearings:
     bearings: Bearings = {}
+    prices: dict[tuple, float] = {}
     for row in MCMASTER_SNAPSHOT["bearings"]:
         part = row["partNumber"]
-        if part is None:
-            continue
         dimensions = Dimensions(row["outerDiameter"], row["width"], row["unit"])
         bearing = Bearing(row["type"], row["bore"], row["size"], dimensions, row["seal"])
         if row["type"] == "FLANGED":
             assert row["flangeDiameter"] and row["flangeThickness"], f"{part} needs its flange"
-        bearings[("MCMASTER", *bearing.key)] = (bearing, Stock(part, mcmaster_url(part)))
+        key = ("MCMASTER", *bearing.key)
+        # Where it sells a bearing more than one way (steel or stainless, or another ABEC rating), the cheapest
+        if key in bearings and row.get("price", 0) >= prices[key]:
+            continue
+        prices[key] = row.get("price", 0)
+        bearings[key] = (bearing, Stock(part, mcmaster_url(part), row.get("material", "STEEL")))
     return bearings
 
 
@@ -411,7 +418,7 @@ VENDOR_FLANGES.update(
             row["flangeThickness"],
         )
         for row in MCMASTER_SNAPSHOT["bearings"]
-        if row["partNumber"] is not None and row["type"] == "FLANGED"
+        if row["type"] == "FLANGED"
     }
 )
 FRC_BEARINGS = _frc_bearings()
@@ -467,7 +474,7 @@ def _ftc_bearings() -> Bearings:
     for vendor, (parts, store) in _FTC_STORES.items():
         for type, bore, size, outer, width, seal, sku, page in parts:
             bearing = Bearing(type, bore, size, Dimensions(outer, width, "mm"), seal)
-            bearings[(vendor, *bearing.key)] = (bearing, Stock(sku, store + page))
+            bearings[(vendor, *bearing.key)] = (bearing, Stock(sku, store + page, material(type)))
     robits = ("ANDYMARK", "FLANGED", "HEX", "IN_3_8", "OD_0_875_X_0_281", "SEALED")
     bearings[robits] = FRC_BEARINGS[robits]
     bearings.update({key: value for key, value in MCMASTER_BEARINGS.items() if key[3] in METRIC})
@@ -528,7 +535,7 @@ class Record:
             "name": string(self.name),
             **({"vendor": string(vendor)} if vendor else {}),
             **{key: string(value) for key, value in _stock(self.stock).items()},
-            "material": material(self.bearing.type),
+            "material": self.stock.material,
             # Every bearing's races in one steel grey, as WCP's models have them; REV's bushings are black
             "appearance": "BLACK" if self.bearing.type == "BUSHING" else "STEEL_GRAY",
         }
@@ -540,7 +547,7 @@ class Record:
             "name": self.name,
             **({"vendor": vendor} if vendor else {}),
             **_stock(self.stock),
-            "material": MATERIALS[material(self.bearing.type)],
+            "material": MATERIALS[self.stock.material],
             # A radial bearing's top is where it seats: one connector, which its studio's top connector stands for
             **({"topMateConnector": SEAT_MATE_CONNECTOR} if self.bearing.type == "RADIAL" else {}),
         }

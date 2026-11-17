@@ -982,10 +982,82 @@
             "type": "RADIAL",
             "bore": "ROUND",
             "size": "MM_5",
+            "dimensions": "MM_8_X_2_5"
+          },
+          "name": "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_3"
+          },
+          "name": "5 mm Round Radial Bearing (9 mm OD x 3 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (10 mm OD x 4 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (11 mm OD x 4 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
             "dimensions": "MM_13_X_4"
           },
           "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
           "partNumber": "695ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (16 mm OD x 5 mm)",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1039,6 +1111,83 @@
           },
           "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
           "partNumber": "606ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "7 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_19_X_6",
+            "seal": "SEALED"
+          },
+          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm, Sealed)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SHIELDED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SEALED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "bore": "ROUND",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "OPEN"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -2933,13 +3082,217 @@
           "values": {
             "vendor": "MCMASTER",
             "type": "RADIAL",
-            "size": "MM_5"
+            "size": "MM_5",
+            "dimensions": "MM_8_X_2_5"
+          },
+          "name": "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K104",
+          "url": "https://www.mcmaster.com/7804K104/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_3"
+          },
+          "name": "5 mm Round Radial Bearing (9 mm OD x 3 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K105",
+          "url": "https://www.mcmaster.com/7804K105/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (10 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K106",
+          "url": "https://www.mcmaster.com/7804K106/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (11 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K107",
+          "url": "https://www.mcmaster.com/7804K107/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_13_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K108",
+          "url": "https://www.mcmaster.com/7804K108/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K109",
+          "url": "https://www.mcmaster.com/7804K109/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (16 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6153K15",
+          "url": "https://www.mcmaster.com/6153K15/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K263",
+          "url": "https://www.mcmaster.com/5972K263/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
           },
           "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)",
           "vendor": "McMaster-Carr",
           "partNumber": "5972K197",
           "url": "https://www.mcmaster.com/5972K197/",
           "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "7 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K114",
+          "url": "https://www.mcmaster.com/7804K114/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "4481N11",
+          "url": "https://www.mcmaster.com/4481N11/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_19_X_6",
+            "seal": "SEALED"
+          },
+          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm, Sealed)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K225",
+          "url": "https://www.mcmaster.com/5972K225/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SHIELDED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6153K27",
+          "url": "https://www.mcmaster.com/6153K27/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SEALED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K502",
+          "url": "https://www.mcmaster.com/5972K502/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "OPEN"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6153K114",
+          "url": "https://www.mcmaster.com/6153K114/",
+          "material": "Stainless Steel",
           "topMateConnector": "mateConnector"
         },
         {
@@ -4023,11 +4376,77 @@
       "bore": "ROUND",
       "size": "MM_5",
       "boreSize": 0.005,
+      "dimensions": "MM_8_X_2_5",
+      "outerDiameter": 0.008,
+      "width": 0.0025,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_9_X_3",
+      "outerDiameter": 0.009,
+      "width": 0.003,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_10_X_4",
+      "outerDiameter": 0.01,
+      "width": 0.004,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_11_X_4",
+      "outerDiameter": 0.011,
+      "width": 0.004,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
       "dimensions": "MM_13_X_4",
       "outerDiameter": 0.013,
       "width": 0.004,
       "seal": "SHIELDED",
       "partNumber": "695ZZ"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_16_X_5",
+      "outerDiameter": 0.016,
+      "width": 0.005,
+      "seal": "SHIELDED"
     },
     {
       "vendor": "GENERIC",
@@ -4075,6 +4494,72 @@
       "width": 0.006,
       "seal": "SHIELDED",
       "partNumber": "606ZZ"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "SEALED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "SHIELDED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "SEALED"
+    },
+    {
+      "vendor": "GENERIC",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "OPEN"
     },
     {
       "vendor": "GENERIC",
@@ -5978,12 +6463,194 @@
       "bore": "ROUND",
       "size": "MM_5",
       "boreSize": 0.005,
+      "dimensions": "MM_8_X_2_5",
+      "outerDiameter": 0.008,
+      "width": 0.0025,
+      "seal": "SHIELDED",
+      "partNumber": "7804K104",
+      "url": "https://www.mcmaster.com/7804K104/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_9_X_3",
+      "outerDiameter": 0.009,
+      "width": 0.003,
+      "seal": "SHIELDED",
+      "partNumber": "7804K105",
+      "url": "https://www.mcmaster.com/7804K105/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_10_X_4",
+      "outerDiameter": 0.01,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "7804K106",
+      "url": "https://www.mcmaster.com/7804K106/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_11_X_4",
+      "outerDiameter": 0.011,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "7804K107",
+      "url": "https://www.mcmaster.com/7804K107/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_13_X_4",
+      "outerDiameter": 0.013,
+      "width": 0.004,
+      "seal": "SHIELDED",
+      "partNumber": "7804K108",
+      "url": "https://www.mcmaster.com/7804K108/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "seal": "SHIELDED",
+      "partNumber": "7804K109",
+      "url": "https://www.mcmaster.com/7804K109/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_16_X_5",
+      "outerDiameter": 0.016,
+      "width": 0.005,
+      "seal": "SHIELDED",
+      "partNumber": "6153K15",
+      "url": "https://www.mcmaster.com/6153K15/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "SHIELDED",
+      "partNumber": "5972K263",
+      "url": "https://www.mcmaster.com/5972K263/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_5",
+      "boreSize": 0.005,
       "dimensions": "MM_19_X_6",
       "outerDiameter": 0.019,
       "width": 0.006,
       "seal": "OPEN",
       "partNumber": "5972K197",
       "url": "https://www.mcmaster.com/5972K197/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_14_X_5",
+      "outerDiameter": 0.014,
+      "width": 0.005,
+      "seal": "SHIELDED",
+      "partNumber": "7804K114",
+      "url": "https://www.mcmaster.com/7804K114/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "SHIELDED",
+      "partNumber": "4481N11",
+      "url": "https://www.mcmaster.com/4481N11/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_19_X_6",
+      "outerDiameter": 0.019,
+      "width": 0.006,
+      "seal": "SEALED",
+      "partNumber": "5972K225",
+      "url": "https://www.mcmaster.com/5972K225/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "SHIELDED",
+      "partNumber": "6153K27",
+      "url": "https://www.mcmaster.com/6153K27/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "SEALED",
+      "partNumber": "5972K502",
+      "url": "https://www.mcmaster.com/5972K502/"
+    },
+    {
+      "vendor": "MCMASTER",
+      "type": "RADIAL",
+      "bore": "ROUND",
+      "size": "MM_7",
+      "boreSize": 0.007,
+      "dimensions": "MM_22_X_7",
+      "outerDiameter": 0.022,
+      "width": 0.007,
+      "seal": "OPEN",
+      "partNumber": "6153K114",
+      "url": "https://www.mcmaster.com/6153K114/"
     },
     {
       "vendor": "MCMASTER",

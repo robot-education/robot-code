@@ -44,9 +44,10 @@ The configuration only offers what's made, so these show only in the feature's o
 | Bearing | `<size> <bore> <type> Bearing (<OD> OD x <width>)`, with any seal but shields after its dimensions: `1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)`, `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, `8 mm Round Flanged Bearing (16 mm OD x 5 mm)`, `8 mm REX Flanged Bearing (14 mm OD x 5 mm)`; R166ZZEE's dimensions are `0.375 in OD x 0.156 in (extended inner race)` |
 | Bushing | `<size> <bore> Flanged Bushing (<OD> OD x <width>)`: `5 mm Hex Flanged Bushing (9 mm OD x 5 mm)` |
 
-Every ball bearing has the same colors, whatever its vendor's model has: steel, its races in the standards' steel grey
+Every ball bearing has the same colors, whatever its vendor's model has or it's made of: its races in the standards' steel grey
 (#B3B3B3), with shields of #ABA99C or black seals between them, as WCP's models color them (WCP-0785). A bushing (REV's
-Through Bore Bearings) is black acetal. Each has its vendor
+Through Bore Bearings) is black acetal. Each is steel, but bushings and some of McMaster-Carr's, which are 440C stainless.
+Each has its vendor
 as its Vendor, its part number, and its link as its description, where the vendor has them; Generic has no vendor or
 link, and its part number is the bearing's designation (`FR8ZZ-HexHD`) where FRCDesign gives one.
 
@@ -72,8 +73,10 @@ wide; it's 4 mm (am-3377's model).
 
 McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed from its tables by hand, since its pages
 refuse automated reads: its flanged steel bearings with 5, 6, and 8 mm bores (5 mm clears a #10 screw), shielded and
-open, and its 25 and 30 mm thin-section ones, each with its flange; and its open radial R3, R4, R6, R8, 635, 608, 6805,
-and 6806. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
+open, and its 25 and 30 mm thin-section ones, each with its flange; its open radial R3, R4, R6, R8, 635, 608, 6805,
+and 6806; and its 5 and 7 mm radial bearings, shielded, sealed, and open. Where it sells a bearing more than one way
+(steel or 440C stainless, or another ABEC rating), the cheapest is offered, and is steel or stainless as that one is;
+its 316 stainless bearings, rated to 2,300 rpm at most, aren't offered. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
 Generic's too, as Generic offers every bearing a vendor does.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged
@@ -124,8 +127,8 @@ There are no `try`s.
 - AndyMark's FR82RS model (am-4465) is 0.375 in wide; AndyMark lists it, and FRCDesign has it, 0.313 in, as built.
 - goBILDA's 12 x 32 x 10 mm flanged bearing (1601-1032-0012) narrows between its body and its 2.3 mm flange in its STEP
   file, and the vendors' 1.125 in OD flanged bearings are undercut under their flanges; both are built as a plain step.
-- McMaster-Carr's shielded radial bearings aren't transcribed: only its open radial table was, so its radial bearings
-  are open alone.
+- McMaster-Carr's shielded radial bearings are transcribed for 5 and 7 mm bores alone; its other radial bearings are
+  open.
 - ThriftyBot's, Swyft's, and SDS's availability is unchecked: only AndyMark's, WCP's, REV's, and goBILDA's stores
   were checked for discontinued parts.
 - FRCDesignApp reads no part set's manifest yet, so nothing there uses `bearings.gen.json`.

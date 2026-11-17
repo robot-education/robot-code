@@ -159,8 +159,11 @@ def test_discontinued_parts_are_dropped():
 
 
 def test_mcmaster_carrs_rows_are_vendor_and_generic_bearings():
-    rows = DEFINITION["MCMASTER_SNAPSHOT"]["bearings"]
-    assert len(DEFINITION["MCMASTER_BEARINGS"]) == len(rows)
+    # Its cheapest of a bearing's rows: a 5 x 16 x 5 mm shielded bearing in 440C stainless, not steel at three times the price
+    radial = DEFINITION["MCMASTER_BEARINGS"][("MCMASTER", "RADIAL", "ROUND", "MM_5", "MM_16_X_5", "SHIELDED")][1]
+    assert (radial.part_number, radial.material) == ("6153K15", "STAINLESS_STEEL")
+    record = next(r for r in MANIFEST["studios"]["bearing"]["records"] if r.get("partNumber") == "6153K15")
+    assert record["material"] == "Stainless Steel"
     # A 5 mm bore, which clears a #10 screw, shielded or open
     shielded = BEARINGS[("MCMASTER", "FLANGED", "ROUND", "MM_5", "MM_14_X_5", "SHIELDED")][1]
     assert (shielded.part_number, shielded.url) == ("57155K577", "https://www.mcmaster.com/57155K577/")
