@@ -109,6 +109,12 @@ _TYPE_NAME = re.compile(r'"Feature Type Name"\s*:\s*' + _STRING)
 _DESCRIPTION = re.compile(r'"Feature Type Description"\s*:\s*' + _STRING)
 _ICON = re.compile(r'"Icon"\s*:\s*(\w+)::BLOB_DATA')
 _SIMPLIFICATION = re.compile(r'"Simplification"\s*:\s*true\b')
+_AUTO_ASSEMBLY = re.compile(r'"Auto Assembly"\s*:\s*true\b')
+# A library product in a product table (see fs_cli/frcdesign_library.py's `entry`)
+_PRODUCT = re.compile(
+    r'"documentId"\s*:\s*"(\w+)",\s*"elementId"\s*:\s*"(\w+)",\s*"configuration"\s*:\s*\{([^{}]*)\}'
+)
+_CONFIGURATION_VALUE = re.compile(_STRING + r"\s*:\s*" + _STRING)
 
 
 def _unescape(literal: str) -> str:
@@ -163,6 +169,32 @@ def icon_import(code: str, studio_code: Callable[[str], str | None] = lambda _: 
     return None
 
 
+def referenced_products(code: str, studio_code: Callable[[str], str | None] = lambda _: None) -> list[dict]:
+    """The library products a feature's tables reference (in `code`, or the studios it imports, and theirs, by
+    `studio_code`, as `icon_import` finds them): each studio's document and element, and its configurations, each as
+    FRCDesign stores a selection, so FRCDesign can keep them inserting (see docs/auto-assembly.md)."""
+    products: dict[tuple[str, str], list[dict]] = {}
+    seen: set[str] = set()
+    pending = [code]
+    while pending:
+        each = pending.pop(0)
+        for document_id, element_id, configuration in _PRODUCT.findall(each):
+            values = {_unescape(name): _unescape(value) for name, value in _CONFIGURATION_VALUE.findall(configuration)}
+            configurations = products.setdefault((document_id, element_id), [])
+            if values not in configurations:
+                configurations.append(values)
+        for element_id in _STUDIO_IMPORT.findall(each):
+            if element_id not in seen:
+                seen.add(element_id)
+                found = studio_code(element_id)
+                if found is not None:
+                    pending.append(found)
+    return [
+        {"documentId": document_id, "elementId": element_id, "configurations": configurations}
+        for (document_id, element_id), configurations in products.items()
+    ]
+
+
 def local_studio_code(code_dir: pathlib.Path, studio_files: dict[str, str]) -> Callable[[str], str | None]:
     """`icon_import`'s `studio_code` from the synced studios' files, given their files by element id."""
 
@@ -194,8 +226,10 @@ def manifest_entry(
     version: str,
     icon_element_id: str | None,
     source_url: str | None,
+    studio_code: Callable[[str], str | None] = lambda _: None,
 ) -> dict | None:
-    """A feature's entry in the manifest; None when its code exports no `defineFeature`, which the app can't add."""
+    """A feature's entry in the manifest; None when its code exports no `defineFeature`, which the app can't add.
+    `studio_code` gives the code of a studio it imports, by element id, for the products its tables reference."""
     constant = feature_type(code)
     if constant is None:
         return None
@@ -212,6 +246,9 @@ def manifest_entry(
     # It builds something lighter when its Part Studio is Simplified (absent: it doesn't)
     if _SIMPLIFICATION.search(code):
         entry["simplification"] = True
+    # It declares library parts for Auto Assembly, from these products
+    if _AUTO_ASSEMBLY.search(code):
+        entry["autoAssembly"] = {"products": referenced_products(code, studio_code)}
     return entry
 
 

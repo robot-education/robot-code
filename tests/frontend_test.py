@@ -92,3 +92,32 @@ def test_a_feature_allowing_simplification_says_so_in_its_entry():
     assert entry(code)["simplification"] is True
     # Absent, it doesn't
     assert "simplification" not in entry(code.replace(', "Simplification" : true', ""))
+
+
+def test_a_feature_declaring_parts_lists_the_products_its_tables_reference():
+    from fs_cli.frontend import manifest_entry
+
+    code = (
+        'import(path : "aaaaaaaaaaaaaaaaaaaaaaaa", version : "v");\n'
+        'annotation { "Feature Type Name" : "Robot pulley", "Auto Assembly" : true }\n'
+        "export const robotPulley = defineFeature("
+    )
+    # A product table, in a studio it imports (which imports it back), with a product in two configurations, one twice
+    table = (
+        'import(path : "bbbbbbbbbbbbbbbbbbbbbbbb", version : "v");\n'
+        '{ "teeth" : 15, "documentId" : "d1", "elementId" : "e1", "configuration" : { "List_a" : "Default" } }\n'
+        '{ "teeth" : 18, "documentId" : "d1", "elementId" : "e1", "configuration" : { "List_a" : "_18t", "B" : "false" } }\n'
+        '{ "teeth" : 18, "documentId" : "d1", "elementId" : "e1", "configuration" : { "List_a" : "_18t", "B" : "false" } }\n'
+    )
+    studios = {"aaaaaaaaaaaaaaaaaaaaaaaa": table, "bbbbbbbbbbbbbbbbbbbbbbbb": code}
+
+    def entry(source):
+        return manifest_entry(code=source, studio_element_id="s", fallback_name="f", version="v", icon_element_id=None,
+                              source_url=None, studio_code=studios.get)
+
+    assert entry(code)["autoAssembly"] == {
+        "products": [
+            {"documentId": "d1", "elementId": "e1", "configurations": [{"List_a": "Default"}, {"List_a": "_18t", "B": "false"}]}
+        ]
+    }
+    assert "autoAssembly" not in entry(code.replace(', "Auto Assembly" : true', ""))

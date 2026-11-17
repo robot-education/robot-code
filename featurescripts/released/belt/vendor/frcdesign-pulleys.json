@@ -1,0 +1,2018 @@
+{
+ "source": "https://app.frcdesign.org/api/configuration/insertable/{id}?v=235 (frc-design-lib: Pulleys & Belt Accessories)",
+ "parts": [
+  {
+   "insertableId": "0c405cfa-121f-4bc9-9b80-9336bca2e8ae",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Belt Idler Pulley (LAI)",
+   "vendors": [
+    "LAI"
+   ],
+   "elementType": "ASSEMBLY",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "56fb4d2c094b992a6d3b423b",
+   "parameters": [
+    {
+     "id": "List_ZJ7KFrG1n50n0I",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Smooth"
+      },
+      {
+       "id": "Smooth",
+       "name": "14t"
+      }
+     ]
+    },
+    {
+     "id": "Bearings_Included",
+     "name": "Bearings Included",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "250152",
+     "name": "Smooth Belt Idler Pulley (LAI)",
+     "values": {}
+    },
+    {
+     "partNumber": "250154",
+     "name": "14t Belt Idler Pulley (LAI)",
+     "values": {
+      "List_ZJ7KFrG1n50n0I": "Smooth",
+      "Bearings_Included": "true"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "dda62e65-5ffd-4a5e-865f-ef7fb48492f5",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Belt Idler Pulley (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "6c702f61d77cba9ee1f390ab",
+   "parameters": [
+    {
+     "id": "List_9MVuroRr6Bqmbb",
+     "name": "Dimensions",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": ".732\" OD x .875\" WD"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-1472",
+     "name": "Belt Idler Pulley (0.732\" OD, 0.875\" WD, 1/2\" Hex Bore)",
+     "values": {}
+    }
+   ]
+  },
+  {
+   "insertableId": "be68af94-99f3-4995-a9a5-87f2799267ae",
+   "group": "Pulleys & Belt Accessories",
+   "name": "GT2 3mm Pulley - 1/2\" Hex Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "e0b78b7fc5296db321f026d1",
+   "parameters": [
+    {
+     "id": "List_daRtfpZmE8sXxM",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "_36t_x_9mm",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "_48t_x_9mm",
+       "name": "48t x 9mm"
+      },
+      {
+       "id": "_60t_x_9mm",
+       "name": "60t x 9mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-5875",
+     "name": "24t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-5873",
+     "name": "36t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_daRtfpZmE8sXxM": "_36t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "217-5874",
+     "name": "48t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_daRtfpZmE8sXxM": "_48t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "217-5876",
+     "name": "60t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_daRtfpZmE8sXxM": "_60t_x_9mm"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "bf500eae-80f7-4c05-847c-39d52f21ad8e",
+   "group": "Pulleys & Belt Accessories",
+   "name": "GT2 3mm Pulley - 1/2\" Hex Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "20e0bbb1b40c631ffc67166e",
+   "parameters": [
+    {
+     "id": "List_diSBXaQ9V17QLz",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "_36t_x_9mm",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "_48t_x_9mm",
+       "name": "48t x 9mm"
+      },
+      {
+       "id": "_60t_x_9mm",
+       "name": "60t x 9mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0662",
+     "name": "24t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0663",
+     "name": "36t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_diSBXaQ9V17QLz": "_36t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-0664",
+     "name": "48t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_diSBXaQ9V17QLz": "_48t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-0665",
+     "name": "60t Aluminum Pulley (GT2 3mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_diSBXaQ9V17QLz": "_60t_x_9mm"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "f4e3c05b-3215-4318-a228-83b8de6b44e3",
+   "group": "Pulleys & Belt Accessories",
+   "name": "GT2 3mm Pulley - 8mm SplineXS (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "096f4cd30a1e062da4489310",
+   "parameters": [
+    {
+     "id": "List_X6MBcLsuyfMsDH",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_16t_x_9mm__GT2_3mm___WCP_",
+     "options": [
+      {
+       "id": "_16t_x_9mm__GT2_3mm___WCP_",
+       "name": "16t x 9mm"
+      },
+      {
+       "id": "_16t_x_15mm__GT2_3mm___WCP_",
+       "name": "16t x 15mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-1178",
+     "name": "16t Aluminum Pulley (GT2 3mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-1179",
+     "name": "16t Aluminum Pulley (GT2 3mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_16t_x_15mm__GT2_3mm___WCP_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "96fa1375-5a01-4ba3-9081-4e5bed4b953e",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Aluminum Pulley - 1/2\" Hex Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "fbfc78aa11c89b54018c4082",
+   "parameters": [
+    {
+     "id": "List_k3bqnpHu4pTlNv",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "_24t_x_15mm",
+       "name": "24t x 15mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4625",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4626",
+     "name": "24t Aluminum Pulley (HTD 5mm, 18mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_k3bqnpHu4pTlNv": "_24t_x_15mm"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "2fb72dae-7816-45e4-b595-a37dd758686c",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Plastic Pulley (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "ASSEMBLY",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "6e8ff1d6ea010e9b62e9d882",
+   "parameters": [
+    {
+     "id": "List_yPAFb8HrjPe66e",
+     "name": "Teeth",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "_14",
+       "name": "14"
+      },
+      {
+       "id": "Default",
+       "name": "24"
+      },
+      {
+       "id": "_39",
+       "name": "39"
+      },
+      {
+       "id": "_42",
+       "name": "42"
+      }
+     ]
+    },
+    {
+     "id": "List_WD2b0FPIlYUDRR",
+     "name": "Width",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Single"
+      },
+      {
+       "id": "Double",
+       "name": "Double"
+      }
+     ]
+    },
+    {
+     "id": "List_w0N6RtDAfDOlDd",
+     "name": "Bore",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "1/2\" Hex"
+      },
+      {
+       "id": "_3_8__Hex",
+       "name": "3/8\" Hex"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-3403",
+     "name": "24t Plastic Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4960",
+     "name": "14t Plastic Pulley (HTD 5mm, 9mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "_14",
+      "Simplified_Model": "true"
+     }
+    },
+    {
+     "partNumber": "am-4960",
+     "name": "14t Plastic Pulley (HTD 5mm, 9mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "_14",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "am-3403",
+     "name": "24t Plastic Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Default",
+      "List_w0N6RtDAfDOlDd": "Default",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "am-3402",
+     "name": "24t Plastic Pulley (HTD 5mm, 9mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Default",
+      "List_w0N6RtDAfDOlDd": "_3_8__Hex",
+      "Simplified_Model": "true"
+     }
+    },
+    {
+     "partNumber": "am-3402",
+     "name": "24t Plastic Pulley (HTD 5mm, 9mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Default",
+      "List_w0N6RtDAfDOlDd": "_3_8__Hex",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "am-3403 + am-3404",
+     "name": "24t Plastic Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Double",
+      "List_w0N6RtDAfDOlDd": "Default",
+      "Simplified_Model": "true"
+     }
+    },
+    {
+     "partNumber": "am-3403 + am-3404",
+     "name": "24t Plastic Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Double",
+      "List_w0N6RtDAfDOlDd": "Default",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "am-3402 + am-3404",
+     "name": "24t Plastic Pulley (HTD 5mm, 15mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Double",
+      "List_w0N6RtDAfDOlDd": "_3_8__Hex",
+      "Simplified_Model": "true"
+     }
+    },
+    {
+     "partNumber": "am-3402 + am-3404",
+     "name": "24t Plastic Pulley (HTD 5mm, 15mm Wide, 3/8\" Hex Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "Default",
+      "List_WD2b0FPIlYUDRR": "Double",
+      "List_w0N6RtDAfDOlDd": "_3_8__Hex",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "am-2361a",
+     "name": "39t Plastic Pulley (HTD 5mm, 30mm Wide, 0.958\" Round Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "_39"
+     }
+    },
+    {
+     "partNumber": "am-2234a",
+     "name": "42t Plastic Pulley (HTD 5mm, 15mm Wide, 1.125\" Bearing Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "_42",
+      "List_WD2b0FPIlYUDRR": "Default"
+     }
+    },
+    {
+     "partNumber": "am-2234a + am-2813",
+     "name": "42t Plastic Pulley (HTD 5mm, 30mm Wide, 1.125\" Bearing Bore)",
+     "values": {
+      "List_yPAFb8HrjPe66e": "_42",
+      "List_WD2b0FPIlYUDRR": "Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "062badca-a476-40e5-bd6c-ab1035ff5bc4",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 1/2\" Hex Bore (LAI)",
+   "vendors": [
+    "LAI"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "99f9d1ab489e9b9e9e66ea92",
+   "parameters": [
+    {
+     "id": "List_33MiSyP9U9NQ1D",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "18t x 9mm Regular"
+      },
+      {
+       "id": "_24t_Regular",
+       "name": "24t x 9mm Regular"
+      },
+      {
+       "id": "_30t_Regular",
+       "name": "30t x 9mm Regular"
+      },
+      {
+       "id": "_36t_Regular",
+       "name": "36t x 9mm Regular"
+      },
+      {
+       "id": "_24t_Reinforced",
+       "name": "24t x 9mm Reinforced"
+      },
+      {
+       "id": "_30t_Reinforced",
+       "name": "30t x 9mm Reinforced"
+      },
+      {
+       "id": "_36t_Reinforced",
+       "name": "36t x 9mm Reinforced"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "240107",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "240108",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_24t_Regular"
+     }
+    },
+    {
+     "partNumber": "240109",
+     "name": "30t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_30t_Regular"
+     }
+    },
+    {
+     "partNumber": "240110",
+     "name": "36t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_36t_Regular"
+     }
+    },
+    {
+     "partNumber": "240328",
+     "name": "24t Reinforced Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_24t_Reinforced"
+     }
+    },
+    {
+     "partNumber": "240329",
+     "name": "30t Reinforced Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_30t_Reinforced"
+     }
+    },
+    {
+     "partNumber": "240330",
+     "name": "36t Reinforced Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_36t_Reinforced"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "e6d76089-ea2f-4e03-9d33-463a96c0af21",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 1/2\" Hex Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "81ac4d707b69ba4fb7a8b60b",
+   "parameters": [
+    {
+     "id": "List_33MiSyP9U9NQ1D",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_15t_x_9mm",
+     "options": [
+      {
+       "id": "_15t_x_9mm",
+       "name": "15t x 9mm"
+      },
+      {
+       "id": "Copy_of_18t_x_9mm",
+       "name": "15t x 18mm"
+      },
+      {
+       "id": "_18t_x_9mm",
+       "name": "18t x 9mm"
+      },
+      {
+       "id": "_18t_x_18mm",
+       "name": "18t x 18mm"
+      },
+      {
+       "id": "_24t_x_9mm",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "Copy_of_24t_x_9mm",
+       "name": "24t x 18mm"
+      },
+      {
+       "id": "_36t_x_9mm",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "Copy_of_36t_x_9mm",
+       "name": "36t x 18mm (Lightened)"
+      },
+      {
+       "id": "_36t_x_18mm__Lightened_",
+       "name": "36t x 18mm (Unlightened)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0435",
+     "name": "15t Aluminum Pulley (HTD 5mm, 9.5mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0058",
+     "name": "15t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_18t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0346",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_18t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0347",
+     "name": "18t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_18t_x_18mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0348",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_24t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0126",
+     "name": "24t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_24t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0446",
+     "name": "36t Aluminum Pulley (HTD 5mm, 9.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_36t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0349",
+     "name": "36t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1/2\" Hex Bore, Lightened)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_36t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "TTB-0127",
+     "name": "36t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_36t_x_18mm__Lightened_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "97c34815-60df-4edf-b31c-f97c6fd997b7",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 1/2\" Hex Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "ff7d6124b9b99e0006351a34",
+   "parameters": [
+    {
+     "id": "List_33MiSyP9U9NQ1D",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "18t x 9mm"
+      },
+      {
+       "id": "Copy_of_18t_x_9mm",
+       "name": "18t x 15mm"
+      },
+      {
+       "id": "_24t_Regular",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "Copy_of_24t_x_9mm",
+       "name": "24t x 15mm"
+      },
+      {
+       "id": "_30t_Regular",
+       "name": "30t x 9mm"
+      },
+      {
+       "id": "Copy_of_30t_x_9mm",
+       "name": "30t x 15mm"
+      },
+      {
+       "id": "_36t_Regular",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "Copy_of_36t_x_9mm",
+       "name": "36t x 15mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-3225",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-4100",
+     "name": "18t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_18t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "217-3227",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_24t_Regular"
+     }
+    },
+    {
+     "partNumber": "217-4101",
+     "name": "24t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_24t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "217-3229",
+     "name": "30t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_30t_Regular"
+     }
+    },
+    {
+     "partNumber": "217-4102",
+     "name": "30t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_30t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "217-3231",
+     "name": "36t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "_36t_Regular"
+     }
+    },
+    {
+     "partNumber": "217-4103",
+     "name": "36t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_33MiSyP9U9NQ1D": "Copy_of_36t_x_9mm"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "0e5ac0be-dc09-480a-a3c0-e2b62446faa7",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 1/2\" Hex Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "b568cf62768f549c2f067e7c",
+   "parameters": [
+    {
+     "id": "List_b49DPDa7oomn2X",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "15t x 9mm"
+      },
+      {
+       "id": "_12t_x_15mm_Wide",
+       "name": "15t x 15mm"
+      },
+      {
+       "id": "_18t_x_9mm_Wide",
+       "name": "18t x 9mm"
+      },
+      {
+       "id": "_18t_x_9mm_Wide0",
+       "name": "18t x 15mm"
+      },
+      {
+       "id": "_20t_x_9mm",
+       "name": "20t x 9mm"
+      },
+      {
+       "id": "_20t_x_15mm",
+       "name": "20t x 15mm"
+      },
+      {
+       "id": "_24t_x",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "_24t_x_15mm_Width",
+       "name": "24t x 15mm"
+      },
+      {
+       "id": "_30t_x_9mm_Width",
+       "name": "30t x 9mm"
+      },
+      {
+       "id": "_30t_x_15mm_Width",
+       "name": "30t x 15mm"
+      },
+      {
+       "id": "_36t_x_9mm_Width",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "_36t_x_15mm_Width",
+       "name": "36t x 15mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-1420",
+     "name": "15t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0562",
+     "name": "15t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_12t_x_15mm_Wide"
+     }
+    },
+    {
+     "partNumber": "WCP-0563",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_18t_x_9mm_Wide"
+     }
+    },
+    {
+     "partNumber": "WCP-0991",
+     "name": "18t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_18t_x_9mm_Wide0"
+     }
+    },
+    {
+     "partNumber": "WCP-1754",
+     "name": "20t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_20t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-1755",
+     "name": "20t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_20t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-0564",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_24t_x"
+     }
+    },
+    {
+     "partNumber": "WCP-0992",
+     "name": "24t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_24t_x_15mm_Width"
+     }
+    },
+    {
+     "partNumber": "WCP-0565",
+     "name": "30t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_30t_x_9mm_Width"
+     }
+    },
+    {
+     "partNumber": "WCP-0993",
+     "name": "30t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_30t_x_15mm_Width"
+     }
+    },
+    {
+     "partNumber": "WCP-0990",
+     "name": "36t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_36t_x_9mm_Width"
+     }
+    },
+    {
+     "partNumber": "WCP-0994",
+     "name": "36t Aluminum Pulley (HTD 5mm, 15mm Wide, 1/2\" Hex Bore)",
+     "values": {
+      "List_b49DPDa7oomn2X": "_36t_x_15mm_Width"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "4bc2fd62-973a-4cb7-9d22-0c613cbc91bf",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 8mm SplineXS (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "91fde2019e187d8ccd573c49",
+   "parameters": [
+    {
+     "id": "List_X6MBcLsuyfMsDH",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_12t_x_9mm__HTD_5mm___WCP_",
+     "options": [
+      {
+       "id": "_12t_x_9mm__HTD_5mm___WCP_",
+       "name": "11t x 18.5mm"
+      },
+      {
+       "id": "Default",
+       "name": "18t x 9.5mm"
+      },
+      {
+       "id": "_12t_x_15mm__HTD_5mm___WCP_",
+       "name": "18t x 18.5mm"
+      },
+      {
+       "id": "_14t_x_9mm__HTD_5mm_",
+       "name": "24t x 9.5mm"
+      },
+      {
+       "id": "_14t_x_15mm__HTD_5mm_",
+       "name": "24t x 18.5mm"
+      },
+      {
+       "id": "_16t_x_9mm__HTD_5mm_",
+       "name": "36t x 9.5mm"
+      },
+      {
+       "id": "_14t_x_15mm__HTD_5mm_0",
+       "name": "36t x 18.5mm"
+      },
+      {
+       "id": "_16t_x_9mm__GT2_3mm___WCP_",
+       "name": "48t x 18.5mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0125",
+     "name": "11t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0339",
+     "name": "12t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "Default"
+     }
+    },
+    {
+     "partNumber": "TTB-0340",
+     "name": "12t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_12t_x_15mm__HTD_5mm___WCP_"
+     }
+    },
+    {
+     "partNumber": "TTB-0341",
+     "name": "14t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_9mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "TTB-0342",
+     "name": "14t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_15mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "TTB-0343",
+     "name": "16t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_16t_x_9mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "TTB-0344",
+     "name": "16t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_15mm__HTD_5mm_0"
+     }
+    },
+    {
+     "partNumber": "TTB-0345",
+     "name": "16t Aluminum Pulley (GT2 3mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_16t_x_9mm__GT2_3mm___WCP_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "13c506a1-e371-4861-a63e-92dc68c74f1e",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - 8mm SplineXS (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "93606c837542e027d88bd777",
+   "parameters": [
+    {
+     "id": "List_X6MBcLsuyfMsDH",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Copy_of_12t_x_9mm__Legacy_",
+     "options": [
+      {
+       "id": "Default",
+       "name": "12t x 9mm (Legacy, Longer)"
+      },
+      {
+       "id": "Copy_of_12t_x_9mm__Legacy_",
+       "name": "12t x 9mm"
+      },
+      {
+       "id": "Copy_of_12t_x_15mm",
+       "name": "12t x 15mm (Legacy, Longer)"
+      },
+      {
+       "id": "_12t_x_15mm__HTD_5mm___WCP_",
+       "name": "12t x 15mm"
+      },
+      {
+       "id": "_14t_x_9mm__HTD_5mm_",
+       "name": "14t x 9mm"
+      },
+      {
+       "id": "_14t_x_15mm__HTD_5mm_",
+       "name": "14t x 15mm"
+      },
+      {
+       "id": "Copy_of_14t_x_15mm",
+       "name": "15t x 9mm"
+      },
+      {
+       "id": "Copy_of_Copy_of_14t_x_15mm",
+       "name": "15t x 15mm"
+      },
+      {
+       "id": "_16t_x_9mm__HTD_5mm_",
+       "name": "16t x 9mm"
+      },
+      {
+       "id": "_14t_x_15mm__HTD_5mm_0",
+       "name": "16t x 15mm"
+      },
+      {
+       "id": "_14t_x_9mm__HTD_5mm_0",
+       "name": "18t x 9mm"
+      },
+      {
+       "id": "_18t_x_15mm__HTD_5mm_",
+       "name": "18t x 15mm"
+      },
+      {
+       "id": "_20t_x_9mm",
+       "name": "20t x 9mm"
+      },
+      {
+       "id": "_20t_x_15mm",
+       "name": "20t x 15mm"
+      },
+      {
+       "id": "_24t_x_9mm",
+       "name": "24t x 9mm"
+      },
+      {
+       "id": "_24t_x_15mm",
+       "name": "24t x 15mm"
+      },
+      {
+       "id": "_30t_x_9mm",
+       "name": "30t x 9mm"
+      },
+      {
+       "id": "_30t_x_15mm",
+       "name": "30t x 15mm"
+      },
+      {
+       "id": "_36t_x_9mm",
+       "name": "36t x 9mm"
+      },
+      {
+       "id": "_36t_x_15mm",
+       "name": "36t x 15mm"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-2576",
+     "name": "12t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-1017",
+     "name": "12t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore, Legacy)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "Default"
+     }
+    },
+    {
+     "partNumber": "WCP-1018",
+     "name": "12t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore, Legacy)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "Copy_of_12t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2577",
+     "name": "12t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_12t_x_15mm__HTD_5mm___WCP_"
+     }
+    },
+    {
+     "partNumber": "WCP-1801",
+     "name": "14t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_9mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "WCP-1803",
+     "name": "14t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_15mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "WCP-2253",
+     "name": "15t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "Copy_of_14t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2258",
+     "name": "15t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "Copy_of_Copy_of_14t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-1802",
+     "name": "16t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_16t_x_9mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "WCP-1804",
+     "name": "16t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_15mm__HTD_5mm_0"
+     }
+    },
+    {
+     "partNumber": "WCP-1634",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_14t_x_9mm__HTD_5mm_0"
+     }
+    },
+    {
+     "partNumber": "WCP-1805",
+     "name": "18t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_18t_x_15mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "WCP-2254",
+     "name": "20t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_20t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2259",
+     "name": "20t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_20t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2255",
+     "name": "24t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_24t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2260",
+     "name": "24t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_24t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2256",
+     "name": "30t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_30t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2261",
+     "name": "30t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_30t_x_15mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2257",
+     "name": "36t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_36t_x_9mm"
+     }
+    },
+    {
+     "partNumber": "WCP-2262",
+     "name": "36t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm SplineXS Bore)",
+     "values": {
+      "List_X6MBcLsuyfMsDH": "_36t_x_15mm"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "3e1d0509-a111-4ccd-88f5-f8b3d749f34e",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm Pulley - Bearing Bore",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "d148072de8ea8b794663e7a0",
+   "parameters": [
+    {
+     "id": "List_aet5kgYH6v1GDj",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "48t x 18.5mm, 1.125\" Bearing Bore (TTB)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0128",
+     "name": "48t Aluminum Pulley (HTD 5mm, 18.5mm Wide, 1.125\" Round Bore)",
+     "values": {}
+    }
+   ]
+  },
+  {
+   "insertableId": "6113d8e6-b710-4549-bfb0-507f5a9e68ff",
+   "group": "Pulleys & Belt Accessories",
+   "name": "HTD 5mm VersaPulley (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "ASSEMBLY",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "079fa13fd1a76926aa28d7de",
+   "parameters": [
+    {
+     "id": "List_37juCscApTb4b7",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "42t x 9mm"
+      },
+      {
+       "id": "_42t_x_18mm",
+       "name": "42t x 18mm"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true"
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-3199",
+     "name": "42t Plastic VersaPulley (HTD 5mm, 9mm Wide, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-3199",
+     "name": "42t Plastic VersaPulley (HTD 5mm, 9mm Wide, 1.125\" Round Bore)",
+     "values": {
+      "List_37juCscApTb4b7": "Default",
+      "Simplified_Model": "false"
+     }
+    },
+    {
+     "partNumber": "217-3199",
+     "name": "42t Plastic VersaPulley (HTD 5mm, 18mm Wide, 1.125\" Round Bore)",
+     "values": {
+      "List_37juCscApTb4b7": "_42t_x_18mm",
+      "Simplified_Model": "true"
+     }
+    },
+    {
+     "partNumber": "217-3199",
+     "name": "42t Plastic VersaPulley (HTD 5mm, 18mm Wide, 1.125\" Round Bore)",
+     "values": {
+      "List_37juCscApTb4b7": "_42t_x_18mm",
+      "Simplified_Model": "false"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "9a4afa5c-9df2-41a9-a00c-827804174289",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Pinion Pulley - 550 Bore",
+   "vendors": [
+    "WCP",
+    "REV",
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "b1a5445f24f8c62c0f09e66d",
+   "parameters": [
+    {
+     "id": "List_8m6tHp0cNDeSzI",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_12t_x_9mm__GT2_3mm___WCP_",
+     "options": [
+      {
+       "id": "_12t_x_9mm__GT2_3mm___WCP_",
+       "name": "12t x 9mm (GT2 3mm) (WCP)"
+      },
+      {
+       "id": "Default",
+       "name": "12t x 9mm (GT2 3mm) (REV)"
+      },
+      {
+       "id": "_12t_x_9mm__GT2_3mm___VEX_",
+       "name": "12t x 9mm (GT2 3mm) (VEX)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0614",
+     "name": "12t Aluminum Pulley (GT2 3mm, 9mm Wide, 550 Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-1908",
+     "name": "12t Aluminum Pulley (GT2 3mm, 9mm Wide, 550 Bore)",
+     "values": {
+      "List_8m6tHp0cNDeSzI": "Default"
+     }
+    },
+    {
+     "partNumber": "217-5870",
+     "name": "12t Aluminum Pulley (GT2 3mm, 9mm Wide, 550 Bore)",
+     "values": {
+      "List_8m6tHp0cNDeSzI": "_12t_x_9mm__GT2_3mm___VEX_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "7327f37b-098f-45a5-9cdc-2ea96e2f7940",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Pinion Pulley - 775 Bore",
+   "vendors": [
+    "WCP",
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "efaae733303a688ff125f0b2",
+   "parameters": [
+    {
+     "id": "List_n2M4pCTF3zUFMO",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "12t x 9mm (GT2 3mm) (WCP)"
+      },
+      {
+       "id": "_12t_x_9mm__VEX_",
+       "name": "12t x 9mm (GT2 3mm) (VEX)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0616",
+     "name": "12t Aluminum Pulley (GT2 3mm, 9mm Wide, 775 Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-5871",
+     "name": "12t Aluminum Pulley (GT2 3mm, 9mm Wide, 775 Bore)",
+     "values": {
+      "List_n2M4pCTF3zUFMO": "_12t_x_9mm__VEX_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "c4de25c8-cf52-46ab-9b5a-b9452c51d2d7",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Pinion Pulley - 8mm CIM/NEO Bore",
+   "vendors": [
+    "TTB",
+    "WCP",
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "0b7e71624500a351e63d4c2b",
+   "parameters": [
+    {
+     "id": "List_YWji3ZOXT2GsiV",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_12t_x_9mm__HTD_5mm___WCP_",
+     "options": [
+      {
+       "id": "_11t_18_5mm__HTD_5mm___TTB_",
+       "name": "11t x 15mm (HTD 5mm) (TTB)"
+      },
+      {
+       "id": "_12t_x_9mm__HTD_5mm___WCP_",
+       "name": "12t x 9mm (HTD 5mm) (WCP)"
+      },
+      {
+       "id": "_12t_x_18mm__HTD_5mm_",
+       "name": "12t x 15mm (HTD 5mm) (WCP)"
+      },
+      {
+       "id": "_12t",
+       "name": "12t x 1/2\" (RT25) (REV)"
+      },
+      {
+       "id": "Default",
+       "name": "16t x 15mm (GT2 3mm) (REV)"
+      },
+      {
+       "id": "_18t_x_9mm__HTD_5mm_",
+       "name": "18t x 9mm (HTD 5mm) (WCP)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0076",
+     "name": "12t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm Keyed Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0061",
+     "name": "11t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm Keyed Bore)",
+     "values": {
+      "List_YWji3ZOXT2GsiV": "_11t_18_5mm__HTD_5mm___TTB_"
+     }
+    },
+    {
+     "partNumber": "WCP-0077",
+     "name": "12t Aluminum Pulley (HTD 5mm, 15mm Wide, 8mm Keyed Bore)",
+     "values": {
+      "List_YWji3ZOXT2GsiV": "_12t_x_18mm__HTD_5mm_"
+     }
+    },
+    {
+     "partNumber": "REV-21-2200",
+     "name": "12t Aluminum Pulley (RT25, 1/2\" Wide, 8mm Keyed Bore)",
+     "values": {
+      "List_YWji3ZOXT2GsiV": "_12t"
+     }
+    },
+    {
+     "partNumber": "REV-21-1909",
+     "name": "16t Aluminum Pulley (GT2 3mm, 15mm Wide, 8mm Keyed Bore)",
+     "values": {
+      "List_YWji3ZOXT2GsiV": "Default"
+     }
+    },
+    {
+     "partNumber": "WCP-1659",
+     "name": "18t Aluminum Pulley (HTD 5mm, 9mm Wide, 8mm Keyed Bore)",
+     "values": {
+      "List_YWji3ZOXT2GsiV": "_18t_x_9mm__HTD_5mm_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "9234c2c3-5a9e-4b12-8192-b55a264fcec5",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Pinion Pulley - Falcon Spline Bore",
+   "vendors": [
+    "TTB",
+    "WCP",
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "3fbf8e485e773b8bfa867e15",
+   "parameters": [
+    {
+     "id": "List_Wu9Tk6ElZc2oKP",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "_12t_x_9mm_HTD_5mm",
+     "options": [
+      {
+       "id": "_11t_x_18_5mm_HTD_5mm__TTB_",
+       "name": "11t x 15mm (HTD 5mm) (TTB)"
+      },
+      {
+       "id": "_12t_x_9mm_HTD_5mm",
+       "name": "12t x 9mm (HTD 5mm) (WCP)"
+      },
+      {
+       "id": "Default",
+       "name": "16t x 9mm (GT2 3mm) (WCP)"
+      },
+      {
+       "id": "_16t_x_9mm_GT2_3mm__VEX_",
+       "name": "16t x 9mm (GT2 3mm) (VEX)"
+      },
+      {
+       "id": "_16t_x_9mm_GT2_3mm__VEX_0",
+       "name": "16t x 9mm (GT2 3mm) (Tight Fit) (VEX)"
+      },
+      {
+       "id": "_16t_x_15mm_Width",
+       "name": "16t x 15mm (GT2 3mm) (WCP)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0454",
+     "name": "12t Aluminum Pulley (HTD 5mm, 9mm Wide, Falcon Spline Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0062",
+     "name": "11t Aluminum Pulley (HTD 5mm, 18.5mm Wide, Falcon Spline Bore)",
+     "values": {
+      "List_Wu9Tk6ElZc2oKP": "_11t_x_18_5mm_HTD_5mm__TTB_"
+     }
+    },
+    {
+     "partNumber": "WCP-0603",
+     "name": "16t Aluminum Pulley (GT2 3mm, 9mm Wide, Falcon Spline Bore)",
+     "values": {
+      "List_Wu9Tk6ElZc2oKP": "Default"
+     }
+    },
+    {
+     "partNumber": "217-6924",
+     "name": "16t Aluminum Pulley (GT2 3mm, 9mm Wide, Falcon Spline Bore)",
+     "values": {
+      "List_Wu9Tk6ElZc2oKP": "_16t_x_9mm_GT2_3mm__VEX_"
+     }
+    },
+    {
+     "partNumber": "217-7595",
+     "name": "16t Aluminum Pulley (GT2 3mm, 9mm Wide, Falcon Spline Bore, Tight Fit)",
+     "values": {
+      "List_Wu9Tk6ElZc2oKP": "_16t_x_9mm_GT2_3mm__VEX_0"
+     }
+    },
+    {
+     "partNumber": "WCP-0318",
+     "name": "16t Aluminum Pulley (GT2 3mm, 15mm Wide, Falcon Spline Bore)",
+     "values": {
+      "List_Wu9Tk6ElZc2oKP": "_16t_x_15mm_Width"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "dbc3513d-8fd7-4137-a843-ef37f2485767",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Polycord/Rope Pulley - Single (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "ASSEMBLY",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "4bd2079d7b573f1e6d9b9d1b",
+   "parameters": [
+    {
+     "id": "List_HbO5bcJXc7Q3Uz",
+     "name": "Diameter",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "1.625\""
+      },
+      {
+       "id": "_2_",
+       "name": "2\""
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0096",
+     "name": "1.625\" Pulley (1/4\" Groove, Single)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0358",
+     "name": "2\" Pulley (1/4\" Groove, Single)",
+     "values": {
+      "List_HbO5bcJXc7Q3Uz": "_2_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "a13f6123-550d-419b-9de6-35ec5f09da14",
+   "group": "Pulleys & Belt Accessories",
+   "name": "Polycord/Rope Pulley Slice (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "dddb11be8d9ba2b686157b49",
+   "parameters": [
+    {
+     "id": "List_GXfY2ENlA0Eemk",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Middle"
+      },
+      {
+       "id": "End",
+       "name": "End"
+      }
+     ]
+    },
+    {
+     "id": "List_682il53Yb7N5L7",
+     "name": "Diameter",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "1.625\""
+      },
+      {
+       "id": "_2_",
+       "name": "2\""
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0096",
+     "name": "1.625\" Pulley Slice (1/4\" Groove, Double)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0358",
+     "name": "2\" Pulley Slice (1/4\" Groove, Double)",
+     "values": {
+      "List_GXfY2ENlA0Eemk": "Default",
+      "List_682il53Yb7N5L7": "_2_"
+     }
+    },
+    {
+     "partNumber": "WCP-0097",
+     "name": "1.625\" Pulley Slice (1/4\" Groove, Single)",
+     "values": {
+      "List_GXfY2ENlA0Eemk": "End",
+      "List_682il53Yb7N5L7": "Default"
+     }
+    },
+    {
+     "partNumber": "WCP-0359",
+     "name": "2\" Pulley Slice (1/4\" Groove, Single)",
+     "values": {
+      "List_GXfY2ENlA0Eemk": "End",
+      "List_682il53Yb7N5L7": "_2_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "800fd98e-0c34-4b32-a9ac-552b1781c084",
+   "group": "Pulleys & Belt Accessories",
+   "name": "RT25 Pulley - 1/2\" Hex Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "b2b2c7e65105d8b88f38a7f0",
+   "parameters": [
+    {
+     "id": "List_kLhzNGEJGs4UMj",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "16t x 1/2\" (Single)"
+      },
+      {
+       "id": "_16t_Double",
+       "name": "16t x 1\" (Double)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-21-2205",
+     "name": "16t Aluminum Pulley (RT25, 1/2\" Wide, 1/2\" Hex Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-2206",
+     "name": "16t Aluminum Pulley (RT25, 1/2\" Wide, 1\" Hex Bore)",
+     "values": {
+      "List_kLhzNGEJGs4UMj": "_16t_Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "1a6afdb5-70e9-4365-995d-3ea00a111f2f",
+   "group": "Pulleys & Belt Accessories",
+   "name": "RT25 Pulley - MAXSpline Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "ASSEMBLY",
+   "documentId": "7348c911d6b36d3b222c1dfe",
+   "elementId": "e1e749203c17965a05557e98",
+   "parameters": [
+    {
+     "id": "List_KOc9hmQqjnTpbV",
+     "name": "Teeth",
+     "type": "enum",
+     "default": "_40t",
+     "options": [
+      {
+       "id": "Default",
+       "name": "24t"
+      },
+      {
+       "id": "_32t",
+       "name": "32t"
+      },
+      {
+       "id": "_40t",
+       "name": "40t"
+      },
+      {
+       "id": "_48t",
+       "name": "48t"
+      },
+      {
+       "id": "_56t",
+       "name": "56t"
+      },
+      {
+       "id": "_64t",
+       "name": "64t"
+      }
+     ]
+    },
+    {
+     "id": "List_aNwPoODfdqNaXN",
+     "name": "Width",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Single"
+      },
+      {
+       "id": "Double",
+       "name": "Double"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-25-2248",
+     "name": "40t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-25-2224",
+     "name": "24t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "Default",
+      "List_aNwPoODfdqNaXN": "Default"
+     }
+    },
+    {
+     "partNumber": "REV-25-2224",
+     "name": "24t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "Default",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    },
+    {
+     "partNumber": "REV-25-2236",
+     "name": "32t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_32t",
+      "List_aNwPoODfdqNaXN": "Default"
+     }
+    },
+    {
+     "partNumber": "REV-25-2236",
+     "name": "32t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_32t",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    },
+    {
+     "partNumber": "REV-25-2248",
+     "name": "40t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_40t",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    },
+    {
+     "partNumber": "REV-25-2260",
+     "name": "48t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_48t",
+      "List_aNwPoODfdqNaXN": "Default"
+     }
+    },
+    {
+     "partNumber": "REV-25-2260",
+     "name": "48t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_48t",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    },
+    {
+     "partNumber": "REV-25-2272",
+     "name": "56t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_56t",
+      "List_aNwPoODfdqNaXN": "Default"
+     }
+    },
+    {
+     "partNumber": "REV-25-2272",
+     "name": "56t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_56t",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    },
+    {
+     "partNumber": "REV-25-2284",
+     "name": "64t Plastic Pulley (RT25, 1/2\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_64t",
+      "List_aNwPoODfdqNaXN": "Default"
+     }
+    },
+    {
+     "partNumber": "REV-25-2284",
+     "name": "64t Plastic Pulley (RT25, 1\" Wide, MAXSpline Bore)",
+     "values": {
+      "List_KOc9hmQqjnTpbV": "_64t",
+      "List_aNwPoODfdqNaXN": "Double"
+     }
+    }
+   ]
+  }
+ ]
+}

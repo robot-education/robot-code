@@ -1321,3 +1321,30 @@ def test_simplification_annotation_matches_its_parameter(project):
     assert feature("parameterOnly", "", True) == [
         'The feature allows simplification (simplificationPredicate), so its annotation needs "Simplification" : true, for the FeatureScripts tab.'
     ]
+
+
+def test_auto_assembly_annotation_matches_declaring_parts(project):
+    # "Auto Assembly" : true needs its Feature Studio to declare library parts (declarePart or addStandIn), and they
+    # need the key
+    def feature(name: str, claim: str, declares: bool) -> list[str]:
+        path = project.code_dir / f"{name}.fs"
+        call = "        addStandIn(context, id, plane, radius, width, undefined, kind, product, {});\n"
+        path.write_text(
+            "FeatureScript 2909;\n"
+            f'annotation {{ "Feature Type Name" : "F"{claim} }}\n'
+            f"export const {name} = defineFeature(function(context is Context, id is Id, definition is map)\n"
+            "    precondition\n    {\n    }\n    {\n" + (call if declares else "") + "    });\n"
+        )
+        module = project.module(path)
+        return [p.message for p in project.check(module) if p.code == "auto-assembly"]
+
+    assert feature("both", ', "Auto Assembly" : true', True) == []
+    assert feature("neither", "", False) == []
+    assert feature("claimOnly", ', "Auto Assembly" : true', False) == [
+        "The feature says it declares library parts, but its Feature Studio calls neither declarePart nor addStandIn "
+        "(in core/autoAssembly.fs)."
+    ]
+    assert feature("declaresOnly", "", True) == [
+        'The feature declares library parts (declarePart or addStandIn), so its annotation needs "Auto Assembly" : '
+        "true, for the FeatureScripts tab."
+    ]

@@ -10,6 +10,7 @@ import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 annotation {
         "Feature Type Name" : "Robot pulley",
         "Manipulator Change Function" : "robotPulleyManipulatorChange",
+        "Auto Assembly" : true,
         "Simplification" : true,
         "Editing Logic Function" : "robotPulleyEditLogic",
         "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys and idlers." ~
@@ -51,6 +52,25 @@ function doRobotPulley(context is Context, id is Id, definition is map)
         pulleyDefinitions = getBeltPulleyDefinitions(context, definition);
     }
 
+    // Stand-ins for library pulleys have none of a printed pulley's options (hidden, they keep their values)
+    const library = isLibraryPulley(definition);
+    if (library)
+    {
+        definition = mergeMaps(definition, {
+                    "twoBelts" : false,
+                    "addFlanges" : false,
+                    "addBore" : false,
+                    "addText" : false,
+                    "addProfileOffset" : false,
+                    "allowSimplification" : false,
+                    "addMateConnectors" : true
+                });
+        pulleyDefinitions = mapArray(pulleyDefinitions, function(pulleyDefinition)
+            {
+                return isIdlerDefinition(pulleyDefinition) ? pulleyDefinition : withLibraryProduct(definition, pulleyDefinition);
+            });
+    }
+
     // Simplified: its pitch circle, without teeth or engraving
     const simplified = isSimplified(context, definition);
 
@@ -69,7 +89,10 @@ function doRobotPulley(context is Context, id is Id, definition is map)
 
     for (var i, pulleyDefinition in pulleyDefinitions)
     {
-        setPulleyProperties(context, definition, pulleyDefinition, pulleys[i]);
+        if (!isStandInDefinition(pulleyDefinition))
+        {
+            setPulleyProperties(context, definition, pulleyDefinition, pulleys[i]);
+        }
     }
 
     if (definition.addFlanges)
@@ -96,6 +119,103 @@ function doRobotPulley(context is Context, id is Id, definition is map)
     {
         addText(context, id + "text", definition, pulleyDefinitions, pulleys);
     }
+
+    if (library)
+    {
+        reportMissingProducts(context, definition, pulleyDefinitions, pulleys);
+    }
+}
+
+/**
+ * `pulleyDefinition` with the library pulley it's built as (`product`, its vendor's and bore's, of its belt type and
+ * teeth, the narrowest at least as wide as its belt), or `missing` if its vendor has none.
+ */
+function withLibraryProduct(definition is map, pulleyDefinition is PulleyDefinition) returns PulleyDefinition
+{
+    const choice = getLookupTable(pulleyProductTable, definition.pulleyProduct);
+    const products = PULLEY_PRODUCTS[choice.vendor][choice.bore];
+    const product = findProduct(products, function(product)
+        {
+            return product.beltType == pulleyDefinition.beltType && product.teeth == pulleyDefinition.teeth &&
+                product.width >= pulleyDefinition.beltWidth - TOLERANCE.zeroLength * meter;
+        }, function(product)
+        {
+            return product.width;
+        });
+    if (product == undefined)
+    {
+        pulleyDefinition.missing = true;
+    }
+    else
+    {
+        pulleyDefinition.product = product;
+    }
+    return pulleyDefinition;
+}
+
+/**
+ * Whether it's built as a stand-in for a library pulley (or, its vendor having none, as one would be, to show).
+ */
+predicate isStandInDefinition(pulleyDefinition is PulleyDefinition)
+{
+    pulleyDefinition.product != undefined || pulleyDefinition.missing != undefined;
+}
+
+/**
+ * Errors if a pulley's vendor has none of its belt type and teeth, at least as wide as its belt, with the stand-ins of
+ * those (each as one would be), and the teeth and widths it has.
+ */
+function reportMissingProducts(context is Context, definition is map, pulleyDefinitions is array, pulleys is array)
+{
+    var missing = [];
+    for (var i, pulleyDefinition in pulleyDefinitions)
+    {
+        if (pulleyDefinition.missing != undefined)
+        {
+            missing = append(missing, i);
+        }
+    }
+    if (missing == [])
+    {
+        return;
+    }
+    const pulleyDefinition = pulleyDefinitions[missing[0]];
+    const path = definition.pulleyProduct;
+    const choice = getLookupTable(pulleyProductTable, path);
+    const beltName = getBeltTypeName(pulleyDefinition.beltType);
+    // Its teeth and widths, once each, in order
+    var teeth = [];
+    var widths = [];
+    for (var product in PULLEY_PRODUCTS[choice.vendor][choice.bore])
+    {
+        if (product.beltType == pulleyDefinition.beltType)
+        {
+            teeth = isIn(product.teeth ~ "T", teeth) ? teeth : append(teeth, product.teeth ~ "T");
+            widths = isIn(widthString(product.width), widths) ? widths : append(widths, widthString(product.width));
+        }
+    }
+    const what = path.vendor ~ " has no " ~ pulleyDefinition.teeth ~ "T " ~ beltName ~ " pulley " ~ widthString(pulleyDefinition.beltWidth) ~
+        " or wider with a " ~ path.bore ~ " bore";
+    const has = teeth == [] ? "it has no " ~ beltName ~ " pulleys with that bore." :
+        "its " ~ beltName ~ " ones have " ~ join(teeth, ", ") ~ " (" ~ join(widths, ", ") ~ " wide).";
+    const parameters = definition.creationMethod == CreationMethod.MANUAL ? ["pulleyProduct", "pulleyTeeth"] : ["pulleyProduct"];
+    throw regenError(what ~ ": " ~ has, parameters, qUnion(mapArray(missing, function(i)
+                    {
+                        return pulleys[i];
+                    })));
+}
+
+/**
+ * A pulley's width, as its vendor gives it: like `9 mm`, or `0.5 in`.
+ */
+function widthString(width is ValueWithUnits) returns string
+{
+    const millimeters = width / millimeter;
+    if (abs(millimeters - round(millimeters * 2) / 2) < 1e-6)
+    {
+        return roundToPrecision(millimeters, 1) ~ " mm";
+    }
+    return roundToPrecision(width / inch, 3) ~ " in";
 }
 
 function addManualManipulators(context is Context, id is Id, definition is map, pulleyDefinition is PulleyDefinition, pointDistances is array)
@@ -324,9 +444,14 @@ function createPulleys(context is Context, id is Id, definition is map, pulleyDe
             skSolve(sketch);
             profile = qCreatedBy(pulleyId + "profile", EntityType.FACE);
         }
-        else if (simplified)
+        else if (pulleyDefinition.product != undefined)
         {
-            // Its pitch circle, without teeth
+            pulleys = append(pulleys, addPulleyStandIn(context, pulleyId, definition, pulleyDefinition));
+            continue;
+        }
+        else if (simplified || pulleyDefinition.missing != undefined)
+        {
+            // Its pitch circle, without teeth (or as a missing library pulley's stand-in would be, to show)
             const sketch = newSketchOnPlane(context, pulleyId + "profile", { "sketchPlane" : plane });
             skCircle(sketch, "pitchCircle", {
                         "center" : vector(0, 0) * meter,
@@ -360,10 +485,42 @@ function createPulleys(context is Context, id is Id, definition is map, pulleyDe
     return pulleys;
 }
 
+/**
+ * A library pulley's stand-in (see `addStandIn`), as wide as it is, with its pulley attributes, on its body and its
+ * mate connectors, so a belt goes around it as around a pulley.
+ */
+function addPulleyStandIn(context is Context, id is Id, definition is map, pulleyDefinition is PulleyDefinition) returns Query
+{
+    const product = pulleyDefinition.product;
+    const standIn = addStandIn(context, id + "standIn", pulleyDefinition.plane,
+        getPulleyRadius(getBeltPitch(pulleyDefinition.beltType), pulleyDefinition.teeth), product.width, product.boreDiameter,
+        AutoAssemblyKind.PULLEY, product as Product, {
+                "beltType" : pulleyDefinition.beltType,
+                "teeth" : pulleyDefinition.teeth,
+                "beltWidth" : pulleyDefinition.beltWidth
+            });
+    setAttribute(context, {
+                "entities" : standIn.body,
+                "name" : PULLEY_ATTRIBUTE,
+                "attribute" : pulleyAttribute(definition, pulleyDefinition, "body")
+            });
+    setAttribute(context, {
+                "entities" : standIn.connectors,
+                "name" : PULLEY_ATTRIBUTE,
+                "attribute" : pulleyAttribute(definition, pulleyDefinition, "standInMateConnector")
+            });
+    return standIn.body;
+}
+
 function addMateConnectors(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)
 {
     for (var i, pulleyDefinition in pulleyDefinitions)
     {
+        // A stand-in has its own
+        if (isStandInDefinition(pulleyDefinition))
+        {
+            continue;
+        }
         const mateConnectorId = id + unstableIdComponent(i);
         if (pulleyDefinition.identity != undefined)
         {

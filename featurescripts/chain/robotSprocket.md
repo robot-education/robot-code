@@ -1,12 +1,15 @@
 # Robot sprocket
 
 Makes #25 (and #25H, the same), #35, or 8mm (05B) sprockets: ISO 606 teeth, as wide as the chain's (0.93 of its inner width), at a sketch
-point, or wherever a Robot chain goes around a sprocket, with a bore.
+point, or wherever a Robot chain goes around a sprocket, with a bore; or with Library sprocket, stand-ins for
+FRCDesignLib's sprockets, which FRCDesign's Auto Assembly swaps in.
 
 | File | What it is |
 | --- | --- |
 | `robotSprocket.fs` | The feature: its dialog, and the sprockets |
 | `chainCommon.fs` | Chain sizes, the tooth form (`getSprocketToothForm`, `sketchSprocketProfile`), and the attributes |
+| `sprocketProducts.py` | FRCDesignLib's sprockets (generating `sprocketProducts.gen.fs`), from a snapshot in `vendor/` |
+| `../core/autoAssembly.fs` | Stand-ins, and their declarations |
 | `../core/bore.fs` | The bore: its parameters, and cutting it |
 | `../core/location.fs`, `../core/startOffset.fs`, `../core/profileOffset.fs` | The location, starting offset, and profile offset |
 
@@ -21,6 +24,9 @@ Unreleased.
 | Robot sprocket | feature name |
 | Create #25, #25H, #35, and 8mm sprockets. `<br>`See also the Robot chain FeatureScript, which works with this feature directly. `<CREDIT>` | feature description |
 | `<teeth>`T `<#25, #25H, #35, or 8mm>` Sprocket | part name |
+| Library sprocket, Sprocket (Vendor, Bore) | Library sprocket's checkbox, group, and table |
+
+A stand-in is named and numbered as its product (like `16t Aluminum Sprocket (#25, 1/2" Hex Bore, Double Hub)`).
 
 Its material is Onyx, and its appearance printed green (as Robot pulley's).
 
@@ -32,6 +38,7 @@ Its material is Onyx, and its appearance printed green (as Robot pulley's).
 | Diameter (`boreDiameter`) | The diameter of the shaft it goes on. |
 | Fit (`fit`), Clearance (`fitClearance`) | (`core/fit.fs`'s) |
 | Allow simplification (`allowSimplification`) | Builds it simplified while the Part Studio's Simplified configuration variable is on. |
+| Library sprocket (`librarySprocket`) | Builds a stand-in for one of FRCDesignLib's sprockets, which FRCDesign's Auto Assembly swaps in. |
 
 No parameters are hidden.
 
@@ -46,13 +53,15 @@ No parameters are hidden.
 | The profile offset is too large for this chain. | error | the offset leaves no seating curve | `profileOffsetDistance` |
 | A `<teeth>` tooth sprocket's teeth don't fit this chain. | error | the flanks can't reach a tip | `teeth` |
 | Failed to cut bore. / The bore is bigger than the part. / Failed to chamfer bore. | error | (`core/bore.fs`) | the bore's parameters, and what failed |
+| `<vendor>` has no `<teeth>`T `<chain>` sprocket with a `<bore>` bore: its `<chain>` ones have `<teeth>`T, ... (or: it has no `<chain>` sprockets with that bore.) | error | Library sprocket, the vendor has none for a sprocket | `sprocketProduct` (and Manual's `teeth`), and each such sprocket's pitch circle disc |
 
 ## How it works
 
 ### Execution order
 
 1. **Precondition**: Creation method; Manual: location, Chain type, Teeth, starting offset; Chain: the chain's faces
-   or mate connectors; the bore (`borePredicate`); profile offset; Add mate connectors.
+   or mate connectors; Library sprocket, with its table; without it, the bore (`borePredicate`), profile offset, Add
+   mate connectors, and Allow simplification.
 2. **Body**:
    1. The sprockets: Manual's one, at the location's plane with the starting offset; or Chain's, one per place the
       selected faces or mate connectors are around (`getChainSprockets`: a face's plane is its cylinder's, at its
@@ -62,6 +71,8 @@ No parameters are hidden.
       from its plane, sets its `SprocketAttribute` (its chain type, teeth, and plane, which Robot chain reads) and
       properties.
    3. A profile offset manipulator, mate connectors (with the attribute too), and the bore (`cutBores`).
+   With Library sprocket, each sprocket is its vendor's product instead (`withLibraryProduct`), built as a stand-in
+   (`addSprocketStandIn`), and the body ends erroring if any has none (`reportMissingProducts`).
 3. **Manipulator change** (`robotSprocketManipulatorChange`): the profile offset's and starting offset's.
 
 The tooth form (ISO 606, with the most room for the chain): each gap's seating curve is an arc around its roller's
@@ -70,6 +81,16 @@ around; each flank's an arc tangent to it, of radius `0.008 d1 (z² + 180)`, out
 largest and smallest ISO 606 allows. A tooth whose flanks would cross below the tip circle is cut off where they're a
 tenth of the tooth apart (found by bisection). The profile offset moves every curve outward (seating curves shrink,
 flanks and tips grow).
+
+### Library sprocket
+
+Library sprocket chooses a vendor and a bore (`sprocketProductTable`); each sprocket is that vendor's first product
+for its chain (#25's for #25H) with its teeth (`SPROCKET_PRODUCTS`, from `sprocketProducts.py`). Its stand-in
+(`addStandIn`, `core/autoAssembly.fs`) is its pitch circle's disc, as wide as its teeth (library sprockets' widths
+aren't in their records), with a hole the shaft fits in (a hex's across its corners), named and numbered as its
+product, out of the bill of materials and translucent, with `bottom` and `top` mate connectors on its faces; it and
+they carry the declaration (`frcAutoAssembly`) and its `SprocketAttribute`, so a Robot chain goes around it. The
+bore, profile offset, mate connectors and simplification are hidden, and off. See `docs/auto-assembly.md`.
 
 ### Simplification
 
@@ -81,4 +102,6 @@ connectors, attributes) as ever.
 
 - Untested in Onshape: nothing here has run yet.
 - No hub: a sprocket is its toothed plate, as wide as its teeth.
+- Stand-ins' connectors' X isn't checked against a library sprocket's tooth (FRCDesignLib's sprockets have no
+  connectors yet), and FRCDesignApp doesn't read declarations yet.
 - The icon is the generic robot icon.

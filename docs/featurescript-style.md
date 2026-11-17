@@ -262,6 +262,15 @@ which `fs check` requires exactly when the feature has Allow simplification. Rob
 their pitch circles, without teeth. Mass changes when a part's simplified, so nothing should be measured from a
 simplified configuration.
 
+## Library parts (Auto Assembly)
+
+A feature can build a stand-in for an FRCDesignLib part, which FRCDesign's Auto Assembly swaps in: `addStandIn`
+(`core/autoAssembly.fs`) builds it and declares the part (`declarePart`), from a product table generated from a
+snapshot of the library (`fs_cli/frcdesign_library.py`; see `released/belt/pulleyProducts.py`). Its annotation says so
+with `"Auto Assembly" : true`, which `fs check` requires exactly when its Feature Studio calls `declarePart` or
+`addStandIn`, and `fs release` writes into the manifest with the products its tables reference. A declaration's format
+is an attribute's: see `AGENTS.md`'s attribute exception, and [auto-assembly.md](auto-assembly.md).
+
 ## Remember previous values
 
 Give parameters `"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]` (alongside any other hints), so a new feature starts with

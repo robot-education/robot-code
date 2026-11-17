@@ -205,6 +205,7 @@ def write_for_app(
         version=str(released.version),
         icon_element_id=icon_id,
         source_url=source_url(workspace, plan.studio.path),
+        studio_code=frontend.local_studio_code(workspace.config.code_dir, studios),
     )
     if entry is None:
         log(f"{plan.studio.path} exports no defineFeature, so FRCDesignApp won't list it.")
@@ -280,6 +281,7 @@ def plan_app_manifest(workspace: Workspace, log: Callable[[str], None] = print) 
             version=str(released.version),
             icon_element_id=None,
             source_url=url,
+            studio_code=frontend.local_studio_code(config.code_dir, files),
         )
         if entry is None:
             continue

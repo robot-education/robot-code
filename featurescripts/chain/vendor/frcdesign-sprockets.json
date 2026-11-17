@@ -1,0 +1,2663 @@
+{
+ "source": "https://app.frcdesign.org/api/configuration/insertable/{id}?v=235 (frc-design-lib: Sprockets & Chain Accessories)",
+ "parts": [
+  {
+   "insertableId": "eb244c24-a763-454b-a3f5-ce4b13a98ef6",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1.125\" Round Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "57d128844fdaaed1019d9824",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Copy_of_36t_Aluminum__Billet_",
+     "options": [
+      {
+       "id": "Copy_of_32t_Aluminum_Plate__Legacy_",
+       "name": "32t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum_Plate",
+       "name": "32t Aluminum Plate (Legacy)"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "38t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_38t_Aluminum_Plate",
+       "name": "38t Aluminum Plate (Legacy)"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "44t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Billet_",
+       "name": "50t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "56t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "62t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_62t_Aluminum_Plate",
+       "name": "66t Aluminum Plate (Legacy)"
+      },
+      {
+       "id": "Copy_of_Copy_of_62t_Aluminum_Plate",
+       "name": "68t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_68t_Aluminum_Plate",
+       "name": "74t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4782",
+     "name": "38t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4781",
+     "name": "32t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_32t_Aluminum_Plate__Legacy_"
+     }
+    },
+    {
+     "partNumber": "am-0233",
+     "name": "32t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-0661",
+     "name": "38t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_38t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4783",
+     "name": "44t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "am-4784",
+     "name": "50t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "am-4785",
+     "name": "56t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "am-4786",
+     "name": "62t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "am-0238",
+     "name": "66t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4787",
+     "name": "68t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4788",
+     "name": "74t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_68t_Aluminum_Plate"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "52233919-0028-4b97-b96c-8116221497e2",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1.125\" Round Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "fef9a4f4d997523086cbad2e",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "36t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "36t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "48t Aluminum Plate"
+      },
+      {
+       "id": "_36t_Aluminum__Billet_",
+       "name": "60t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Billet_",
+       "name": "60t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "72t Aluminum Plate"
+      },
+      {
+       "id": "_36t_Aluminum__Billet_0",
+       "name": "84t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "84t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0248",
+     "name": "36t Aluminum Billet Sprocket (#25, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0274",
+     "name": "36t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0275",
+     "name": "48t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "TTB-0249",
+     "name": "60t Aluminum Billet Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "_36t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0276",
+     "name": "60t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0277",
+     "name": "72t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "TTB-0285",
+     "name": "84t Aluminum Billet Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "_36t_Aluminum__Billet_0"
+     }
+    },
+    {
+     "partNumber": "TTB-0278",
+     "name": "84t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "7f4bb486-ffa6-4f86-b410-804715e7f51e",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1.125\" Round Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "e3678c5d4f5e133a4af5b614",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Copy_of_32t_Aluminum_Plate__Legacy_",
+     "options": [
+      {
+       "id": "Copy_of_32t_Aluminum_Plate__Legacy_",
+       "name": "32t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_38t_Aluminum_Plate",
+       "name": "34t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_24t_Aluminum_Plate",
+       "name": "36t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "38t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_28t_Aluminum_Plate",
+       "name": "40t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_30t_Aluminum_Plate",
+       "name": "42t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "44t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "48t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "54t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_62t_Aluminum_Plate",
+       "name": "58t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_Copy_of_62t_Aluminum_Plate",
+       "name": "60t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum_Plate",
+       "name": "64t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_64t_Aluminum_Plate",
+       "name": "72t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-2690 (Discontinued)",
+     "name": "32t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-2664 (Discontinued)",
+     "name": "34t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_38t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2639 (Discontinued)",
+     "name": "36t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_24t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2638 (Discontinued)",
+     "name": "38t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "217-2637 (Discontinued)",
+     "name": "40t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_28t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2636 (Discontinued)",
+     "name": "42t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_30t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2635 (Discontinued)",
+     "name": "44t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "217-2634 (Discontinued)",
+     "name": "48t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "217-2633 (Discontinued)",
+     "name": "54t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "217-2632 (Discontinued)",
+     "name": "58t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2631 (Discontinued)",
+     "name": "60t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2629 (Discontinued)",
+     "name": "64t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2627 (Discontinued)",
+     "name": "72t Aluminum Plate Sprocket (#25, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_64t_Aluminum_Plate"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "e48c0795-1dff-4718-9445-8954fbb0284e",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1/2\" Hex Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "895bb150a7a0f64099c4b545",
+   "parameters": [
+    {
+     "id": "List_sbUIFfzvk3H7Y3",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "14t Aluminum"
+      },
+      {
+       "id": "_24t_Aluminum__Single_Hub_",
+       "name": "17t Aluminum Double"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_22t_Aluminum",
+       "name": "22t Aluminum"
+      },
+      {
+       "id": "_26t_Aluminum",
+       "name": "26t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4773",
+     "name": "14t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-3999",
+     "name": "17t Aluminum Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_24t_Aluminum__Single_Hub_"
+     }
+    },
+    {
+     "partNumber": "am-4775",
+     "name": "18t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_18t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "am-4777",
+     "name": "22t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_22t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "am-4779",
+     "name": "26t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_26t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "a927e698-ea74-4493-8efa-2ad78771dfd0",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1/2\" Hex Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "b11af2af7ab3ecd04a9adb1a",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t",
+       "name": "12t Steel"
+      },
+      {
+       "id": "_12t_Steel",
+       "name": "16t Steel"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "16t Steel Double"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "24t Aluminum"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "32t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-21-2016",
+     "name": "16t Steel Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-2014",
+     "name": "12t Steel Sprocket (#25, 1/2\" Rounded Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_12t"
+     }
+    },
+    {
+     "partNumber": "REV-21-2012",
+     "name": "16t Steel Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "REV-21-2017",
+     "name": "24t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-2018",
+     "name": "32t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "604519cf-a879-4b39-add0-fcc3ba2b3bfc",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1/2\" Hex Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "ba1f2f46eaf2ee8879a0c3e6",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "14t Steel"
+      },
+      {
+       "id": "_18t_Aluminum_Double",
+       "name": "17t Steel Double"
+      },
+      {
+       "id": "_20t_Aluminum",
+       "name": "22t Aluminum (Single Hub)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0253",
+     "name": "14t Steel Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0254",
+     "name": "17t Steel Double Sprocket (#25, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "ELEV-DRIVE-003",
+     "name": "22t Aluminum Sprocket (#25, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_20t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "9ff6cd1c-a770-4c37-8496-2f6c648419c5",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1/2\" Hex Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "bdf0ad4d225446fcf5e8cf83",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "16t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "16t Aluminum Double"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "17t Aluminum Double"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "18t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_16t_Steel",
+       "name": "18t Aluminum Double"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "22t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "22t Aluminum Double"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-2642 (Discontinued)",
+     "name": "16t Aluminum Sprocket (#25, 1/2\" Hex Bore, Single Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-7371 (Discontinued)",
+     "name": "16t Aluminum Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "217-7372 (Discontinued)",
+     "name": "17t Aluminum Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "217-3488 (Discontinued)",
+     "name": "18t Aluminum Sprocket (#25, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "217-7373 (Discontinued)",
+     "name": "18t Aluminum Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Steel"
+     }
+    },
+    {
+     "partNumber": "217-2640 (Discontinued)",
+     "name": "22t Aluminum Sprocket (#25, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "217-7374 (Discontinued)",
+     "name": "22t Aluminum Double Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "7321d930-a8f2-4101-9779-be406a349e69",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 1/2\" Hex Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "69c145cf4f87758547276957",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "12t Steel"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "14t Steel"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "16t Aluminum"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "16t Aluminum Double"
+      },
+      {
+       "id": "_16t_Steel",
+       "name": "16t Steel"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "17t Aluminum"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_18t_Aluminum_Double",
+       "name": "18t Aluminum Double"
+      },
+      {
+       "id": "_20t_Aluminum",
+       "name": "20t Aluminum"
+      },
+      {
+       "id": "_22t_Aluminum",
+       "name": "22t Aluminum"
+      },
+      {
+       "id": "_24t_Aluminum",
+       "name": "24t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0576",
+     "name": "12t Steel Sprocket (#25, 1/2\" Rounded Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0577",
+     "name": "14t Steel Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0578",
+     "name": "16t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0087",
+     "name": "16t Aluminum Double Sprocket (#25, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "WCP-0558",
+     "name": "16t Steel Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0579",
+     "name": "17t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0559",
+     "name": "18t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0089",
+     "name": "18t Aluminum Double Sprocket (#25, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "WCP-0580",
+     "name": "20t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_20t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0560",
+     "name": "22t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_22t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0581",
+     "name": "24t Aluminum Sprocket (#25, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_24t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "efd69aea-0e11-4917-84dd-2518c8533620",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 3/8\" Hex Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "1778fec36561d38156871838",
+   "parameters": [
+    {
+     "id": "List_sbUIFfzvk3H7Y3",
+     "name": "Type",
+     "type": "enum",
+     "default": "_18t_Aluminum",
+     "options": [
+      {
+       "id": "Default",
+       "name": "14t Aluminum"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_22t_Aluminum",
+       "name": "22t Aluminum"
+      },
+      {
+       "id": "_24t_Aluminum__Single_Hub_",
+       "name": "24t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_26t_Aluminum",
+       "name": "26t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4776",
+     "name": "18t Aluminum Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4774",
+     "name": "14t Aluminum Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "Default"
+     }
+    },
+    {
+     "partNumber": "am-4778",
+     "name": "22t Aluminum Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_22t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "am-3630",
+     "name": "24t Aluminum Sprocket (#25, 3/8\" Hex Bore, Single Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_24t_Aluminum__Single_Hub_"
+     }
+    },
+    {
+     "partNumber": "am-4780",
+     "name": "26t Aluminum Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {
+      "List_sbUIFfzvk3H7Y3": "_26t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "26db8579-5dd0-42d0-a413-930ea2e1f627",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 3/8\" Hex Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "0bc142783619d42368199384",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "9t Steel"
+      },
+      {
+       "id": "_18t_Aluminum_Double",
+       "name": "12t Steel"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0250",
+     "name": "9t Steel Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0252",
+     "name": "12t Steel Sprocket (#25, 3/8\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum_Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "f9722496-69bc-46e6-8b47-649fe63670f1",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 3/8\" Hex Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "38ec6ebd93364b0ef6c6cc8b",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "16t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "22t Aluminum (Single Hub)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-5833 (Discontinued)",
+     "name": "16t Aluminum Sprocket (#25, 3/8\" Hex Bore, Single Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-5835 (Discontinued)",
+     "name": "22t Aluminum Sprocket (#25, 3/8\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "166005a3-bf8f-4ab5-8fb5-9668fe3d9413",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 8mm CIM/NEO Bore",
+   "vendors": [
+    "TTB",
+    "WCP",
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "61d8ecb9d30637ff923f392e",
+   "parameters": [
+    {
+     "id": "List_35EuQ04lYuL02s",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "_9t_Steel__TTB_",
+       "name": "9t Steel (TTB)"
+      },
+      {
+       "id": "Default",
+       "name": "10t Steel (WCP)"
+      },
+      {
+       "id": "_10t_Aluminum__Double_Hub___AM_",
+       "name": "10t Aluminum (AM)"
+      },
+      {
+       "id": "_10t_Aluminum__Single_Hub___AM_",
+       "name": "10t Aluminum (Single Hub) (AM)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-1419",
+     "name": "10t Steel Sprocket (#25, 8mm CIM/NEO Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0251",
+     "name": "9t Steel Sprocket (#25, 8mm CIM/NEO Bore, Double Hub)",
+     "values": {
+      "List_35EuQ04lYuL02s": "_9t_Steel__TTB_"
+     }
+    },
+    {
+     "partNumber": "am-4772",
+     "name": "10t Aluminum Sprocket (#25, 8mm CIM/NEO Bore, Double Hub)",
+     "values": {
+      "List_35EuQ04lYuL02s": "_10t_Aluminum__Double_Hub___AM_"
+     }
+    },
+    {
+     "partNumber": "am-0505",
+     "name": "10t Aluminum Sprocket (#25, 8mm CIM/NEO Bore, Single Hub)",
+     "values": {
+      "List_35EuQ04lYuL02s": "_10t_Aluminum__Single_Hub___AM_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "1cdb64bb-73fe-4dd0-9db7-9ab0d0772569",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - 8mm SplineXS Bore",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "86132887aae7ab052abddfd6",
+   "parameters": [
+    {
+     "id": "List_35EuQ04lYuL02s",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "10t Steel (WCP)"
+      },
+      {
+       "id": "_12T_Steel__Double_Hub_",
+       "name": "12t Steel (WCP)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-1019",
+     "name": "10t Steel Sprocket (#25, 8mm SplineXS Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-1020",
+     "name": "12t Steel Sprocket (#25, 8mm SplineXS Bore, Double Hub)",
+     "values": {
+      "List_35EuQ04lYuL02s": "_12T_Steel__Double_Hub_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "3e8ad44d-df75-4f9a-bdc4-652115995e36",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - Falcon Spline Bore",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "90dc911bf44692d26b6a036a",
+   "parameters": [
+    {
+     "id": "List_35EuQ04lYuL02s",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "10t Steel (WCP)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0582",
+     "name": "10t Steel Sprocket (#25, Falcon Spline Bore, Double Hub)",
+     "values": {}
+    }
+   ]
+  },
+  {
+   "insertableId": "8b56ec45-6bdc-4247-a9bf-bee8243cf138",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - MAXSpline Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "7598650e2d59d03c0911badd",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "24t Aluminum"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "32t Aluminum"
+      },
+      {
+       "id": "_48t_Aluminum",
+       "name": "40t Aluminum Billet"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "48t Aluminum Plate"
+      },
+      {
+       "id": "_54t_Aluminum",
+       "name": "48t Aluminum Billet"
+      },
+      {
+       "id": "_60t_Aluminum",
+       "name": "56t Aluminum Billet"
+      },
+      {
+       "id": "_42t_Aluminum",
+       "name": "64t Aluminum Plate"
+      },
+      {
+       "id": "_66t_Aluminum",
+       "name": "64t Aluminum Billet"
+      },
+      {
+       "id": "_72t_Aluminum",
+       "name": "72t Aluminum Billet"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-21-2015",
+     "name": "24t Aluminum Sprocket (#25, MAXSpline Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-2019",
+     "name": "32t Aluminum Sprocket (#25, MAXSpline Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "REV-21-3370",
+     "name": "40t Aluminum Billet Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_48t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-1964",
+     "name": "48t Aluminum Plate Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3374",
+     "name": "48t Aluminum Billet Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_54t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3378",
+     "name": "56t Aluminum Billet Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_60t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-1972",
+     "name": "64t Aluminum Plate Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_42t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3382",
+     "name": "64t Aluminum Billet Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_66t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3386",
+     "name": "72t Aluminum Billet Sprocket (#25, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_72t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "e5172801-05e8-4935-8ec9-53f9bba5868b",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#25 Sprocket - SplineXL Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "530ab1b8ab63a10aa494e3ab",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "24t Aluminum Plate"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "30t Aluminum Plate"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "36t Aluminum Plate"
+      },
+      {
+       "id": "_42t_Aluminum",
+       "name": "42t Aluminum Plate"
+      },
+      {
+       "id": "_48t_Aluminum",
+       "name": "48t Aluminum Plate"
+      },
+      {
+       "id": "_54t_Aluminum",
+       "name": "54t Aluminum Plate"
+      },
+      {
+       "id": "_60t_Aluminum",
+       "name": "60t Aluminum Plate"
+      },
+      {
+       "id": "_66t_Aluminum",
+       "name": "66t Aluminum Plate"
+      },
+      {
+       "id": "_72t_Aluminum",
+       "name": "72t Aluminum Plate"
+      },
+      {
+       "id": "_84t_Aluminum",
+       "name": "84t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0964",
+     "name": "24t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0965",
+     "name": "30t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0966",
+     "name": "36t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0967",
+     "name": "42t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_42t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0968",
+     "name": "48t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_48t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0969",
+     "name": "54t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_54t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0970",
+     "name": "60t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_60t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0971",
+     "name": "66t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_66t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0972",
+     "name": "72t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_72t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-1376",
+     "name": "84t Aluminum Sprocket (#25, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_84t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "f1891ad3-7e6d-4fae-80f1-875fd07c0c65",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1.125\" Round Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "ffa08cfb2b0209bb4b843d82",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Copy_of_36t_Aluminum__Billet_",
+     "options": [
+      {
+       "id": "Copy_of_32t_Aluminum_Plate__Legacy_",
+       "name": "22t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum_Plate",
+       "name": "22t Aluminum Plate (Legacy)"
+      },
+      {
+       "id": "Copy_of_38t_Aluminum_Plate",
+       "name": "24t Aluminum Plate (Legacy)"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "28t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "34t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Billet_",
+       "name": "40t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "40t Aluminum Plate (Black)"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "46t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_62t_Aluminum_Plate",
+       "name": "52t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_Copy_of_62t_Aluminum_Plate",
+       "name": "58t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_68t_Aluminum_Plate",
+       "name": "64t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4793",
+     "name": "28t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4792",
+     "name": "22t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_32t_Aluminum_Plate__Legacy_"
+     }
+    },
+    {
+     "partNumber": "am-0216",
+     "name": "22t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-0217",
+     "name": "24t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_38t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4794",
+     "name": "34t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "am-4795",
+     "name": "40t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "am-4795_black",
+     "name": "40t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "am-4796",
+     "name": "56t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "am-4797",
+     "name": "52t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4798",
+     "name": "58t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "am-4799",
+     "name": "64t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_68t_Aluminum_Plate"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "01a0c55d-b60f-45bb-9cad-10bc5141dc27",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1.125\" Round Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "3601466dbcf87aba1b0ae7b3",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Copy_of_36t_Aluminum_Billet",
+       "name": "24t Aluminum Plate"
+      },
+      {
+       "id": "Default",
+       "name": "36t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "36t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "48t Aluminum Plate"
+      },
+      {
+       "id": "_36t_Aluminum__Billet_",
+       "name": "60t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Billet_",
+       "name": "60t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "72t Aluminum Plate"
+      },
+      {
+       "id": "_36t_Aluminum__Billet_0",
+       "name": "84t Aluminum Billet"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "84t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0245",
+     "name": "36t Aluminum Billet Sprocket (#35, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0279",
+     "name": "24t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum_Billet"
+     }
+    },
+    {
+     "partNumber": "TTB-0280",
+     "name": "36t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0281",
+     "name": "48t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "TTB-0246",
+     "name": "60t Aluminum Billet Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "_36t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0284",
+     "name": "60t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "TTB-0282",
+     "name": "72t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "TTB-0247",
+     "name": "84t Aluminum Billet Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "_36t_Aluminum__Billet_0"
+     }
+    },
+    {
+     "partNumber": "TTB-0283",
+     "name": "84t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "c397fb93-3c82-4f1f-9192-8d0b0f01e2bb",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1.125\" Round Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "18090f93cf941fea743de808",
+   "parameters": [
+    {
+     "id": "List_p0IV4hyyRmgk0X",
+     "name": "Type",
+     "type": "enum",
+     "default": "Copy_of_36t_Aluminum__Billet_",
+     "options": [
+      {
+       "id": "Copy_of_32t_Aluminum_Plate__Legacy_",
+       "name": "22t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_38t_Aluminum_Plate",
+       "name": "24t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_24t_Aluminum_Plate",
+       "name": "26t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Billet_",
+       "name": "28t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_28t_Aluminum_Plate",
+       "name": "30t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_30t_Aluminum_Plate",
+       "name": "32t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_36t_Aluminum__Plate_",
+       "name": "36t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_60t_Aluminum__Plate_",
+       "name": "42t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_84t_Aluminum__Billet_",
+       "name": "44t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_62t_Aluminum_Plate",
+       "name": "54t Aluminum Plate"
+      },
+      {
+       "id": "Copy_of_Copy_of_62t_Aluminum_Plate",
+       "name": "60t Aluminum Plate"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-2653 (Discontinued)",
+     "name": "28t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-2688 (Discontinued)",
+     "name": "22t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_32t_Aluminum_Plate__Legacy_"
+     }
+    },
+    {
+     "partNumber": "217-2655 (Discontinued)",
+     "name": "24t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_38t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2654 (Discontinued)",
+     "name": "26t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_24t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2652 (Discontinued)",
+     "name": "30t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_28t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2651 (Discontinued)",
+     "name": "32t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_30t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2649 (Discontinued)",
+     "name": "36t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_36t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "217-2648 (Discontinued)",
+     "name": "42t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_60t_Aluminum__Plate_"
+     }
+    },
+    {
+     "partNumber": "217-2647 (Discontinued)",
+     "name": "44t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_84t_Aluminum__Billet_"
+     }
+    },
+    {
+     "partNumber": "217-2645 (Discontinued)",
+     "name": "54t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_62t_Aluminum_Plate"
+     }
+    },
+    {
+     "partNumber": "217-2644 (Discontinued)",
+     "name": "60t Aluminum Plate Sprocket (#35, 1.125\" Round Bore)",
+     "values": {
+      "List_p0IV4hyyRmgk0X": "Copy_of_Copy_of_62t_Aluminum_Plate"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "79246d20-6160-4571-9258-9b33bec9b15c",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1/2\" Hex Bore (AM)",
+   "vendors": [
+    "AM"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "594d1877c7d37b8d55a2e156",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "10t Steel"
+      },
+      {
+       "id": "_12t_Steel_Double",
+       "name": "14t Steel"
+      },
+      {
+       "id": "_18t_Steel",
+       "name": "18t Steel"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "am-4789",
+     "name": "10t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "am-4790",
+     "name": "14t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_12t_Steel_Double"
+     }
+    },
+    {
+     "partNumber": "am-4791",
+     "name": "18t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Steel"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "e38d0f1c-9680-4ccf-a240-59929cfd6206",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1/2\" Hex Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "fb97615572be6b67d1e1eaa3",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "9t Steel"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "10t Steel"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "11t Steel"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "12t Steel"
+      },
+      {
+       "id": "_16t_Steel",
+       "name": "16t Aluminum"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "20t Aluminum"
+      },
+      {
+       "id": "_24t_Aluminum",
+       "name": "24t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-21-3706",
+     "name": "9t Steel Sprocket (#35, 1/2\" Rounded Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-3707",
+     "name": "10t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "REV-21-3708",
+     "name": "11t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3709",
+     "name": "12t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "REV-21-3710",
+     "name": "16t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Steel"
+     }
+    },
+    {
+     "partNumber": "REV-21-3711",
+     "name": "18t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3712",
+     "name": "20t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3713",
+     "name": "24t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_24t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "2235edb2-73b9-46a9-8760-5f48052e310f",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1/2\" Hex Bore (TTB)",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "dcc120db65e6d812533added",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "10t Steel"
+      },
+      {
+       "id": "_12t_Steel_Double",
+       "name": "12t Steel Double"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0257",
+     "name": "10t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "TTB-0258",
+     "name": "12t Steel Double Sprocket (#35, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_12t_Steel_Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "942873db-0ad4-48e2-b02b-e2acd6146e22",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1/2\" Hex Bore (VEX)",
+   "vendors": [
+    "VEX"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "f2f7a9798bccab05e02168cf",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "12t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "12t Aluminum Double"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "12t Steel (Single Hub)"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "12t Steel Double"
+      },
+      {
+       "id": "_16t_Steel",
+       "name": "15t Aluminum (Single Hub)"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "15t Aluminum Double"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "15t Steel (Single Hub)"
+      },
+      {
+       "id": "_15t_Steel_Double",
+       "name": "15t Steel Double"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "217-2662 (Discontinued)",
+     "name": "12t Aluminum Sprocket (#35, 1/2\" Hex Bore, Single Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "217-2658 (Discontinued)",
+     "name": "12t Aluminum Double Sprocket (#35, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "217-5843 (Discontinued)",
+     "name": "12t Steel Sprocket (#35, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "217-5845 (Discontinued)",
+     "name": "12t Steel Double Sprocket (#35, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "217-2660 (Discontinued)",
+     "name": "15t Aluminum Sprocket (#35, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Steel"
+     }
+    },
+    {
+     "partNumber": "217-2656 (Discontinued)",
+     "name": "15t Aluminum Double Sprocket (#35, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "217-5844 (Discontinued)",
+     "name": "15t Steel Sprocket (#35, 1/2\" Hex Bore, Single Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "217-5846 (Discontinued)",
+     "name": "15t Steel Double Sprocket (#35, 1/2\" Hex Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_15t_Steel_Double"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "10942193-bc05-4234-82c0-2f3a6fa8bd80",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 1/2\" Hex Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "766515b89adb4dfc82d0291a",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "9t Steel"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "12t Steel"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "12t Aluminum"
+      },
+      {
+       "id": "_16t_Aluminum_Double",
+       "name": "15t Steel"
+      },
+      {
+       "id": "_16t_Steel",
+       "name": "15t Aluminum"
+      },
+      {
+       "id": "_17t_Aluminum",
+       "name": "18t Steel"
+      },
+      {
+       "id": "_18t_Aluminum",
+       "name": "18t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0976",
+     "name": "9t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0977",
+     "name": "12t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0973",
+     "name": "12t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0978",
+     "name": "15t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum_Double"
+     }
+    },
+    {
+     "partNumber": "WCP-0974",
+     "name": "15t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0979",
+     "name": "18t Steel Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_17t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0975",
+     "name": "18t Aluminum Sprocket (#35, 1/2\" Hex Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_18t_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "929dae57-7a54-4a40-97ed-50d11f20542a",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 3/8\" Hex Bore",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "f27a8ad485020bbb3e6148de",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "7t Steel (TTB)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0255",
+     "name": "9t Steel Sprocket (#35, 3/8\" Hex Bore, Double Hub)",
+     "values": {}
+    }
+   ]
+  },
+  {
+   "insertableId": "dc24363a-4697-4b85-a11e-9de0ebf1aa5b",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - 8mm CIM/NEO Bore",
+   "vendors": [
+    "TTB"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "eef943cb2aee872efed32ebd",
+   "parameters": [
+    {
+     "id": "List_35EuQ04lYuL02s",
+     "name": "Type",
+     "type": "enum",
+     "default": "_9t_Steel__TTB_",
+     "options": [
+      {
+       "id": "_9t_Steel__TTB_",
+       "name": "7t Steel (TTB)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "TTB-0256",
+     "name": "7t Steel Sprocket (#35, 8mm CIM/NEO Bore, Double Hub)",
+     "values": {}
+    }
+   ]
+  },
+  {
+   "insertableId": "5ca58131-164e-4aa5-b4c0-ca91277b5529",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - MAXSpline Bore (REV)",
+   "vendors": [
+    "REV"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "072494e1435e9ebbb4e52ce3",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "_12t_Steel",
+       "name": "16t Aluminum"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "20t Aluminum"
+      },
+      {
+       "id": "_42t_Aluminum",
+       "name": "24t Aluminum"
+      },
+      {
+       "id": "_48t_Aluminum",
+       "name": "28t Billet Aluminum"
+      },
+      {
+       "id": "_54t_Aluminum",
+       "name": "32t Billet Aluminum"
+      },
+      {
+       "id": "_60t_Aluminum",
+       "name": "36t Billet Aluminum"
+      },
+      {
+       "id": "_66t_Aluminum",
+       "name": "40t Billet Aluminum"
+      },
+      {
+       "id": "_72t_Aluminum",
+       "name": "44t Billet Aluminum"
+      },
+      {
+       "id": "_48t_Billet_Aluminum",
+       "name": "48t Billet Aluminum"
+      },
+      {
+       "id": "_52t_Billet_Aluminum",
+       "name": "52t Billet Aluminum"
+      },
+      {
+       "id": "_56t_Billet_Aluminum",
+       "name": "56t Billet Aluminum"
+      },
+      {
+       "id": "_60t_Billet_Aluminum",
+       "name": "60t Billet Aluminum"
+      },
+      {
+       "id": "_64t_Billet_Aluminum",
+       "name": "64t Billet Aluminum"
+      },
+      {
+       "id": "_68t_Billet_Aluminum",
+       "name": "68t Billet Aluminum"
+      },
+      {
+       "id": "_72t_Billet_Aluminum",
+       "name": "72t Billet Aluminum"
+      },
+      {
+       "id": "_76t_Billet_Aluminum",
+       "name": "76t Billet Aluminum"
+      },
+      {
+       "id": "_80t_Billet_Aluminum",
+       "name": "80t Billet Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "REV-21-3714",
+     "name": "16t Aluminum Sprocket (#35, MAXSpline Bore, Double Hub)",
+     "values": {}
+    },
+    {
+     "partNumber": "REV-21-3715",
+     "name": "18t Aluminum Sprocket (#35, MAXSpline Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "REV-21-3716",
+     "name": "20t Aluminum Sprocket (#35, MAXSpline Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3717",
+     "name": "24t Aluminum Sprocket (#35, MAXSpline Bore, Double Hub)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_42t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3718",
+     "name": "28t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_48t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3719",
+     "name": "32t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_54t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3720",
+     "name": "36t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_60t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3721",
+     "name": "40t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_66t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3722",
+     "name": "44t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_72t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3723",
+     "name": "48t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_48t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3724",
+     "name": "52t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_52t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3725",
+     "name": "56t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_56t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3726",
+     "name": "60t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_60t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3727",
+     "name": "64t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_64t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3728",
+     "name": "68t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_68t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3729",
+     "name": "72t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_72t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3730",
+     "name": "76t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_76t_Billet_Aluminum"
+     }
+    },
+    {
+     "partNumber": "REV-21-3731",
+     "name": "80t Aluminum Billet Sprocket (#35, MAXSpline Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_80t_Billet_Aluminum"
+     }
+    }
+   ]
+  },
+  {
+   "insertableId": "9b5fa7d1-e63b-4ffd-a513-2ffb7d6da7ac",
+   "group": "Sprockets & Chain Accessories",
+   "name": "#35 Sprocket - SplineXL Bore (WCP)",
+   "vendors": [
+    "WCP"
+   ],
+   "elementType": "PARTSTUDIO",
+   "documentId": "a7548e2dd12e2a920f212fae",
+   "elementId": "de502fd70fec3871c45417ce",
+   "parameters": [
+    {
+     "id": "List_miHamtgOhdzyeP",
+     "name": "Type",
+     "type": "enum",
+     "default": "_12t_Steel",
+     "options": [
+      {
+       "id": "Copy_of_24t_Aluminum",
+       "name": "18t Aluminum"
+      },
+      {
+       "id": "_12t_Steel",
+       "name": "24t Aluminum"
+      },
+      {
+       "id": "_14t_Steel",
+       "name": "30t Aluminum"
+      },
+      {
+       "id": "_16t_Aluminum",
+       "name": "36t Aluminum"
+      },
+      {
+       "id": "_42t_Aluminum",
+       "name": "42t Aluminum"
+      },
+      {
+       "id": "_48t_Aluminum",
+       "name": "48t Aluminum"
+      },
+      {
+       "id": "_54t_Aluminum",
+       "name": "54t Aluminum"
+      },
+      {
+       "id": "_60t_Aluminum",
+       "name": "60t Aluminum"
+      },
+      {
+       "id": "_66t_Aluminum",
+       "name": "66t Aluminum"
+      },
+      {
+       "id": "_72t_Aluminum",
+       "name": "72t Aluminum"
+      },
+      {
+       "id": "_84t_Aluminum",
+       "name": "84t Aluminum"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "partNumber": "WCP-0981",
+     "name": "24t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {}
+    },
+    {
+     "partNumber": "WCP-0980",
+     "name": "18t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "Copy_of_24t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0982",
+     "name": "30t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_14t_Steel"
+     }
+    },
+    {
+     "partNumber": "WCP-0983",
+     "name": "36t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_16t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0984",
+     "name": "42t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_42t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0985",
+     "name": "48t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_48t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0986",
+     "name": "54t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_54t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0987",
+     "name": "60t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_60t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0988",
+     "name": "66t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_66t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-0989",
+     "name": "72t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_72t_Aluminum"
+     }
+    },
+    {
+     "partNumber": "WCP-1376",
+     "name": "84t Aluminum Sprocket (#35, SplineXL Bore)",
+     "values": {
+      "List_miHamtgOhdzyeP": "_84t_Aluminum"
+     }
+    }
+   ]
+  }
+ ]
+}

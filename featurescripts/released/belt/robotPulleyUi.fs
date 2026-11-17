@@ -8,6 +8,9 @@ export import(path : "6e24956e9977116c79280620", version : "4bf61c29c65737238445
 export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 export import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
 export import(path : "core/simplify.fs", version : "");
+export import(path : "core/autoAssembly.fs", version : "");
+// Exports pulleyProductTable and PULLEY_PRODUCTS, FRCDesignLib's pulleys
+export import(path : "released/belt/pulleyProducts.gen.fs", version : "");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
 export import(path : "554542fc345271814c4463b0", version : "5b47f8330c585dfb754b8a98");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
@@ -38,6 +41,34 @@ export enum PulleyKind
 export predicate isManualIdler(definition is map)
 {
     definition.creationMethod == CreationMethod.MANUAL && definition.pulleyKind == PulleyKind.IDLER;
+}
+
+/**
+ * Whether it builds stand-ins for FRCDesignLib's pulleys (FRC's), which FRCDesign's Auto Assembly swaps in, rather than
+ * pulleys to print. Idlers it makes as it does otherwise.
+ */
+export predicate isLibraryPulley(definition is map)
+{
+    // isFrc and !isManualIdler, which a precondition's condition can't call
+    definition.program == Program.FRC;
+    definition.creationMethod != CreationMethod.MANUAL || definition.pulleyKind != PulleyKind.IDLER;
+    definition.libraryPulley;
+}
+
+export predicate libraryPulleyPredicate(definition is map)
+{
+    annotation { "Name" : "Library pulley", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                "Description" : "Builds a stand-in for one of FRCDesignLib's pulleys, which FRCDesign's Auto Assembly swaps in." }
+    definition.libraryPulley is boolean;
+
+    if (definition.libraryPulley)
+    {
+        annotation { "Group Name" : "Library pulley", "Collapsed By Default" : false, "Driving Parameter" : "libraryPulley" }
+        {
+            annotation { "Name" : "Pulley", "Lookup Table" : pulleyProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.pulleyProduct is LookupTablePath;
+        }
+    }
 }
 
 /**
@@ -210,37 +241,46 @@ export predicate pulleyPredicate(definition is map)
         startOffsetPredicate(definition);
     }
 
-    pulleyFlangePredicate(definition);
-
-    pulleyBorePredicate(definition);
-
-    // An idler has no teeth to engrave the count of
-    if (definition.addFlanges && !isManualIdler(definition))
+    if (isFrc(definition) && !isManualIdler(definition))
     {
-        pulleyTextPredicate(definition);
+        libraryPulleyPredicate(definition);
     }
 
-    annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
+    // A stand-in has none of a printed pulley's options
+    if (!isLibraryPulley(definition))
     {
-        annotation { "Name" : "Two belts" }
-        definition.twoBelts is boolean;
+        pulleyFlangePredicate(definition);
 
-        if (definition.twoBelts && definition.creationMethod == CreationMethod.BELT)
+        pulleyBorePredicate(definition);
+
+        // An idler has no teeth to engrave the count of
+        if (definition.addFlanges && !isManualIdler(definition))
         {
-            annotation { "Name" : "Flip side", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "OPPOSITE_DIRECTION"] }
-            definition.flipTwoBeltSide is boolean;
+            pulleyTextPredicate(definition);
         }
 
-        profileOffsetPredicate(definition);
-
-        // A two belt pulley always has them, for its belts
-        if (!definition.twoBelts)
+        annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
         {
-            annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.addMateConnectors is boolean;
-        }
+            annotation { "Name" : "Two belts" }
+            definition.twoBelts is boolean;
 
-        simplificationPredicate(definition);
+            if (definition.twoBelts && definition.creationMethod == CreationMethod.BELT)
+            {
+                annotation { "Name" : "Flip side", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "OPPOSITE_DIRECTION"] }
+                definition.flipTwoBeltSide is boolean;
+            }
+
+            profileOffsetPredicate(definition);
+
+            // A two belt pulley always has them, for its belts
+            if (!definition.twoBelts)
+            {
+                annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.addMateConnectors is boolean;
+            }
+
+            simplificationPredicate(definition);
+        }
     }
 
     pointManipulatorPredicate(definition);

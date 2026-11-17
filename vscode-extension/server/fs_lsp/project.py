@@ -77,8 +77,9 @@ ANNOTATION_KEYS = frozenset(
         "MinLength", "Name", "Parameter Library Purpose Id", "Property Function Name", "Show labels only",
         "Table Type Name", "Tolerance Type Name", "Tooltip Template", "UIHint", "message", "showDefaultAlignmentPoints",
         # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`),
-        # and whether a feature allows simplification, for the FeatureScripts tab (see `_simplification_problems`)
-        "Set By", "Simplification",
+        # and whether a feature allows simplification or declares library parts, for the FeatureScripts tab (see
+        # `_simplification_problems` and `_auto_assembly_problems`)
+        "Set By", "Simplification", "Auto Assembly",
     ]
 )
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
@@ -935,6 +936,7 @@ class Project:
         problems.extend(self._editing_logic_key_problems(module))
         problems.extend(self._set_by_problems(module))
         problems.extend(self._simplification_problems(module))
+        problems.extend(self._auto_assembly_problems(module))
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
@@ -1350,6 +1352,40 @@ class Project:
         FeatureScripts tab's icon) and its Allow simplification parameter (`simplificationPredicate`, in
         core/simplify.fs) go together: either without the other is an error, so the tab never shows the icon for a
         feature which doesn't simplify, or hides it for one which does."""
+        return self._claim_problems(
+            module,
+            '"Simplification"',
+            lambda feature: any(parameter.name == "allowSimplification" for parameter in self.feature_parameters(module, feature)),
+            'The feature says it allows simplification, but has no Allow simplification '
+            '(simplificationPredicate, in core/simplify.fs).',
+            'The feature allows simplification (simplificationPredicate), so its annotation '
+            'needs "Simplification" : true, for the FeatureScripts tab.',
+            "simplification",
+        )
+
+    def _auto_assembly_problems(self, module: Module) -> list[Problem]:
+        """A feature's `"Auto Assembly" : true` (ours, which `fs release` writes into the manifest, with the library
+        products its tables reference, for the FeatureScripts tab) and its Feature Studio declaring library parts
+        (calling `declarePart` or `addStandIn`, in core/autoAssembly.fs) go together, as `_simplification_problems`'
+        do."""
+        declares = any(
+            token.kind == "identifier" and token.value in ("declarePart", "addStandIn") and following.value == "("
+            for token, following in zip(module.index.tokens, module.index.tokens[1:])
+        )
+        return self._claim_problems(
+            module,
+            '"Auto Assembly"',
+            lambda feature: declares,
+            'The feature says it declares library parts, but its Feature Studio calls neither declarePart nor '
+            'addStandIn (in core/autoAssembly.fs).',
+            'The feature declares library parts (declarePart or addStandIn), so its annotation needs '
+            '"Auto Assembly" : true, for the FeatureScripts tab.',
+            "auto-assembly",
+        )
+
+    def _claim_problems(self, module: Module, key: str, does, claimed_but_doesnt: str, does_but_unclaimed: str, code: str) -> list[Problem]:
+        """A boolean key of a feature's annotation (`key`, quoted) is true exactly when it `does` (a function of the
+        feature)."""
         problems = []
         tokens = module.index.tokens
         for feature in module.parsed.nodes:
@@ -1362,21 +1398,17 @@ class Project:
                     if (
                         annotation.start <= token.offset < annotation.end
                         and token.kind == "string"
-                        and token.value == '"Simplification"'
+                        and token.value == key
                         and position + 2 < len(tokens)
                         and tokens[position + 1].value == ":"
                     ):
                         claim = (token, tokens[position + 2].value == "true")
-            allows = any(parameter.name == "allowSimplification" for parameter in self.feature_parameters(module, feature))
-            if claim is not None and claim[1] and not allows:
-                problems.append(Problem(claim[0].offset, claim[0].end, "error",
-                                        'The feature says it allows simplification, but has no Allow simplification '
-                                        '(simplificationPredicate, in core/simplify.fs).', "simplification"))
-            elif allows and (claim is None or not claim[1]):
+            done = does(feature)
+            if claim is not None and claim[1] and not done:
+                problems.append(Problem(claim[0].offset, claim[0].end, "error", claimed_but_doesnt, code))
+            elif done and (claim is None or not claim[1]):
                 feature_token = next((token for token in tokens if token.offset >= feature.start and token.value == feature.name), tokens[0])
-                problems.append(Problem(feature_token.offset, feature_token.end, "error",
-                                        'The feature allows simplification (simplificationPredicate), so its annotation '
-                                        'needs "Simplification" : true, for the FeatureScripts tab.', "simplification"))
+                problems.append(Problem(feature_token.offset, feature_token.end, "error", does_but_unclaimed, code))
         return problems
 
     def _set_by_problems(self, module: Module) -> list[Problem]:

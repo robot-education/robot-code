@@ -13,6 +13,9 @@ export import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f464
 // Exports ChainType, a parameter type
 export import(path : "93af3f24abb0f9f345268c81", version : "66e6f12bd269691031eca3e1");
 export import(path : "core/simplify.fs", version : "");
+export import(path : "core/autoAssembly.fs", version : "");
+// Exports sprocketProductTable and SPROCKET_PRODUCTS, FRCDesignLib's sprockets
+export import(path : "chain/sprocketProducts.gen.fs", version : "");
 
 export enum SprocketCreationMethod
 {
@@ -30,6 +33,7 @@ const SPROCKET_TEETH_BOUNDS = { (unitless) : [5, 16, 500] } as IntegerBoundSpec;
  */
 annotation {
         "Feature Type Name" : "Robot sprocket",
+        "Auto Assembly" : true,
         "Simplification" : true,
         "Feature Type Description" : "Create #25, #25H, #35, and 8mm sprockets." ~
         "<br>See also the Robot chain FeatureScript, which works with this feature directly." ~ CREDIT,
@@ -66,16 +70,32 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
             definition.chainSelections is Query;
         }
 
-        borePredicate(definition);
+        annotation { "Name" : "Library sprocket", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                    "Description" : "Builds a stand-in for one of FRCDesignLib's sprockets, which FRCDesign's Auto Assembly swaps in." }
+        definition.librarySprocket is boolean;
 
-        annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
+        if (definition.librarySprocket)
         {
-            profileOffsetPredicate(definition);
+            annotation { "Group Name" : "Library sprocket", "Collapsed By Default" : false, "Driving Parameter" : "librarySprocket" }
+            {
+                annotation { "Name" : "Sprocket", "Lookup Table" : sprocketProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.sprocketProduct is LookupTablePath;
+            }
+        }
+        else
+        {
+            // A stand-in has none of a printed sprocket's options
+            borePredicate(definition);
 
-            annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.addMateConnectors is boolean;
+            annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
+            {
+                profileOffsetPredicate(definition);
 
-            simplificationPredicate(definition);
+                annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.addMateConnectors is boolean;
+
+                simplificationPredicate(definition);
+            }
         }
     }
     {
@@ -91,7 +111,22 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
             sprockets = getChainSprockets(context, definition);
         }
 
+        if (definition.librarySprocket)
+        {
+            // Hidden, they keep their values
+            definition = mergeMaps(definition, { "addProfileOffset" : false, "allowSimplification" : false, "addMateConnectors" : false });
+            sprockets = mapArray(sprockets, function(sprocket)
+                {
+                    return withLibraryProduct(definition, sprocket);
+                });
+        }
+
         const bodies = createSprockets(context, id + "sprocket", definition, sprockets);
+        if (definition.librarySprocket)
+        {
+            reportMissingProducts(definition, sprockets, bodies);
+            return;
+        }
         if (offsetProfile(definition))
         {
             const profileAxis = line(sprockets[0].plane.origin, -sprockets[0].plane.x);
@@ -164,10 +199,15 @@ function createSprockets(context is Context, id is Id, definition is map, sprock
         {
             setExternalDisambiguation(context, sprocketId, sprocket.identity);
         }
-        var profile;
-        if (simplified)
+        if (sprocket.product != undefined)
         {
-            // Its pitch circle, without teeth
+            bodies = append(bodies, addSprocketStandIn(context, sprocketId, sprocket));
+            continue;
+        }
+        var profile;
+        if (simplified || sprocket.missing != undefined)
+        {
+            // Its pitch circle, without teeth (or as a missing library sprocket's stand-in would be, to show)
             const sketch = newSketchOnPlane(context, sprocketId + "profile", { "sketchPlane" : sprocket.plane });
             skCircle(sketch, "pitchCircle", {
                         "center" : vector(0, 0) * meter,
@@ -215,6 +255,89 @@ function createSprockets(context is Context, id is Id, definition is map, sprock
     }
     cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     return bodies;
+}
+
+/**
+ * `sprocket` with the library sprocket it's built as (`product`, its vendor's and bore's first for its chain, of its
+ * teeth), or `missing` if its vendor has none.
+ */
+function withLibraryProduct(definition is map, sprocket is map) returns map
+{
+    const choice = getLookupTable(sprocketProductTable, definition.sprocketProduct);
+    const product = findProduct(SPROCKET_PRODUCTS[choice.vendor][choice.bore], function(product)
+        {
+            return sameSprockets(product.chainType, sprocket.chainType) && product.teeth == sprocket.teeth;
+        }, undefined);
+    if (product == undefined)
+    {
+        sprocket.missing = true;
+    }
+    else
+    {
+        sprocket.product = product;
+    }
+    return sprocket;
+}
+
+/**
+ * A library sprocket's stand-in (see `addStandIn`), as wide as its teeth, with its sprocket attributes, on its body and
+ * its mate connectors, so a chain goes around it as around a sprocket.
+ */
+function addSprocketStandIn(context is Context, id is Id, sprocket is map) returns Query
+{
+    const product = sprocket.product;
+    const standIn = addStandIn(context, id + "standIn", sprocket.plane, getSprocketRadius(getChainInfo(sprocket.chainType).pitch, sprocket.teeth),
+        getSprocketToothWidth(sprocket.chainType), product.boreDiameter, AutoAssemblyKind.SPROCKET, product as Product, {
+                "chainType" : sprocket.chainType,
+                "teeth" : sprocket.teeth
+            });
+    setAttribute(context, {
+                "entities" : standIn.body,
+                "name" : SPROCKET_ATTRIBUTE,
+                "attribute" : sprocketAttribute(sprocket, "body")
+            });
+    setAttribute(context, {
+                "entities" : standIn.connectors,
+                "name" : SPROCKET_ATTRIBUTE,
+                "attribute" : sprocketAttribute(sprocket, "standInMateConnector")
+            });
+    return standIn.body;
+}
+
+/**
+ * Errors if a sprocket's vendor has none for its chain with its teeth, with the stand-ins of those (each as one would
+ * be), and the teeth it has.
+ */
+function reportMissingProducts(definition is map, sprockets is array, bodies is array)
+{
+    var missing = [];
+    for (var i, sprocket in sprockets)
+    {
+        if (sprocket.missing != undefined)
+        {
+            missing = append(missing, bodies[i]);
+        }
+    }
+    if (missing == [])
+    {
+        return;
+    }
+    const sprocket = sprockets[indexOf(mapArray(sprockets, function(sprocket) { return sprocket.missing != undefined; }), true)];
+    const path = definition.sprocketProduct;
+    const choice = getLookupTable(sprocketProductTable, path);
+    const chainName = getChainTypeName(sprocket.chainType);
+    var teeth = [];
+    for (var product in SPROCKET_PRODUCTS[choice.vendor][choice.bore])
+    {
+        if (sameSprockets(product.chainType, sprocket.chainType))
+        {
+            teeth = append(teeth, product.teeth ~ "T");
+        }
+    }
+    const what = path.vendor ~ " has no " ~ sprocket.teeth ~ "T " ~ chainName ~ " sprocket with a " ~ path.bore ~ " bore";
+    const has = teeth == [] ? "it has no " ~ chainName ~ " sprockets with that bore." : "its " ~ chainName ~ " ones have " ~ join(teeth, ", ") ~ ".";
+    const parameters = definition.creationMethod == SprocketCreationMethod.MANUAL ? ["sprocketProduct", "teeth"] : ["sprocketProduct"];
+    throw regenError(what ~ ": " ~ has, parameters, qUnion(missing));
 }
 
 function sprocketAttribute(sprocket is map, coordSystemId is string) returns SprocketAttribute
