@@ -76,8 +76,9 @@ ANNOTATION_KEYS = frozenset(
         "Lookup Table", "Lookup Table Path", "Manipulator Change Function", "MaxLength", "MaxNumberOfPicks", "Message",
         "MinLength", "Name", "Parameter Library Purpose Id", "Property Function Name", "Show labels only",
         "Table Type Name", "Tolerance Type Name", "Tooltip Template", "UIHint", "message", "showDefaultAlignmentPoints",
-        # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`)
-        "Set By",
+        # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`),
+        # and whether a feature allows simplification, for the FeatureScripts tab (see `_simplification_problems`)
+        "Set By", "Simplification",
     ]
 )
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
@@ -933,6 +934,7 @@ class Project:
         problems.extend(self._duplicate_parameter_problems(module))
         problems.extend(self._editing_logic_key_problems(module))
         problems.extend(self._set_by_problems(module))
+        problems.extend(self._simplification_problems(module))
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
@@ -1342,6 +1344,40 @@ class Project:
                     report = at if owner is module else token
                     problems.append(Problem(report.offset, report.end, "error", message, "unknown-parameter"))
         return _dedupe_problems(problems)
+
+    def _simplification_problems(self, module: Module) -> list[Problem]:
+        """A feature's `"Simplification" : true` (ours, which `fs release` writes into the manifest, for the
+        FeatureScripts tab's icon) and its Allow simplification parameter (`simplificationPredicate`, in
+        core/simplify.fs) go together: either without the other is an error, so the tab never shows the icon for a
+        feature which doesn't simplify, or hides it for one which does."""
+        problems = []
+        tokens = module.index.tokens
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration" or _feature_precondition(module, feature) is None:
+                continue
+            annotation = _feature_annotation(module, feature)
+            claim = None
+            if annotation is not None:
+                for position, token in enumerate(tokens):
+                    if (
+                        annotation.start <= token.offset < annotation.end
+                        and token.kind == "string"
+                        and token.value == '"Simplification"'
+                        and position + 2 < len(tokens)
+                        and tokens[position + 1].value == ":"
+                    ):
+                        claim = (token, tokens[position + 2].value == "true")
+            allows = any(parameter.name == "allowSimplification" for parameter in self.feature_parameters(module, feature))
+            if claim is not None and claim[1] and not allows:
+                problems.append(Problem(claim[0].offset, claim[0].end, "error",
+                                        'The feature says it allows simplification, but has no Allow simplification '
+                                        '(simplificationPredicate, in core/simplify.fs).', "simplification"))
+            elif allows and (claim is None or not claim[1]):
+                feature_token = next((token for token in tokens if token.offset >= feature.start and token.value == feature.name), tokens[0])
+                problems.append(Problem(feature_token.offset, feature_token.end, "error",
+                                        'The feature allows simplification (simplificationPredicate), so its annotation '
+                                        'needs "Simplification" : true, for the FeatureScripts tab.', "simplification"))
+        return problems
 
     def _set_by_problems(self, module: Module) -> list[Problem]:
         """Hidden parameters set by editing logic from a function of the definition, which their annotations name

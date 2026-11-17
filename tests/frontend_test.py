@@ -79,3 +79,16 @@ def test_tabs_in_order_follows_the_folder_tree_and_leaves_out_none():
 def test_the_description_is_its_literal_without_the_credit():
     code = '"Feature Type Description" : "Add \\"tube\\".<br><br>Or channel." ~ CREDIT,'
     assert feature_description(code) == 'Add "tube".\n\nOr channel.'
+
+
+def test_a_feature_allowing_simplification_says_so_in_its_entry():
+    from fs_cli.frontend import manifest_entry
+
+    code = 'annotation { "Feature Type Name" : "Robot pulley", "Simplification" : true }\nexport const robotPulley = defineFeature('
+
+    def entry(source):
+        return manifest_entry(code=source, studio_element_id="s", fallback_name="f", version="v", icon_element_id=None, source_url=None)
+
+    assert entry(code)["simplification"] is True
+    # Absent, it doesn't
+    assert "simplification" not in entry(code.replace(', "Simplification" : true', ""))

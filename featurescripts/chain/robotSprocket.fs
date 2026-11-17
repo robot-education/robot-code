@@ -12,6 +12,7 @@ import(path : "0103ad63394d7713fbf44448", version : "5f7d67b62160df309da69ec3");
 export import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 // Exports ChainType, a parameter type
 export import(path : "93af3f24abb0f9f345268c81", version : "66e6f12bd269691031eca3e1");
+export import(path : "core/simplify.fs", version : "");
 
 export enum SprocketCreationMethod
 {
@@ -29,6 +30,7 @@ const SPROCKET_TEETH_BOUNDS = { (unitless) : [5, 16, 500] } as IntegerBoundSpec;
  */
 annotation {
         "Feature Type Name" : "Robot sprocket",
+        "Simplification" : true,
         "Feature Type Description" : "Create #25, #25H, #35, and 8mm sprockets." ~
         "<br>See also the Robot chain FeatureScript, which works with this feature directly." ~ CREDIT,
         "Manipulator Change Function" : "robotSprocketManipulatorChange",
@@ -72,6 +74,8 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
 
             annotation { "Name" : "Add mate connectors", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.addMateConnectors is boolean;
+
+            simplificationPredicate(definition);
         }
     }
     {
@@ -150,6 +154,8 @@ function getChainSprockets(context is Context, definition is map) returns array
 function createSprockets(context is Context, id is Id, definition is map, sprockets is array) returns array
 {
     const profileOffset = getProfileOffset(definition);
+    // Simplified: its pitch circle, without teeth
+    const simplified = isSimplified(context, definition);
     var bodies = [];
     for (var i, sprocket in sprockets)
     {
@@ -158,7 +164,22 @@ function createSprockets(context is Context, id is Id, definition is map, sprock
         {
             setExternalDisambiguation(context, sprocketId, sprocket.identity);
         }
-        const profile = sketchSprocketProfile(context, sprocketId + "profile", sprocket.plane, sprocket.chainType, sprocket.teeth, profileOffset);
+        var profile;
+        if (simplified)
+        {
+            // Its pitch circle, without teeth
+            const sketch = newSketchOnPlane(context, sprocketId + "profile", { "sketchPlane" : sprocket.plane });
+            skCircle(sketch, "pitchCircle", {
+                        "center" : vector(0, 0) * meter,
+                        "radius" : getSprocketRadius(getChainInfo(sprocket.chainType).pitch, sprocket.teeth) + profileOffset
+                    });
+            skSolve(sketch);
+            profile = qCreatedBy(sprocketId + "profile", EntityType.FACE);
+        }
+        else
+        {
+            profile = sketchSprocketProfile(context, sprocketId + "profile", sprocket.plane, sprocket.chainType, sprocket.teeth, profileOffset);
+        }
         const width = getSprocketToothWidth(sprocket.chainType);
         opExtrude(context, sprocketId + "extrude", {
                     "entities" : profile,

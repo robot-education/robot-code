@@ -31,6 +31,7 @@ Its material is Onyx, and its appearance printed green (as Robot pulley's).
 | Width (`hexWidth`) | Across the hex's flats. |
 | Diameter (`boreDiameter`) | The diameter of the shaft it goes on. |
 | Fit (`fit`), Clearance (`fitClearance`) | (`core/fit.fs`'s) |
+| Allow simplification (`allowSimplification`) | Builds it simplified while the Part Studio's Simplified configuration variable is on. |
 
 No parameters are hidden.
 
@@ -69,6 +70,12 @@ around; each flank's an arc tangent to it, of radius `0.008 d1 (z² + 180)`, out
 largest and smallest ISO 606 allows. A tooth whose flanks would cross below the tip circle is cut off where they're a
 tenth of the tooth apart (found by bisection). The profile offset moves every curve outward (seating curves shrink,
 flanks and tips grow).
+
+### Simplification
+
+Allow simplification (`core/simplify.fs`), in Other options: while the Part Studio's Simplified configuration
+variable is on, each sprocket is its pitch circle (with the profile offset), without teeth, and the rest (bore, mate
+connectors, attributes) as ever.
 
 ## Issues found
 

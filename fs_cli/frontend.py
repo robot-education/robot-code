@@ -108,6 +108,7 @@ _STRING = r'"((?:[^"\\]|\\.)*)"'
 _TYPE_NAME = re.compile(r'"Feature Type Name"\s*:\s*' + _STRING)
 _DESCRIPTION = re.compile(r'"Feature Type Description"\s*:\s*' + _STRING)
 _ICON = re.compile(r'"Icon"\s*:\s*(\w+)::BLOB_DATA')
+_SIMPLIFICATION = re.compile(r'"Simplification"\s*:\s*true\b')
 
 
 def _unescape(literal: str) -> str:
@@ -208,6 +209,9 @@ def manifest_entry(
     }
     if source_url:
         entry["sourceUrl"] = source_url
+    # It builds something lighter when its Part Studio is Simplified (absent: it doesn't)
+    if _SIMPLIFICATION.search(code):
+        entry["simplification"] = True
     return entry
 
 

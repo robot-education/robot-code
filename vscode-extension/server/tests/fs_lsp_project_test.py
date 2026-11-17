@@ -1297,3 +1297,27 @@ def test_operations_under_an_id_must_be_contiguous(project):
     # "cell" resumes after "start", through its alias; a loop's body repeats, so "copies" and "joins" each resume after
     # the other. Not `tag` (it makes no operations), the id alone, or "end" after a branch which throws
     assert found == [("cellId", 14), ("id", 17), ("id", 18)]
+
+
+def test_simplification_annotation_matches_its_parameter(project):
+    # "Simplification" : true needs Allow simplification (simplificationPredicate's parameter), and it needs the key
+    def feature(name: str, claim: str, allows: bool) -> list[str]:
+        path = project.code_dir / f"{name}.fs"
+        parameter = '        annotation { "Name" : "Allow simplification" }\n        definition.allowSimplification is boolean;\n'
+        path.write_text(
+            "FeatureScript 2909;\n"
+            f'annotation {{ "Feature Type Name" : "F"{claim} }}\n'
+            f"export const {name} = defineFeature(function(context is Context, id is Id, definition is map)\n"
+            "    precondition\n    {\n" + (parameter if allows else "") + "    }\n    {\n    });\n"
+        )
+        module = project.module(path)
+        return [p.message for p in project.check(module) if p.code == "simplification"]
+
+    assert feature("both", ', "Simplification" : true', True) == []
+    assert feature("neither", "", False) == []
+    assert feature("claimOnly", ', "Simplification" : true', False) == [
+        "The feature says it allows simplification, but has no Allow simplification (simplificationPredicate, in core/simplify.fs)."
+    ]
+    assert feature("parameterOnly", "", True) == [
+        'The feature allows simplification (simplificationPredicate), so its annotation needs "Simplification" : true, for the FeatureScripts tab.'
+    ]

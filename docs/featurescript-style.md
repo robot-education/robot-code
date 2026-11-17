@@ -251,6 +251,17 @@ level's `"default"` into the table, as without one Onshape picks the first in ke
 sorted, so "Custom" before "REV" and "goBILDA"). Offer Custom only where something custom exists: not for a closed
 system like REV's RT25 belts.
 
+## Simplification
+
+A feature which can build something lighter (without teeth, pockets, and other detail) allows simplification, so a
+large robot regenerates faster: `simplificationPredicate` (`core/simplify.fs`) declares Allow simplification, in the
+feature's last group, and the body builds simplified while `isSimplified(context, definition)`: it's allowed, and the
+Part Studio's Simplified configuration variable is on. Its annotation says so with `"Simplification" : true` (ours,
+which Onshape ignores), which `fs release` writes into the feature's manifest entry for the FeatureScripts tab, and
+which `fs check` requires exactly when the feature has Allow simplification. Robot pulley and Robot sprocket build
+their pitch circles, without teeth. Mass changes when a part's simplified, so nothing should be measured from a
+simplified configuration.
+
 ## Remember previous values
 
 Give parameters `"UIHint" : ["REMEMBER_PREVIOUS_VALUE"]` (alongside any other hints), so a new feature starts with

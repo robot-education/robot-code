@@ -10,6 +10,7 @@ import(path : "01f0c5634015659514b83da1", version : "bdc467e5999f2319f4645191");
 annotation {
         "Feature Type Name" : "Robot pulley",
         "Manipulator Change Function" : "robotPulleyManipulatorChange",
+        "Simplification" : true,
         "Editing Logic Function" : "robotPulleyEditLogic",
         "Feature Type Description" : "Create GT2, HTD, and RT25 pulleys and idlers." ~
         "<br>See also the Robot belt FeatureScript, which works directly with this feature." ~ CREDIT,
@@ -50,13 +51,16 @@ function doRobotPulley(context is Context, id is Id, definition is map)
         pulleyDefinitions = getBeltPulleyDefinitions(context, definition);
     }
 
+    // Simplified: its pitch circle, without teeth or engraving
+    const simplified = isSimplified(context, definition);
+
     // Try to add manipulators as early as possible
-    if (hasText(definition, pulleyDefinitions[0]))
+    if (hasText(definition, pulleyDefinitions[0]) && !simplified)
     {
         addTextPositionManipulator(context, id, definition, pulleyDefinitions[0]);
     }
 
-    const pulleys = createPulleys(context, id + "pulley", definition, pulleyDefinitions);
+    const pulleys = createPulleys(context, id + "pulley", definition, pulleyDefinitions, simplified);
 
     if (offsetProfile(definition))
     {
@@ -85,7 +89,7 @@ function doRobotPulley(context is Context, id is Id, definition is map)
     }
 
     // Add last to allow handling bore overlap error
-    if (any(pulleyDefinitions, function(pulleyDefinition)
+    if (!simplified && any(pulleyDefinitions, function(pulleyDefinition)
                 {
                     return hasText(definition, pulleyDefinition);
                 }))
@@ -297,7 +301,7 @@ function getBeltPulleyFaceAttribute(context is Context, selection is Query)
             });
 }
 
-function createPulleys(context is Context, id is Id, definition is map, pulleyDefinitions is array) returns array
+function createPulleys(context is Context, id is Id, definition is map, pulleyDefinitions is array, simplified is boolean) returns array
 {
     const profileOffset = getProfileOffset(definition);
     var pulleys = [];
@@ -316,6 +320,17 @@ function createPulleys(context is Context, id is Id, definition is map, pulleyDe
             skCircle(sketch, "idler", {
                         "center" : vector(0, 0) * meter,
                         "radius" : pulleyDefinition.idlerRadius + profileOffset
+                    });
+            skSolve(sketch);
+            profile = qCreatedBy(pulleyId + "profile", EntityType.FACE);
+        }
+        else if (simplified)
+        {
+            // Its pitch circle, without teeth
+            const sketch = newSketchOnPlane(context, pulleyId + "profile", { "sketchPlane" : plane });
+            skCircle(sketch, "pitchCircle", {
+                        "center" : vector(0, 0) * meter,
+                        "radius" : getPulleyRadius(getBeltPitch(pulleyDefinition.beltType), pulleyDefinition.teeth) + profileOffset
                     });
             skSolve(sketch);
             profile = qCreatedBy(pulleyId + "profile", EntityType.FACE);
