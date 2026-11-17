@@ -162,6 +162,14 @@ def test_mcmaster_carrs_rows_are_vendor_and_generic_bearings():
     # Its cheapest of a bearing's rows: a 5 x 16 x 5 mm shielded bearing in 440C stainless, not steel at three times the price
     radial = DEFINITION["MCMASTER_BEARINGS"][("MCMASTER", "RADIAL", "ROUND", "MM_5", "MM_16_X_5", "SHIELDED")][1]
     assert (radial.part_number, radial.material) == ("6153K15", "STAINLESS_STEEL")
+    # Nothing over $20: its flanged 6805, $48.69, isn't offered, by it or Generic
+    assert ("MCMASTER", "FLANGED", "ROUND", "MM_25", "MM_37_X_7", "SHIELDED") not in BEARINGS
+    assert ("GENERIC", "FLANGED", "ROUND", "MM_25", "MM_37_X_7", "SHIELDED") not in BEARINGS
+    # Its ABEC 3 608 costs less than its ABEC 1
+    assert BEARINGS[("MCMASTER", "RADIAL", "ROUND", "MM_8", "MM_22_X_7", "SHIELDED")][1].part_number == "6661K12"
+    # A shielded R8 beside its open one: Seal shows both
+    r8 = {"vendor": "MCMASTER", "type": "RADIAL", "bore": "ROUND", "size": "IN_1_2"}
+    assert "OD_1_125_X_0_313" in _shown("dimensions", r8)
     record = next(r for r in MANIFEST["studios"]["bearing"]["records"] if r.get("partNumber") == "6153K15")
     assert record["material"] == "Stainless Steel"
     # A 5 mm bore, which clears a #10 screw, shielded or open

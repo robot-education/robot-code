@@ -1,5 +1,5 @@
 {
- "source": "McMaster-Carr's ball bearing tables (flanged shielded and open steel, radial open steel, and radial 5 and 7 mm shielded, sealed, and open, steel and 440C stainless), transcribed from screenshots of its pages on 2026-11-17: its pages refuse automated reads. Widths are overall, flanges' included; a flanged row's flange is its OD and Thk. columns. Where a row has a price (each, US dollars), the cheapest of a bearing's rows is the one offered. Its 316 stainless bearings, rated to 2,300 rpm at most, are left out.",
+ "source": "McMaster-Carr's ball bearing tables (flanged shielded and open steel, radial open steel, radial 5 and 7 mm shielded, sealed, and open, steel and 440C stainless, and radial shielded steel in the sizes the catalog's other vendors sell), transcribed from screenshots of its pages on 2026-11-17: its pages refuse automated reads. Widths are overall, flanges' included; a flanged row's flange is its OD and Thk. columns. Each row's price is one bearing's, in US dollars: the cheapest of a bearing's rows is the one offered, and none over $20, a specialty bearing teams don't buy. Its bearings not ABEC rated, rated to 5,000 rpm at most, and its 316 stainless ones, to 2,300 rpm, are left out.",
  "bearings": [
   {
    "type": "FLANGED",
@@ -11,7 +11,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K643",
    "flangeDiameter": "10.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -23,7 +25,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K568",
    "flangeDiameter": "11.6",
-   "flangeThickness": "0.8"
+   "flangeThickness": "0.8",
+   "price": 11.74,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -35,7 +39,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K571",
    "flangeDiameter": "12.6",
-   "flangeThickness": "0.8"
+   "flangeThickness": "0.8",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -47,7 +53,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K573",
    "flangeDiameter": "12.5",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -59,7 +67,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K575",
    "flangeDiameter": "15",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 16.29,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -71,7 +81,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K577",
    "flangeDiameter": "16",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 14.29,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -83,7 +95,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K579",
    "flangeDiameter": "18",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 11.74,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -95,7 +109,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K584",
    "flangeDiameter": "11.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 13.54,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -107,7 +123,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K588",
    "flangeDiameter": "15",
-   "flangeThickness": "1.1"
+   "flangeThickness": "1.1",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -119,7 +137,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K591",
    "flangeDiameter": "17",
-   "flangeThickness": "1.2"
+   "flangeThickness": "1.2",
+   "price": 15.37,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -131,7 +151,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K593",
    "flangeDiameter": "19",
-   "flangeThickness": "1.2"
+   "flangeThickness": "1.2",
+   "price": 13.54,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -143,7 +165,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K595",
    "flangeDiameter": "22",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 15.37,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -155,7 +179,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K823",
    "flangeDiameter": "15.6",
-   "flangeThickness": "0.8"
+   "flangeThickness": "0.8",
+   "price": 15.37,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -167,7 +193,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K825",
    "flangeDiameter": "18",
-   "flangeThickness": "1.1"
+   "flangeThickness": "1.1",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -179,7 +207,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K627",
    "flangeDiameter": "22",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 16.29,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -191,7 +221,9 @@
    "seal": "SHIELDED",
    "partNumber": "57155K629",
    "flangeDiameter": "25",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 14.49,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -203,7 +235,9 @@
    "seal": "SHIELDED",
    "partNumber": "4390N178",
    "flangeDiameter": "40",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 48.69,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -215,7 +249,9 @@
    "seal": "SHIELDED",
    "partNumber": "4390N181",
    "flangeDiameter": "45",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 45.44,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -227,7 +263,9 @@
    "seal": "OPEN",
    "partNumber": "57155K455",
    "flangeDiameter": "9.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 13.16,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -239,7 +277,9 @@
    "seal": "OPEN",
    "partNumber": "57155K457",
    "flangeDiameter": "10.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 13.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -251,7 +291,9 @@
    "seal": "OPEN",
    "partNumber": "57155K459",
    "flangeDiameter": "11.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 13.34,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -263,7 +305,9 @@
    "seal": "OPEN",
    "partNumber": "57155K462",
    "flangeDiameter": "12.5",
-   "flangeThickness": "0.8"
+   "flangeThickness": "0.8",
+   "price": 13.34,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -275,7 +319,9 @@
    "seal": "OPEN",
    "partNumber": "57155K466",
    "flangeDiameter": "16",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 11.66,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -287,7 +333,9 @@
    "seal": "OPEN",
    "partNumber": "57155K468",
    "flangeDiameter": "18",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -299,7 +347,9 @@
    "seal": "OPEN",
    "partNumber": "57155K471",
    "flangeDiameter": "22",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 13.34,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -311,7 +361,9 @@
    "seal": "OPEN",
    "partNumber": "57155K472",
    "flangeDiameter": "11.2",
-   "flangeThickness": "0.6"
+   "flangeThickness": "0.6",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -323,7 +375,9 @@
    "seal": "OPEN",
    "partNumber": "57155K476",
    "flangeDiameter": "15",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -335,7 +389,9 @@
    "seal": "OPEN",
    "partNumber": "57155K478",
    "flangeDiameter": "17",
-   "flangeThickness": "1.2"
+   "flangeThickness": "1.2",
+   "price": 12.47,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -347,7 +403,9 @@
    "seal": "OPEN",
    "partNumber": "57155K481",
    "flangeDiameter": "19",
-   "flangeThickness": "1.2"
+   "flangeThickness": "1.2",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -359,7 +417,9 @@
    "seal": "OPEN",
    "partNumber": "57155K483",
    "flangeDiameter": "22",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 10.82,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -371,7 +431,9 @@
    "seal": "OPEN",
    "partNumber": "57155K498",
    "flangeDiameter": "18",
-   "flangeThickness": "1"
+   "flangeThickness": "1",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -383,7 +445,9 @@
    "seal": "OPEN",
    "partNumber": "57155K511",
    "flangeDiameter": "22",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 15.0,
+   "material": "STEEL"
   },
   {
    "type": "FLANGED",
@@ -395,7 +459,9 @@
    "seal": "OPEN",
    "partNumber": "57155K513",
    "flangeDiameter": "25",
-   "flangeThickness": "1.5"
+   "flangeThickness": "1.5",
+   "price": 10.0,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -405,7 +471,9 @@
    "width": "0.156",
    "unit": "in",
    "seal": "OPEN",
-   "partNumber": "60355K132"
+   "partNumber": "60355K132",
+   "price": 5.76,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -415,7 +483,9 @@
    "width": "0.196",
    "unit": "in",
    "seal": "OPEN",
-   "partNumber": "60355K151"
+   "partNumber": "60355K151",
+   "price": 5.97,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -425,7 +495,9 @@
    "width": "0.219",
    "unit": "in",
    "seal": "OPEN",
-   "partNumber": "60355K165"
+   "partNumber": "60355K165",
+   "price": 6.09,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -435,7 +507,9 @@
    "width": "0.25",
    "unit": "in",
    "seal": "OPEN",
-   "partNumber": "60355K173"
+   "partNumber": "60355K173",
+   "price": 7.72,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -445,7 +519,9 @@
    "width": "6",
    "unit": "mm",
    "seal": "OPEN",
-   "partNumber": "5972K197"
+   "partNumber": "5972K197",
+   "price": 16.92,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -455,7 +531,9 @@
    "width": "7",
    "unit": "mm",
    "seal": "OPEN",
-   "partNumber": "5972K91"
+   "partNumber": "5972K91",
+   "price": 6.14,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -465,7 +543,9 @@
    "width": "7",
    "unit": "mm",
    "seal": "OPEN",
-   "partNumber": "5972K216"
+   "partNumber": "5972K216",
+   "price": 13.38,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -475,7 +555,9 @@
    "width": "7",
    "unit": "mm",
    "seal": "OPEN",
-   "partNumber": "5972K217"
+   "partNumber": "5972K217",
+   "price": 16.15,
+   "material": "STEEL"
   },
   {
    "type": "RADIAL",
@@ -704,6 +786,246 @@
    "partNumber": "6153K72",
    "material": "STAINLESS_STEEL",
    "price": 18.62
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_3_16",
+   "outerDiameter": "0.5",
+   "width": "0.196",
+   "unit": "in",
+   "seal": "SHIELDED",
+   "partNumber": "60355K232",
+   "material": "STEEL",
+   "price": 5.76
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_1_4",
+   "outerDiameter": "0.625",
+   "width": "0.196",
+   "unit": "in",
+   "seal": "SHIELDED",
+   "partNumber": "60355K246",
+   "material": "STEEL",
+   "price": 6.09
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_1_4",
+   "outerDiameter": "0.75",
+   "width": "0.281",
+   "unit": "in",
+   "seal": "SHIELDED",
+   "partNumber": "60355K271",
+   "material": "STEEL",
+   "price": 7.58
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_3_8",
+   "outerDiameter": "0.875",
+   "width": "0.281",
+   "unit": "in",
+   "seal": "SHIELDED",
+   "partNumber": "60355K283",
+   "material": "STEEL",
+   "price": 6.58
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "IN_1_2",
+   "outerDiameter": "1.125",
+   "width": "0.313",
+   "unit": "in",
+   "seal": "SHIELDED",
+   "partNumber": "60355K291",
+   "material": "STEEL",
+   "price": 7.69
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "22",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K501",
+   "material": "STEEL",
+   "price": 18.28
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_8",
+   "outerDiameter": "22",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6661K12",
+   "material": "STEEL",
+   "price": 14.28
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_10",
+   "outerDiameter": "26",
+   "width": "8",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K322",
+   "material": "STEEL",
+   "price": 10.37
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_10",
+   "outerDiameter": "26",
+   "width": "8",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6661K13",
+   "material": "STEEL",
+   "price": 28.74
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_12",
+   "outerDiameter": "21",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K154",
+   "material": "STEEL",
+   "price": 10.13
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_12",
+   "outerDiameter": "28",
+   "width": "8",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K323",
+   "material": "STEEL",
+   "price": 11.6
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_12",
+   "outerDiameter": "28",
+   "width": "8",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6661K14",
+   "material": "STEEL",
+   "price": 28.19
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_15",
+   "outerDiameter": "21",
+   "width": "4",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6656K181",
+   "material": "STEEL",
+   "price": 11.66
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_15",
+   "outerDiameter": "24",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K155",
+   "material": "STEEL",
+   "price": 10.28
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_15",
+   "outerDiameter": "28",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K166",
+   "material": "STEEL",
+   "price": 8.7
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_17",
+   "outerDiameter": "23",
+   "width": "4",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6656K189",
+   "material": "STEEL",
+   "price": 27.47
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_17",
+   "outerDiameter": "26",
+   "width": "5",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K156",
+   "material": "STEEL",
+   "price": 11.07
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_25",
+   "outerDiameter": "37",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K158",
+   "material": "STEEL",
+   "price": 12.47
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_30",
+   "outerDiameter": "42",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "5972K159",
+   "material": "STEEL",
+   "price": 17.42
+  },
+  {
+   "type": "RADIAL",
+   "bore": "ROUND",
+   "size": "MM_35",
+   "outerDiameter": "47",
+   "width": "7",
+   "unit": "mm",
+   "seal": "SHIELDED",
+   "partNumber": "6656K216",
+   "material": "STEEL",
+   "price": 24.24
   }
  ]
 }

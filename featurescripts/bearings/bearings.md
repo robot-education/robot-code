@@ -73,10 +73,13 @@ wide; it's 4 mm (am-3377's model).
 
 McMaster-Carr's bearings come from `vendor/mcmaster-bearings.json`, transcribed from its tables by hand, since its pages
 refuse automated reads: its flanged steel bearings with 5, 6, and 8 mm bores (5 mm clears a #10 screw), shielded and
-open, and its 25 and 30 mm thin-section ones, each with its flange; its open radial R3, R4, R6, R8, 635, 608, 6805,
-and 6806; and its 5 and 7 mm radial bearings, shielded, sealed, and open. Where it sells a bearing more than one way
-(steel or 440C stainless, or another ABEC rating), the cheapest is offered, and is steel or stainless as that one is;
-its 316 stainless bearings, rated to 2,300 rpm at most, aren't offered. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
+open, each with its flange; its open radial R3, R4, R6, R8, 635, 608, 6805,
+and 6806; its 5 and 7 mm radial bearings, shielded, sealed, and open; and its shielded radial bearings in the sizes the
+catalog's other vendors sell (R3, R4, R4A, R6, R8, 608, 6000, 6001, 6702, 6801 to 6803, 6805, 6806, and 6902). Where
+it sells a bearing more than one way (steel or 440C stainless, or another ABEC rating), the cheapest is offered, and is
+steel or stainless as that one is. None costs more than $20 (`MCMASTER_MAX_PRICE`): one that does is a specialty
+bearing teams don't buy, so its flanged 6805 and 6806, its 6703 and 6807, and its sealed 607 aren't offered. Nor are
+its bearings with no ABEC rating, rated to 5,000 rpm at most, or its 316 stainless ones, to 2,300 rpm. Each joins both sets' catalogs, FTC's its metric ones alone. A flange only McMaster-Carr's table gives is
 Generic's too, as Generic offers every bearing a vendor does.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged
@@ -127,8 +130,8 @@ There are no `try`s.
 - AndyMark's FR82RS model (am-4465) is 0.375 in wide; AndyMark lists it, and FRCDesign has it, 0.313 in, as built.
 - goBILDA's 12 x 32 x 10 mm flanged bearing (1601-1032-0012) narrows between its body and its 2.3 mm flange in its STEP
   file, and the vendors' 1.125 in OD flanged bearings are undercut under their flanges; both are built as a plain step.
-- McMaster-Carr's shielded radial bearings are transcribed for 5 and 7 mm bores alone; its other radial bearings are
-  open.
+- McMaster-Carr's shielded radial bearings are transcribed for 5 and 7 mm bores and the sizes the other vendors sell;
+  its other sizes (3 and 4 mm bores, its 6200 and 6300 series, R10 and up) aren't offered.
 - ThriftyBot's, Swyft's, and SDS's availability is unchecked: only AndyMark's, WCP's, REV's, and goBILDA's stores
   were checked for discontinued parts.
 - FRCDesignApp reads no part set's manifest yet, so nothing there uses `bearings.gen.json`.

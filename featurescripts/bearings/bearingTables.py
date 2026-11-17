@@ -392,6 +392,10 @@ def mcmaster_url(part_number: str) -> str:
     return f"https://www.mcmaster.com/{part_number}/"
 
 
+# A bearing costing more is a specialty bearing teams don't buy, which McMaster-Carr's tables are full of
+MCMASTER_MAX_PRICE = 20
+
+
 def _mcmaster_bearings() -> Bearings:
     bearings: Bearings = {}
     prices: dict[tuple, float] = {}
@@ -403,10 +407,10 @@ def _mcmaster_bearings() -> Bearings:
             assert row["flangeDiameter"] and row["flangeThickness"], f"{part} needs its flange"
         key = ("MCMASTER", *bearing.key)
         # Where it sells a bearing more than one way (steel or stainless, or another ABEC rating), the cheapest
-        if key in bearings and row.get("price", 0) >= prices[key]:
+        if row["price"] > MCMASTER_MAX_PRICE or key in bearings and row["price"] >= prices[key]:
             continue
-        prices[key] = row.get("price", 0)
-        bearings[key] = (bearing, Stock(part, mcmaster_url(part), row.get("material", "STEEL")))
+        prices[key] = row["price"]
+        bearings[key] = (bearing, Stock(part, mcmaster_url(part), row["material"]))
     return bearings
 
 
@@ -418,7 +422,7 @@ VENDOR_FLANGES.update(
             row["flangeThickness"],
         )
         for row in MCMASTER_SNAPSHOT["bearings"]
-        if row["type"] == "FLANGED"
+        if row["type"] == "FLANGED" and row["price"] <= MCMASTER_MAX_PRICE
     }
 )
 FRC_BEARINGS = _frc_bearings()
