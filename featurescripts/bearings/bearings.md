@@ -18,7 +18,8 @@ ConfigLib), REV's from its FTC catalog, and AndyMark's its store tags for FTC. E
 vendors' bearings alone.
 
 Unreleased. They're part sets (`[tool.fs.parts.bearings]` and `[tool.fs.parts.ftcBearings]`, see docs/parts.md), not
-released to the frontend document: each Part Studio (Bearing) is built from its definition's `STUDIOS`, never by hand.
+released to the frontend document: each Part Studio is built from its definition's `STUDIOS`, never by hand. FRC's set
+has two, Bearing and Specialty Bearing (below), FTC's one, Bearing.
 FRC's is released into the FRCDesignLib document the fasteners are, FTC's into ConfigLib's.
 
 ## Strings
@@ -51,7 +52,14 @@ link, and its part number is the bearing's designation (`FR8ZZ-HexHD`) where FRC
 
 ## How it works
 
-The configuration asks Vendor, then Type (Flanged or Radial), Bore (Hex, Rounded hex, Round, or REX), Size
+FRC's bearings are split between two Part Studios, so the long tail of sizes doesn't crowd the lists teams use: Bearing
+offers the standard sizes (`STANDARD`), those inserted from FRCDesign's library 150 times or more in a year (98% of its
+flanged bearings' uses, and 90% of its radial bearings'), and the flanged bearings clearing a #10 screw (5 x 11 x 4 and
+5 x 13 x 4 mm, and REV's #10 clearance bearing); Specialty Bearing offers the rest, every one a round bore. A size is
+standard whatever its vendor and seal, and each bearing is in exactly one of them. Both build `libraryBearing`, and the
+manifest lists both, each with its records. FTC's are few enough for one, Bearing.
+
+Each configuration asks Vendor, then Type (Flanged or Radial), Bore (Hex, Rounded hex, Round, or REX), Size
 (1/2 in and 3/8 in, then the rest from smallest), Dimensions (outer diameter by width), and Seal (Shielded, Sealed,
 or Open), each laid out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios"): an
 input shows only where the vendor makes more than one of its options with the choices before it, so Dimensions shows
@@ -87,7 +95,7 @@ its 3/8 in hex sealed flanged bearing. Both vendors' pulley bearings (REV-41-136
 Bearings are acetal bushings, so none is offered: bushings are a part of their own.
 
 The defaults are what's inserted most: from FRCDesign's library, Generic's 1/2 in rounded hex flanged bearing, 1.125 in
-OD x 0.313 in, shielded; from ConfigLib, goBILDA's 8 mm round flanged bearing, 14 mm OD x 5 mm. FTC's vendors are
+OD x 0.313 in, shielded, and of its specialty bearings, Generic's 8 x 22 x 7 mm flanged one; from ConfigLib, goBILDA's 8 mm round flanged bearing, 14 mm OD x 5 mm. FTC's vendors are
 goBILDA, REV, AndyMark, then McMaster-Carr. goBILDA names only its 12 mm radial bearing sealed, and the rest are taken as shielded.
 
 Flanges are each vendor's where its model or drawing has them (`VENDOR_FLANGES`), and otherwise by size and dimensions

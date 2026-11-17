@@ -166,18 +166,18 @@ def test_mcmaster_carrs_rows_are_vendor_and_generic_bearings():
     assert BEARINGS[("MCMASTER", "RADIAL", "ROUND", "MM_35", "MM_47_X_7", "SHIELDED")][1].part_number == "6656K216"
     # Its ABEC 3 608 costs less than its ABEC 1
     assert BEARINGS[("MCMASTER", "RADIAL", "ROUND", "MM_8", "MM_22_X_7", "SHIELDED")][1].part_number == "6661K12"
-    # A shielded R8 beside its open one: Seal shows both
-    r8 = {"vendor": "MCMASTER", "type": "RADIAL", "bore": "ROUND", "size": "IN_1_2"}
-    assert "OD_1_125_X_0_313" in _shown("dimensions", r8)
-    record = next(r for r in MANIFEST["studios"]["bearing"]["records"] if r.get("partNumber") == "6153K15")
+    # Its shielded R8 is a standard bearing; its open one, narrower, a specialty bearing
+    records = DEFINITION["RECORDS"]
+    assert ("MCMASTER", "RADIAL", "ROUND", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED") in records["bearing"]
+    assert ("MCMASTER", "RADIAL", "ROUND", "IN_1_2", "OD_1_125_X_0_25", "OPEN") in records["specialtyBearing"]
+    record = next(r for r in MANIFEST["studios"]["specialtyBearing"]["records"] if r.get("partNumber") == "6153K15")
     assert record["material"] == "Stainless Steel"
     # A 5 mm bore, which clears a #10 screw, shielded or open
     shielded = BEARINGS[("MCMASTER", "FLANGED", "ROUND", "MM_5", "MM_14_X_5", "SHIELDED")][1]
     assert (shielded.part_number, shielded.url) == ("57155K577", "https://www.mcmaster.com/57155K577/")
-    assert _shown("seal", {"vendor": "MCMASTER", "type": "FLANGED", "bore": "ROUND", "size": "MM_5", "dimensions": "MM_14_X_5"}) == [
-        "SHIELDED",
-        "OPEN",
-    ]
+    specialty = DEFINITION["STUDIOS"]["specialtyBearing"]
+    five = {"vendor": "MCMASTER", "type": "FLANGED", "size": "MM_5", "dimensions": "MM_14_X_5"}
+    assert _shown("seal", five, specialty) == ["SHIELDED", "OPEN"]
     assert DEFINITION["flange"]("MCMASTER", "MM_5", "MM_14_X_5") == ("16", "1")
     # Generic offers a size only McMaster-Carr sells, with its flange; FTC's catalog its metric rows alone
     assert ("GENERIC", "FLANGED", "ROUND", "MM_5", "MM_8_X_2", "OPEN") in BEARINGS
@@ -197,3 +197,29 @@ def test_vex_and_vendorless_bearings_are_gone():
 def test_bushings_arent_bearings():
     # REV's Through Bore Bearings are acetal bushings, for a bushing part of their own
     assert not [key for key in FTC_BEARINGS if key[0] == "REV" and key[2] == "HEX"]
+
+
+def test_frcs_bearings_split_into_standard_and_specialty_studios():
+    records = DEFINITION["RECORDS"]
+    assert set(records) == {"bearing", "specialtyBearing"}
+    # Each bearing is in exactly one
+    assert not set(records["bearing"]) & set(records["specialtyBearing"])
+    assert set(records["bearing"]) | set(records["specialtyBearing"]) == set(BEARINGS)
+    # The flanged bearings clearing a #10 screw, and the 1/4 in bores, are standard
+    standard = {key[1:5] for key in records["bearing"]}
+    assert ("FLANGED", "ROUND", "MM_5", "MM_11_X_4") in standard and ("FLANGED", "ROUND", "NO_10", "OD_0_875_X_0_281") in standard
+    assert {key[3] for key in standard if key[2] == "IN_1_4"} == {
+        "OD_0_5_X_0_188",
+        "OD_0_625_X_0_196",
+        "OD_0_75_X_0_281",
+        "OD_0_375_X_0_125",
+    }
+    # A specialty bearing is never in the standard studio's lists
+    assert ("GENERIC", "FLANGED", "ROUND", "MM_6", "MM_17_X_6", "SHIELDED") in records["specialtyBearing"]
+    studios = MANIFEST["studios"]
+    assert set(studios) == {"bearing", "specialtyBearing"}
+    assert all(studio["feature"] == "libraryBearing" for studio in studios.values())
+    assert DEFINITION["STUDIOS"]["specialtyBearing"].tab_name == "Specialty Bearing"
+    for name, studio in DEFINITION["STUDIOS"].items():
+        values = sorted(json.dumps(record["values"], sort_keys=True) for record in studios[name]["records"])
+        assert values == sorted(json.dumps(combination, sort_keys=True) for combination in studio.combinations())

@@ -33,6 +33,7 @@ import json
 import pathlib
 import re
 from fractions import Fraction
+from typing import Callable
 
 from fs_cli.configured_studios import ConfiguredStudio, Input, LookupTable, Option, read_locations
 from fs_cli.gen import Code, Constant, Import
@@ -580,51 +581,134 @@ _ENUMS = {
 SEAT_MATE_CONNECTOR = "mateConnector"
 
 
+# Bearings teams use, by type, bore, size, and dimensions: every size inserted from FRCDesign's library 150 times or more
+# in a year (`fs cots`, to 2026-11-16, its vendors' uses summed), which is 98% of its flanged bearings' uses and 90% of
+# its radial bearings'; and the flanged bearings which clear a #10 screw, 5 mm and REV's #10 clearance. Each with its
+# uses; the rest are specialty bearings, in a studio of their own, so they don't crowd these lists.
+STANDARD = {
+    ("FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313"),  # 43,043
+    ("FLANGED", "HEX", "IN_1_2", "OD_1_125_X_0_313"),  # 29,558
+    ("FLANGED", "ROUNDED_HEX", "IN_3_8", "OD_0_875_X_0_281"),  # 3,706
+    ("FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_X_0_281"),  # 1,543
+    ("FLANGED", "HEX", "IN_3_8", "OD_1_125_X_0_313"),  # 1,243
+    ("FLANGED", "HEX", "IN_3_8", "OD_0_875_X_0_281"),  # 1,229
+    ("FLANGED", "ROUND", "IN_3_8", "OD_0_875_X_0_281"),  # 945
+    ("FLANGED", "ROUND", "IN_1_4", "OD_0_5_X_0_188"),  # 716
+    ("FLANGED", "ROUND", "IN_1_2", "OD_1_125_X_0_313"),  # 695
+    ("FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_0_875_X_0_281"),  # 522
+    ("FLANGED", "ROUND", "MM_35", "MM_47_X_7"),  # 585
+    ("FLANGED", "ROUND", "MM_8", "MM_16_X_5"),  # 368
+    ("FLANGED", "ROUND", "IN_1_4", "OD_0_625_X_0_196"),  # 260
+    ("FLANGED", "ROUND", "IN_3_16", "OD_0_5_X_0_196"),  # 221
+    ("FLANGED", "ROUND", "IN_3_8", "OD_1_125_X_0_313"),  # 197
+    ("FLANGED", "ROUND", "MM_8", "MM_14_X_5"),  # 173
+    ("FLANGED", "ROUND", "NO_10", "OD_0_875_X_0_281"),  # 116, #10 clearance
+    ("FLANGED", "ROUND", "MM_5", "MM_11_X_4"),  # 108, #10 clearance
+    ("FLANGED", "ROUND", "MM_5", "MM_13_X_4"),  # 80, #10 clearance
+    ("RADIAL", "ROUND", "IN_3_8", "OD_0_875_X_0_281"),  # 2,736
+    ("RADIAL", "ROUND", "IN_1_4", "OD_0_5_X_0_188"),  # 1,557
+    ("RADIAL", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313"),  # 1,132
+    ("RADIAL", "ROUND", "IN_1_4", "OD_0_75_X_0_281"),  # 922
+    ("RADIAL", "HEX", "IN_1_2", "OD_1_125_X_0_313"),  # 832
+    ("RADIAL", "ROUND", "IN_1_2", "OD_1_125_X_0_313"),  # 753
+    ("RADIAL", "ROUND", "IN_1_4", "OD_0_625_X_0_196"),  # 643
+    ("RADIAL", "ROUND", "IN_3_16", "OD_0_5_X_0_196"),  # 607
+    ("RADIAL", "ROUND", "IN_1_4", "OD_0_375_X_0_125"),  # 505
+    ("RADIAL", "ROUND", "IN_1_2", "OD_0_875_X_0_281"),  # 419
+    ("RADIAL", "ROUND", "NO_10", "OD_0_375_X_0_156_EXTENDED"),  # 286
+    ("RADIAL", "HEX", "IN_3_8", "OD_0_875_X_0_281"),  # 262
+    ("RADIAL", "ROUND", "MM_35", "MM_47_X_7"),  # 205
+    ("RADIAL", "ROUND", "MM_8", "MM_22_X_7"),  # 200
+    ("RADIAL", "ROUND", "MM_5", "MM_13_X_4"),  # 194
+    ("RADIAL", "ROUND", "MM_8", "MM_16_X_5"),  # 187
+    ("RADIAL", "ROUND", "IN_3_8", "OD_1_125_X_0_375"),  # 150
+}
+
+
+def is_standard(key: tuple) -> bool:
+    """Whether a bearing, by its key (vendor, type, bore, size, dimensions, seal), is a standard one: of any vendor, and
+    any seal."""
+    return key[1:5] in STANDARD
+
+
+@dataclasses.dataclass(frozen=True)
+class StudioSpec:
+    """A Part Studio of a part set: its name in the definition, its tab's, which of the set's bearings it offers, and
+    its inputs' defaults."""
+
+    name: str
+    tab: str
+    offers: Callable[[tuple], bool]
+    defaults: tuple[str, str, str, str, str, str]
+
+
 class Catalog:
-    """One part set's studio, laid out from the bearings it makes, and its records: what FRCDesign indexes.
+    """One part set's studios, each laid out from the bearings it offers, and their records: what FRCDesign indexes. Each
+    bearing is in one studio.
 
     Args:
-        vendors: The vendors' order in its studio, most used first, where it isn't the enum's own.
+        vendors: The vendors' order in its studios, most used first, where it isn't the enum's own.
     """
 
-    def __init__(self, bearings: Bearings, defaults: tuple[str, str, str, str, str, str], vendors: list[str] | None = None):
+    def __init__(self, bearings: Bearings, specs: list[StudioSpec], vendors: list[str] | None = None):
         self.bearings = bearings
         self.vendors = vendors or []
-        self.table = LookupTable(COLUMNS, list(bearings))
-        self.studios = {
-            "bearing": ConfiguredStudio(
-                "bearing",
+        self.tables: dict[str, LookupTable] = {}
+        self.studios: dict[str, ConfiguredStudio] = {}
+        self.records: dict[str, dict[tuple, Record]] = {}
+        for spec in specs:
+            offered = {key: value for key, value in bearings.items() if spec.offers(key)}
+            table = LookupTable(COLUMNS, list(offered))
+            self.tables[spec.name] = table
+            self.studios[spec.name] = ConfiguredStudio(
+                spec.name,
                 "libraryBearing",
-                [self._list(id, *_ENUMS[id], default) for id, default in zip(COLUMNS, defaults)],
+                [self._list(table, id, *_ENUMS[id], default) for id, default in zip(COLUMNS, spec.defaults)],
+                tab=spec.tab,
                 mate_connector=SEAT_MATE_CONNECTOR,
                 top_mate_connector="topMateConnector",
                 bottom_mate_connector="bottomMateConnector",
             )
-        }
-        self.records = {
-            "bearing": {
-                key: Record(self.table.shown(key), bearing_name(bearing), key[0], stock, bearing)
-                for key, (bearing, stock) in bearings.items()
+            self.records[spec.name] = {
+                key: Record(table.shown(key), bearing_name(bearing), key[0], stock, bearing)
+                for key, (bearing, stock) in offered.items()
             }
-        }
+        studied = [key for records in self.records.values() for key in records]
+        assert sorted(studied) == sorted(bearings), "Each bearing is in exactly one studio"
 
-    def _list(self, id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
+    def _list(self, table: LookupTable, id: str, name: str, enum: Enum, parameter: str, default: str) -> Input:
         assert enum.names is not None
         order = self.vendors if enum is BearingVendor else []
         options = [Option(value, enum.names[value], value) for value in order + [value for value in enum.values if value not in order]]
-        return self.table.input(Input(id, name, parameter, options, enum_name=enum.name, default=default))
+        return table.input(Input(id, name, parameter, options, enum_name=enum.name, default=default))
 
 
 # The defaults are what's inserted most from each library: FRCDesign's Generic 1/2 in rounded hex flanged bearing,
-# 1.125 in OD, and ConfigLib's goBILDA 8 mm round flanged bearing, 14 mm OD. ConfigLib has goBILDA's alone, so FTC's
-# vendors are goBILDA's first, then REV's, then AndyMark's
-FRC = Catalog(FRC_BEARINGS, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED"))
-FTC = Catalog(FTC_BEARINGS, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"), ["GOBILDA", "REV", "ANDYMARK", "MCMASTER"])
+# 1.125 in OD, and of its specialty bearings, the 8 x 22 x 7 mm flanged one; and ConfigLib's goBILDA 8 mm round flanged
+# bearing, 14 mm OD. ConfigLib has goBILDA's alone, so FTC's vendors are goBILDA's first. FTC's are few enough for one
+# studio.
+FRC = Catalog(
+    FRC_BEARINGS,
+    [
+        StudioSpec("bearing", "Bearing", is_standard, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED")),
+        StudioSpec(
+            "specialtyBearing",
+            "Specialty Bearing",
+            lambda key: not is_standard(key),
+            ("GENERIC", "FLANGED", "ROUND", "MM_8", "MM_22_X_7", "SHIELDED"),
+        ),
+    ],
+)
+FTC = Catalog(
+    FTC_BEARINGS,
+    [StudioSpec("bearing", "Bearing", lambda key: True, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"))],
+    ["GOBILDA", "REV", "ANDYMARK", "MCMASTER"],
+)
 
-TABLE = FRC.table
 STUDIOS = FRC.studios
 RECORDS = FRC.records
-ALL_RECORDS = {"bearing": {**FRC.records["bearing"], **FTC.records["bearing"]}}
+# Every part either set makes, by its key, which the feature's tables hold
+ALL_RECORDS = {key: record for catalog in (FRC, FTC) for records in catalog.records.values() for key, record in records.items()}
 
 # Where the studio was last released: `fs parts bearings --release` records it beside this file, FTC's beside
 # ftcBearingTables.py
@@ -710,7 +794,7 @@ CONTENTS = [
         "/** What each vendor makes, by vendor, type, bore, size, dimensions, and seal: each bearing's dimensions, a"
         " flanged one's flange, and its properties. */\nexport const BEARINGS = "
         + _nested(
-            {key: (bearing, ALL_RECORDS["bearing"][key]) for key, (bearing, _) in BEARINGS.items()},
+            {key: (bearing, ALL_RECORDS[key]) for key, (bearing, _) in BEARINGS.items()},
             [BearingVendor, BearingType, BearingBore, BearingSize, BearingDimensions, BearingSeal],
             _bearing_fields,
             0,
