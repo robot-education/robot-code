@@ -239,3 +239,15 @@ def test_generate_rejects_exported_feature_studios(tmp_path):
     (tmp_path / "tables.py").write_text("CONTENTS = []\nEXPORTS = {'other.fs': ''}\n")
     with pytest.raises(GenerateError, match="Feature Studio"):
         generate(tmp_path, "2960")
+
+
+def test_shows_flags_write_functions_of_paths():
+    # Options flagged with what they show: a function per flag, true for a path choosing any of them (in any table)
+    sizes = Node("size", [Value("Small"), Value("Custom", shows="customSize")])
+    vendors = Node("vendor", [Value("Acme", next=sizes), Value("Custom", shows="customSize")])
+    other = Node("kind", [Value("Plain"), Value("Fancy", shows="fancy")])
+    code = render([Table("parts", vendors), Table("kinds", other)], "2615", "parts.py")
+    assert 'export function showsCustomSize(path is LookupTablePath) returns boolean\n{\n    return path["size"] == "Custom" || path["vendor"] == "Custom";\n}' in code
+    assert 'export function showsFancy(path is LookupTablePath) returns boolean\n{\n    return path["kind"] == "Fancy";\n}' in code
+    # Without flags, none
+    assert "export function shows" not in render([Table("plain", Node("kind", [Value("Plain")]))], "2615", "plain.py")

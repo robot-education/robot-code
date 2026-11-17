@@ -434,6 +434,5 @@ export function getBeltTableAndPath(definition is map) returns map
  */
 export function isCustomBeltChosen(definition is map) returns boolean
 {
-    const path = getBeltTableAndPath(definition).path;
-    return isOpenBelt(definition) ? hasCustomWidth(path) : hasCustomTeeth(path);
+    return showsCustomBelt(getBeltTableAndPath(definition).path);
 }

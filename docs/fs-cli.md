@@ -352,7 +352,9 @@ Lookup tables and sketch profiles (the `*.gen.fs` files) are generated from Pyth
 `featurescripts/released/belt/robotBeltTables.py` generates `featurescripts/released/belt/robotBeltTables.gen.fs`. Each definition
 sets `CONTENTS` to a list of items:
 
-- `Enum`s and `Table`s (lookup tables) from [`fs_cli/tables.py`](../fs_cli/tables.py)
+- `Enum`s and `Table`s (lookup tables) from [`fs_cli/tables.py`](../fs_cli/tables.py), with each level's default
+  written out, and for each flag options show (`Value(..., shows="customBelt")`), a function of a path,
+  `showsCustomBelt(path)`, for a hidden parameter's "Set By" function (see `docs/featurescript-style.md`)
 - `Sketch`es and `SketchMap`s of profiles (`SketchDataArray`s, see `core/sketchData.fs`) built from lines, arcs,
   and fit splines with [`fs_cli/sketches.py`](../fs_cli/sketches.py), e.g. `released/splineProfile/splineProfiles.py`. A
   profile can also be read from a vendor's STEP model with [`fs_cli/step.py`](../fs_cli/step.py), which turns the

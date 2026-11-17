@@ -25,13 +25,17 @@ CUSTOM_WIDTH = "Custom"
 # A belt of any type, width, and teeth, given by the feature's own parameters: first, but not the default
 CUSTOM_SUPPLIER = "Custom"
 
+# What the custom options show: the feature's custom belt parameters (its Belt type, width, and teeth, or an open belt's
+# or pulley's Belt width), which `showsCustomBelt` (generated) says a path chose
+CUSTOM_BELT = "customBelt"
+
 
 def width_node(widths: list[tuple[str, str]], extra: list[Value] = (), custom: bool = True) -> Node:
     """Each width, by its name and its expression, then `extra` widths, then Custom (which has no beltWidth), unless
     `custom` is false."""
     return Node(
         "width",
-        [*(Value(name, {"beltWidth": width}) for name, width in widths), *extra, *([Value(CUSTOM_WIDTH)] if custom else [])],
+        [*(Value(name, {"beltWidth": width}) for name, width in widths), *extra, *([Value(CUSTOM_WIDTH, shows=CUSTOM_BELT)] if custom else [])],
         display_name="Belt width",
     )
 
@@ -172,7 +176,7 @@ def supplier_table(suppliers: dict[str, dict[str, dict[str, list[int]]]]) -> Nod
     by default."""
     return Node(
         "supplier",
-        [Value(CUSTOM_SUPPLIER), *(Value(supplier, next=supplier_belts(belts)) for supplier, belts in suppliers.items())],
+        [Value(CUSTOM_SUPPLIER, shows=CUSTOM_BELT), *(Value(supplier, next=supplier_belts(belts)) for supplier, belts in suppliers.items())],
         display_name="Belt supplier",
         # Custom only if there's no supplier
         default=next(iter(suppliers), CUSTOM_SUPPLIER),

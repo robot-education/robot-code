@@ -22,6 +22,7 @@ import runpy
 from typing import Callable, Mapping, Protocol, Sequence
 
 from fs_cli.state import apply_import_versions, import_versions
+from fs_cli.tables import Table, shows_functions
 
 GENERATED_SUFFIX = ".gen.fs"
 
@@ -99,6 +100,7 @@ def render(
         + f"\n/* Generated from {source_name} by `fs gen` -- DO NOT EDIT */\n"
     )
     items = [item.render() for item in contents if not isinstance(item, Import)]
+    items += shows_functions([item for item in contents if isinstance(item, Table)])
     return "\n".join([header, *items])
 
 

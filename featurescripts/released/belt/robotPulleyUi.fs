@@ -44,7 +44,7 @@ export predicate isManualIdler(definition is map)
  */
 export function isCustomWidthPulley(definition is map) returns boolean
 {
-    return hasCustomWidth(definition.beltTypePath);
+    return showsCustomBelt(definition.beltTypePath);
 }
 
 export predicate pulleyGeneralPredicate(definition is map)

@@ -136,6 +136,19 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
     ...
 ```
 
+- **Let the table say which options show parameters**: flag them in the table's Python definition
+  (`Value("Custom", shows="customBelt")`), and `fs gen` writes a function of a path true when it chooses any of them
+  (`showsCustomBelt(path)`, in any of that file's tables), so the "Set By" function only says which path is in use:
+
+  ```
+  export function isCustomBeltChosen(definition is map) returns boolean
+  {
+      return showsCustomBelt(getBeltTableAndPath(definition).path);
+  }
+  ```
+
+  The hidden parameter and the line setting it in editing logic are still the feature's (Onshape needs both), and
+  `fs check --fix` adds the line.
 - **Always recompute it**, rather than when some parameters change: there's no list of them to keep up to date, and a
   lookup is cheap. Editing logic must declare `isCreating` to run on every change (see "Editing logic and
   manipulator change functions").

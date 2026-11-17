@@ -45,11 +45,15 @@ class Value:
         name: The name shown to the user.
         values: FeatureScript expressions, by key, added to the result of every leaf below this.
         next: The Node to choose from next, or None if this is a leaf.
+        shows: A flag naming parameters choosing this shows (like "customBelt"): `fs gen` writes a function of a path,
+            `showsCustomBelt(path)`, true when it chooses any option flagged so, for a hidden parameter's "Set By"
+            function (see `shows_functions`).
     """
 
     name: str
     values: Mapping[str, str] = dataclasses.field(default_factory=dict)
     next: Node | None = None
+    shows: str | None = None
 
 
 @dataclasses.dataclass
@@ -156,3 +160,38 @@ def _render_node(
             _render_node(entry.next, indent + 8, values, lines)
             lines.append(f"{pad}    }},")
     lines.append(f"{pad}}},")
+
+
+def shows_functions(tables: Sequence[Table]) -> list[str]:
+    """For each flag options of `tables` show (`Value.shows`), a function of a lookup table path, true when it chooses
+    any option flagged so: as Onshape can't show parameters by a lookup table's choice, a hidden parameter "Set By" a
+    function of the definition calling it shows them (see docs/featurescript-style.md's "Hidden parameters set by
+    editing logic")."""
+    flags: dict[str, list[tuple[str, str]]] = {}
+
+    def visit(node: Node) -> None:
+        for entry in node.entries:
+            if entry.shows is not None:
+                choice = (node.name, entry.name)
+                if choice not in flags.setdefault(entry.shows, []):
+                    flags[entry.shows].append(choice)
+            if entry.next is not None:
+                visit(entry.next)
+
+    for table in tables:
+        visit(table.node)
+    functions = []
+    for flag, choices in flags.items():
+        name = "shows" + flag[:1].upper() + flag[1:]
+        condition = " || ".join(f"path[{string(level)}] == {string(option)}" for level, option in choices)
+        functions.append(
+            "/**\n"
+            f" * Whether a lookup table path chooses an option which shows {flag}'s parameters: one flagged so in its table's\n"
+            " * definition. For a hidden parameter's \"Set By\" function.\n"
+            " */\n"
+            f"export function {name}(path is LookupTablePath) returns boolean\n"
+            "{\n"
+            f"    return {condition};\n"
+            "}\n"
+        )
+    return functions

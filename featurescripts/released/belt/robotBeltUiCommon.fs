@@ -9,12 +9,6 @@ import(path : "d82c5bf9082d0054f8f0b419", version : "512461979234ba53a425b7f4");
 export const BELT_WIDTH_BOUNDS = { (meter) : [1e-4, 0.015, 500], (inch) : 0.5, (millimeter) : 15 } as LengthBoundSpec;
 
 /**
- * A belt width level's option for a width of the feature's own (its Belt width), as `robotBeltTables.py`'s
- * `CUSTOM_WIDTH`.
- */
-export const CUSTOM_BELT_WIDTH = "Custom";
-
-/**
  * A belt table's supplier for a belt of the feature's own (its Custom belt parameters), as `robotBeltTables.py`'s
  * `CUSTOM_SUPPLIER`.
  */
@@ -95,15 +89,7 @@ export function getBeltTypeValue(definition is map) returns map
 }
 
 /**
- * Whether a belt table's path is to a belt of a custom width (the feature's Belt width).
- */
-export function hasCustomWidth(path is LookupTablePath) returns boolean
-{
-    return path.width == CUSTOM_BELT_WIDTH;
-}
-
-/**
- * A belt of a custom width's Belt width: shown by the feature when its table's width is Custom (`hasCustomWidth`, in a
+ * A belt of a custom width's Belt width: shown by the feature when its table's width is Custom (`showsCustomBelt`, in a
  * hidden parameter set by editing logic, as the precondition can't read the table).
  */
 export predicate customBeltWidthPredicate(definition is map)

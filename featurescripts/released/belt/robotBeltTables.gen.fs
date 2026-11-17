@@ -857,3 +857,12 @@ export const beltTypeTable = {
             "RT25" : { "beltType" : BeltType.RT25, "beltWidth" : 0.5 * inch },
         },
     };
+
+/**
+ * Whether a lookup table path chooses an option which shows customBelt's parameters: one flagged so in its table's
+ * definition. For a hidden parameter's "Set By" function.
+ */
+export function showsCustomBelt(path is LookupTablePath) returns boolean
+{
+    return path["supplier"] == "Custom" || path["width"] == "Custom";
+}
