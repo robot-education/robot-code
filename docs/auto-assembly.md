@@ -52,8 +52,8 @@ The first declarations:
 - **Robot shaft**: a shaft end screw in a tapped end, and a retaining ring or e-clip in a groove.
 - **Robot gear**: a COTS gear in place of its modeled one.
 - **Robot motor**: the motor or gearbox whose face it cut (see [Robot motor](#robot-motor)).
-- **Robot bearing** (Robot bearing hat, renamed) and **Robot bushing** (new): the bearing or bushing in a bore, and
-  the bearing's retention: its hat, or its screws (see [Robot bearing and Robot bushing](#robot-bearing-and-robot-bushing)).
+- **Robot bearing** (Robot bearing hat, renamed) and **Robot bushing** (new): the bearing or bushing in the bore it
+  cuts, and the bearing's retention: its hat, or its screws (see [Robot bearing and Robot bushing](#robot-bearing-and-robot-bushing)).
 
 ### The declaration
 
@@ -338,25 +338,45 @@ is Robot bearing without retention.
 
 ### What both do
 
-1. **Location**: a bore's circular edge, as Robot bearing hat takes it now, with its axis orientation. The part
-   whose face the edge is on is the host.
-2. **Product**: the bearing or bushing, from a generated table of the library's, by type and size: Flanged Radial
-   Bearing, Radial Bearing, X-Contact Bearing, Needle Roller Bearing for Robot bearing; Flanged Bushing for Robot
-   bushing. A warning when the bore isn't the product's outside diameter.
-3. **Declaration**: a host connector on the host at the bore's edge, Z out of the bore, X by the angle reference if
-   there is one: the product's `face` connector, on the face of its flange (or of the bearing, unflanged) that sits on
-   the plate. Flanged Radial Bearing already has a connector (`supportsFasten`); its place and name follow this.
-4. **Stand-in**: a ring at the product's outside diameter and width, with its flange, and its bore at its inside
-   diameter (a hex bore as a circle across its corners): one revolve. A Stand-in checkbox, as gears and motors have.
+Both now cut the bore, as Robot motor cuts its face, rather than taking one already cut. The dialog, in Robot motor's
+shape and from the same `core/` predicates:
+
+| Group | Parameters |
+| --- | --- |
+| (top) | **Product**: the bearing or bushing, from a generated table of the library's, by type and size: Flanged Radial Bearing, Radial Bearing, X-Contact Bearing, Needle Roller Bearing for Robot bearing; Flanged Bushing for Robot bushing |
+| Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
+| Bore | Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`), and Merge scope (`holeMergeScopePredicate`) |
+| Retention (Robot bearing) | Below |
+| Other options | Stand-in |
+
+What they do:
+
+1. **Editing logic**: `mountingEditLogic`, as Robot motor's: std's hole heuristics set the merge scope to the parts at
+   the location, and Flip primary axis so the bore goes into them, unless they've been set.
+2. **The plane**: the location's, offset, turned to the angle reference and Angle, and flipped; its normal points out
+   of the face the bearing sits on.
+3. **The bore**: a circle at the product's outside diameter plus Bore fit's clearance, extruded through the merge
+   scope behind the plane and subtracted from it, in one boolean, as Robot motor's pilot is. A flanged product's
+   flange sits on the face; the bore is its body's diameter, not its flange's. The part the plane is on, of the merge
+   scope's, is the host.
+4. **Declaration**: a host connector on the host at the bore's center, on the plane, Z out of the bore, X the plane's
+   (so the angle reference turns it): the product's `face` connector, on the face of its flange (or of the bearing,
+   unflanged) that sits on the plate. Flanged Radial Bearing already has a connector (`supportsFasten`); its place
+   and name follow this.
+5. **Stand-in**: a ring at the product's outside diameter and width, with its flange, and its bore at its inside
+   diameter (a hex bore as a circle across its corners): one revolve.
+6. **Retention** (Robot bearing): below.
 
 `"Auto Assembly" : true` on both. Neither allows simplification: their stand-ins are already as simple as they get.
 
 ### Retention (Robot bearing)
 
-A **Retention** group, with a **Retention** choice of **Hat** or **Screws**.
+**Retention** is a checkbox driving its own group (`"Driving Parameter" : "retention"`), off by default and remembered.
+Off, the bearing is cut and declared with nothing holding it. On, its group starts with a **Retention type**, Hat or
+Screws. Both use the Position group's angle reference and Angle, and cut their holes through the same merge scope.
 
-**Hat** is today's feature: COTS, Standard or Custom hat, its table, its mounting holes, and its angle reference and
-angle. Its Auto Assembly options:
+**Hat** is today's feature: COTS, Standard or Custom hat, its table, and its mounting holes. Its Auto Assembly
+options:
 
 - A COTS hat declares itself: WCP's Bearing Retention Hat, whose configurations are the same bore and centers as the
   hat table's (0.875 in. bore at 1.25 or 2 in. centers, 1.125 in. at 1.5 or 2 in.). Its connector goes on the plate
@@ -366,12 +386,13 @@ angle. Its Auto Assembly options:
   through) and Finish, in the hole's size. Each hole's host connector is at its top edge, Z out of the hole: the
   fasteners' own convention, so they need nothing new in the library.
 
+A hat's bore comes from the product's outside diameter now, so the hat table is chosen by its centers alone, and a
+product with no hat of its size says so.
+
 **Screws** retains the bearing with screw heads over its outer race or flange:
 
 - **Holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
-- **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart).
-- **Angle reference**, optional, with Angle (`core/mounting.fs`'s, as the hat's), turning the holes from the
-  location's X axis.
+- **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart), from the plane's X axis.
 - **Hole circle**: editing logic sets its diameter from the product and the screw's size, so each hole clears the
   bore by a wall and its head overlaps the bearing; it can be overridden.
 - **Auto Assembly**: as the hat's screws: a screw in each hole, a washer under its head optionally (a washer widens
@@ -379,7 +400,13 @@ angle. Its Auto Assembly options:
 
 ### Robot bushing
 
-The four steps above, with Flanged Bushing's products, and no Retention group.
+The same, with Flanged Bushing's products, and no Retention group.
+
+### What changes for documents
+
+Robot bearing hat's released documents select a bore's edge, which Robot bearing no longer takes. Following
+`AGENTS.md`'s "Backwards compatibility", the parameters change with no migration: a document updating to it shows the
+feature's error until its location is picked again.
 
 ## Icons in the FeatureScripts tab
 
@@ -439,8 +466,6 @@ Each of these is unverified, and the design leans on it:
 
 ## Still to decide
 
-- **None as a retention.** Proposed: Hat or Screws only, as asked; a flanged bearing held by the parts around it
-  would want None.
 - **Which part sets first.** Proposed: e-clips and retaining rings, then end screws, as part sets; gears from the
   library's studios, with connectors added by hand.
 - **Order of work.** Proposed: the Onshape checks; `core/autoAssembly.fs` and `core/simplify.fs`; Robot motor
