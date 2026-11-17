@@ -8,13 +8,12 @@ import(path : "0794d10863d10d98a88c2ab4", version : "d292b4e6b25e9bc8369e8396");
 export import(path : "9211f87982e44e327e4bdfbc", version : "213c875bc7ff445550a6b7f9");
 
 /**
- * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings, and flanged bushings
- * (REV's acetal Through Bore Bearings). They're made in a Part Studio whose configuration sets every parameter and
- * offers only what's made (see bearingTables.py), so this dialog is rarely seen: a flat list of enums, with no
- * conditions, which the configuration filters.
+ * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings. They're made in a Part
+ * Studio whose configuration sets every parameter and offers only what's made (see bearingTables.py), so this dialog is
+ * rarely seen: a flat list of enums, with no conditions, which the configuration filters.
  *
  * Each bearing is built along the Z axis, with a mate connector at the origin pointing out of the hole it sits in: a
- * flanged bearing's or bushing's flange is above the origin, and the rest of it below; a radial bearing is below, its
+ * flanged bearing's flange is above the origin, and the rest of it below; a radial bearing is below, its
  * top face at the origin. Each points out of the part it's on, as do the ones on its top and bottom faces, where what's
  * stacked on its shaft sits against it: a flange's top points up, and any bearing's bottom down. A radial bearing's top
  * is where it seats, so it has no other.
@@ -81,7 +80,7 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
         const boreShape = BEARING_BORES[definition.bore][definition.size];
         const isFlanged = definition.bearingType != BearingType.RADIAL;
 
-        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed; a bushing is solid
+        // 1. Revolve its races, from the axis out, with the shields or seals between them recessed
         const sketchId = id + "profile";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
         const points = bearingProfile(bearing, boreRadius(boreShape), definition.bearingType);
@@ -184,20 +183,13 @@ export function boreRadius(boreShape is map) returns ValueWithUnits
  * The bearing's half section, revolved about the axis, from its bottom on the axis: up its inner race to its top, with
  * the shields between its races recessed from each face, and out to its outer diameter and a flanged one's flange.
  * A flanged bearing's flange is above the origin, the rest of it below; a radial bearing is below the origin. An
- * extended inner race (`outerWidth`) stands out of both faces of the outer race. A bushing is solid, with no races.
+ * extended inner race (`outerWidth`) stands out of both faces of the outer race.
  */
 export function bearingProfile(bearing is map, boreRadius is ValueWithUnits, bearingType is BearingType) returns array
 {
     const zero = 0 * meter;
     const radius = bearing.outerDiameter / 2;
-    const isFlanged = bearingType != BearingType.RADIAL;
-    if (bearingType == BearingType.BUSHING)
-    {
-        const flangeTop = bearing.flangeThickness;
-        const flange = bearing.flangeDiameter / 2;
-        return [vector(zero, flangeTop - bearing.width), vector(radius, flangeTop - bearing.width), vector(radius, zero),
-                vector(flange, zero), vector(flange, flangeTop), vector(zero, flangeTop), vector(zero, flangeTop - bearing.width)];
-    }
+    const isFlanged = bearingType == BearingType.FLANGED;
     const recess = bearing.width * SHIELD_RECESS;
     const race = (radius - boreRadius) * RACE_FRACTION;
     const inner = boreRadius + race;

@@ -42,20 +42,18 @@ The configuration only offers what's made, so these show only in the feature's o
 | Part | Name |
 | --- | --- |
 | Bearing | `<size> <bore> <type> Bearing (<OD> OD x <width>)`, with any seal but shields after its dimensions: `1/2 in Rounded Hex Flanged Bearing (1.125 in OD x 0.313 in)`, `3/8 in Round Radial Bearing (0.875 in OD x 0.281 in, Sealed)`, `8 mm Round Flanged Bearing (16 mm OD x 5 mm)`, `8 mm REX Flanged Bearing (14 mm OD x 5 mm)`; R166ZZEE's dimensions are `0.375 in OD x 0.156 in (extended inner race)` |
-| Bushing | `<size> <bore> Flanged Bushing (<OD> OD x <width>)`: `5 mm Hex Flanged Bushing (9 mm OD x 5 mm)` |
 
 Every ball bearing has the same colors, whatever its vendor's model has or it's made of: its races in the standards' steel grey
-(#B3B3B3), with shields of #ABA99C or black seals between them, as WCP's models color them (WCP-0785). A bushing (REV's
-Through Bore Bearings) is black acetal. Each is steel, but bushings and some of McMaster-Carr's, which are 440C stainless.
+(#B3B3B3), with shields of #ABA99C or black seals between them, as WCP's models color them (WCP-0785). Each is steel, but some of McMaster-Carr's, which are 440C stainless.
 Each has its vendor
 as its Vendor, its part number, and its link as its description, where the vendor has them; Generic has no vendor or
 link, and its part number is the bearing's designation (`FR8ZZ-HexHD`) where FRCDesign gives one.
 
 ## How it works
 
-The configuration asks Vendor, then Type (Flanged, Radial, or Bushing), Bore (Hex, Rounded hex, Round, or REX), Size
+The configuration asks Vendor, then Type (Flanged or Radial), Bore (Hex, Rounded hex, Round, or REX), Size
 (1/2 in and 3/8 in, then the rest from smallest), Dimensions (outer diameter by width), and Seal (Shielded, Sealed,
-Open, or None, a bushing's), each laid out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios"): an
+or Open), each laid out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios"): an
 input shows only where the vendor makes more than one of its options with the choices before it, so Dimensions shows
 only where a size comes in more than one, and Seal only where those dimensions come both shielded and sealed. An open
 bearing is narrower than its shielded one (FR6 is 0.219 in wide, FR6ZZ 0.281 in), so it's chosen by its dimensions and
@@ -84,11 +82,9 @@ offered. Nor are its bearings with no ABEC rating, rated to 5,000 rpm at most, o
 Generic's too, as Generic offers every bearing a vendor does.
 
 FTC's are goBILDA's flanged and radial ball bearings (from its store and STEP files), REV's 8 x 12 x 3.5 mm flanged
-bearing and its two acetal Through Bore Bearings, bushings for 5 mm hex (REV-41-1326, 5 mm overall, and REV-41-1329,
-11 mm), and
-AndyMark's bearings its store tags for FTC (All FTC Parts, and its Robits line): MF115ZZ, F126ZZ, F6702ZZ, 695ZZ, and
-its 3/8 in hex sealed flanged bearing. Both vendors' pulley bearings (REV-41-1368, am-4836) are V-grooved, and aren't
-offered.
+bearing, and AndyMark's bearings its store tags for FTC (All FTC Parts, and its Robits line): MF115ZZ, F126ZZ, F6702ZZ, 695ZZ, and
+its 3/8 in hex sealed flanged bearing. Both vendors' pulley bearings (REV-41-1368, am-4836) are V-grooved, and REV's Through Bore
+Bearings are acetal bushings, so none is offered: bushings are a part of their own.
 
 The defaults are what's inserted most: from FRCDesign's library, Generic's 1/2 in rounded hex flanged bearing, 1.125 in
 OD x 0.313 in, shielded; from ConfigLib, goBILDA's 8 mm round flanged bearing, 14 mm OD x 5 mm. FTC's vendors are
@@ -107,13 +103,13 @@ designation's standard. None is assumed.
    way from the bore's corners (`boreRadius`) to the outer diameter, as REV's and AndyMark's models have them. A
    flanged bearing's flange is above the origin and the rest below it, so the origin is the flange's underside; a
    radial bearing is below the origin, its top face there. R166ZZEE's inner race (0.156 in) stands out of both faces of
-   its outer race (0.125 in). A bushing is a solid body under its flange, with no races.
+   its outer race (0.125 in).
 3. Cuts the bore through (`cutBore`): a circle, or a hexagon across its flats, with a round of `diameter` where its
    corners are rounded (13.75 mm for a 1/2 in rounded hex, 10.25 mm for 3/8 in, as Robot shaft rounds its shafts); the
    bore is the sketch region around the axis. goBILDA's 8 mm REX bore
    is a 7 mm hex with sharp corners, as its STEP file has it.
 4. Adds its mate connectors on the axis, each pointing out of the part it's on: where it seats, at the origin pointing
-   up (`id + "mateConnector"`); a flanged bearing's or bushing's top, on its flange's top face, pointing up
+   up (`id + "mateConnector"`); a flanged bearing's top, on its flange's top face, pointing up
    (`id + "topMateConnector"`); and its bottom, on its bottom face, pointing down (`id + "bottomMateConnector"`). What's
    stacked on its shaft (a spacer, a collar, another bearing) sits against these. A radial bearing's top is where it
    seats, so it makes no top connector: its records in the manifest name `mateConnector` as their `topMateConnector`,
