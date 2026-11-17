@@ -458,3 +458,46 @@ export function testRackStopManipulatorSetsTheDistance()
         { "rackStop" : { "manipulatorType" : ManipulatorType.LINEAR_1D, "offset" : -0.5 * inch } });
     expectEqual(changed.rackStopDistance, -0.5 * inch);
 }
+
+/**
+ * A 72T 20 DP internal gear's definition, its ring 1/4 in. thick, measured from `from`.
+ */
+function internalGear(from is InternalRingFrom) returns map
+{
+    return {
+            "gearType" : GearType.INTERNAL,
+            "sizeBy" : GearSize.TEETH,
+            "teeth" : 72,
+            "pitch" : GearPitch.DP_20,
+            "location" : qNothing(),
+            "ringSizeBy" : InternalRingSize.THICKNESS,
+            "ringThickness" : 0.25 * inch,
+            "ringFrom" : from,
+            "outsideDiameter" : 4 * inch
+        };
+}
+
+export function testInternalRingIsMeasuredFromItsTeeth()
+{
+    // Its pitch radius is 1.8 in., its roots 1.25 modules out, and its tips a module in (above its base circle, at 14.5°)
+    expectNear(internalRingRadius(internalGear(InternalRingFrom.ROOT), MODULE, 72), (1.8 + 0.0625 + 0.25) * inch, 1e-12 * meter);
+    expectNear(internalRingRadius(internalGear(InternalRingFrom.PITCH), MODULE, 72), (1.8 + 0.25) * inch, 1e-12 * meter);
+    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 72), (1.8 - 0.05 + 0.25) * inch, 1e-12 * meter);
+    // A 40T gear's tips are on its base circle
+    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 40), (cos(14.5 * degree) + 0.25) * inch, 1e-12 * meter);
+    var outside = internalGear(InternalRingFrom.ROOT);
+    outside.ringSizeBy = InternalRingSize.OUTSIDE_DIAMETER;
+    expectNear(internalRingRadius(outside, MODULE, 72), 2 * inch, 1e-12 * meter);
+}
+
+export function testInternalRingOutsideDiameterKeepsTheRing()
+{
+    // Switching to Outside diameter sets it to the ring's, unless it's been set
+    const definition = internalGear(InternalRingFrom.ROOT);
+    var switched = definition;
+    switched.ringSizeBy = InternalRingSize.OUTSIDE_DIAMETER;
+    const result = robotGearEditLogic(newContext(), newId(), definition, switched, false, {}, qNothing());
+    expectNear(result.outsideDiameter, 2 * (1.8 + 0.0625 + 0.25) * inch, 1e-12 * meter);
+    const specified = robotGearEditLogic(newContext(), newId(), definition, switched, false, { "outsideDiameter" : true }, qNothing());
+    expectEqual(specified.outsideDiameter, 4 * inch);
+}
