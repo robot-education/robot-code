@@ -348,7 +348,7 @@ export const BEARINGS = {
                         BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 5 mm)", "partNumber" : "W688AZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_16_X_6_3 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 6.3 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)", "partNumber" : "F688Z", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 6.3 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.3 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)", "partNumber" : "F688Z", "material" : STEEL, "appearance" : STEEL_GRAY }
                     },
                     BearingDimensions.MM_19_X_6 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 19 * millimeter, "width" : 6 * millimeter, "flangeDiameter" : 22 * millimeter, "flangeThickness" : 1.5 * millimeter, "name" : "8 mm Round Flanged Bearing (19 mm OD x 6 mm)", "partNumber" : "F698ZZ", "material" : STEEL, "appearance" : STEEL_GRAY }
@@ -907,7 +907,7 @@ export const BEARINGS = {
                 },
                 BearingSize.MM_8 : {
                     BearingDimensions.MM_16_X_6_3 : {
-                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 6.3 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.1 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)", "vendor" : "ThriftyBot", "partNumber" : "TTB-0006", "url" : "https://www.thethriftybot.com/search?type=product&q=TTB-0006", "material" : STEEL, "appearance" : STEEL_GRAY }
+                        BearingSeal.SHIELDED : { "outerDiameter" : 16 * millimeter, "width" : 6.3 * millimeter, "flangeDiameter" : 18 * millimeter, "flangeThickness" : 1.3 * millimeter, "name" : "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)", "vendor" : "ThriftyBot", "partNumber" : "TTB-0006", "url" : "https://www.thethriftybot.com/search?type=product&q=TTB-0006", "material" : STEEL, "appearance" : STEEL_GRAY }
                     }
                 },
                 BearingSize.MM_35 : {

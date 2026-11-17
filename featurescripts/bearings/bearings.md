@@ -87,8 +87,8 @@ OD x 0.313 in, shielded; from ConfigLib, goBILDA's 8 mm round flanged bearing, 1
 goBILDA, REV, AndyMark, then McMaster-Carr. goBILDA names only its 12 mm radial bearing sealed, and the rest are taken as shielded.
 
 Flanges are each vendor's where its model or drawing has them (`VENDOR_FLANGES`), and otherwise by size and dimensions
-(`FLANGES`): REV's drawings, AndyMark's specifications, goBILDA's, WCP's, and Swyft's STEP files, or the
-designation's standard.
+(`FLANGES`): REV's drawings, AndyMark's specifications, goBILDA's, WCP's, Swyft's, and ThriftyBot's STEP files, or the
+designation's standard. None is assumed.
 
 `libraryBearing`:
 
@@ -120,8 +120,6 @@ There are no `try`s.
 ## Issues found
 
 - Not yet tried in Onshape: none of it has regenerated there, and no connector has been fastened to.
-- Assumed flanges, marked `TODO` in `bearingTables.py`: ThriftyBot's 8 x 16 x 6.3 mm, and Generic's and WCP's 30 and
-  35 mm thin-section bearings'. Their models (TTB-0006, WCP-0299, WCP-1471) would settle them.
 - AndyMark's FR82RS model (am-4465) is 0.375 in wide; AndyMark lists it, and FRCDesign has it, 0.313 in, as built.
 - goBILDA's 12 x 32 x 10 mm flanged bearing (1601-1032-0012) narrows between its body and its 2.3 mm flange in its STEP
   file, and the vendors' 1.125 in OD flanged bearings are undercut under their flanges; both are built as a plain step.

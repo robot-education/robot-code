@@ -22,7 +22,7 @@ FTC's are goBILDA's (the only bearings in ConfigLib), REV's from its FTC catalog
 from their stores and STEP files (vendor/, measured for their flanges and bores).
 
 Flanges come from REV's drawings, AndyMark's listed specifications, and goBILDA's STEP files (vendor/), or else the
-designation's standard dimensions, marked where they're assumed. A bore is its shaft's nominal size: 13.75 mm and
+designation's standard dimensions. A bore is its shaft's nominal size: 13.75 mm and
 10.25 mm across a rounded hex's corners, as Robot shaft rounds its shafts.
 """
 
@@ -251,8 +251,7 @@ FLANGES: dict[tuple[str, str], tuple[str, str]] = {
     ("MM_6", "MM_17_X_6"): ("19", "1"),  # am-4455
     # 1611-0514-0008's and -4008's STEP files, and Swyft's BRG-8mm-14mm-01
     ("MM_8", "MM_14_X_5"): ("15", "1"),
-    # TODO: assumed, F688's; ThriftyBot publishes none for TTB-0006
-    ("MM_8", "MM_16_X_6_3"): ("18", "1.1"),
+    ("MM_8", "MM_16_X_6_3"): ("18", "1.3"),  # TTB-0006's STEP file
     ("MM_8", "MM_16_X_5"): ("18", "1.1"),  # W688AZZ's standard
     ("MM_8", "MM_19_X_6"): ("22", "1.5"),  # am-0931
     ("MM_8", "MM_22_X_7"): ("25", "1.5"),  # am-4457
@@ -261,9 +260,8 @@ FLANGES: dict[tuple[str, str], tuple[str, str]] = {
     ("MM_12", "MM_32_X_10"): ("34", "2.3"),  # 1601-1032-0012's STEP file
     ("MM_32", "MM_39_X_5"): ("41", "1"),  # 1601-0039-0032's STEP file
     ("MM_15", "MM_21_X_4"): ("22.5", "0.8"),  # am-5536
-    # TODO: assumed; F6806ZZ's and F6807ZZ's flanges vary by maker
-    ("MM_30", "MM_42_X_7"): ("45", "1.5"),
-    ("MM_35", "MM_47_X_7"): ("50", "1.5"),
+    ("MM_30", "MM_42_X_7"): ("45", "1.5"),  # WCP-0299's STEP file
+    ("MM_35", "MM_47_X_7"): ("50", "1.5"),  # WCP-1471's STEP file; REV-29-3295's too
 }
 
 # Flanges as each vendor's model has them, by vendor, size, and dimensions, where they differ from `FLANGES`
@@ -279,7 +277,6 @@ VENDOR_FLANGES: dict[tuple[str, str, str], tuple[str, str]] = {
     ("REV", "IN_1_2", "OD_1_X_0_281"): ("1.0625", "0.062"),  # REV-21-3197
     ("REV", "NO_10", "OD_0_875_X_0_281"): ("0.969", "0.0625"),  # REV-21-3199
     ("REV", "MM_8", "MM_12_X_3_5"): ("13.6", "0.8"),  # REV-49-1559
-    ("REV", "MM_35", "MM_47_X_7"): ("50", "1.5"),  # REV-29-3295
     ("REV", "MM_5", "MM_9_X_5"): ("13", "2"),  # REV-41-1326-DR.pdf
     ("REV", "MM_5", "MM_9_X_11"): ("13", "2"),  # REV-41-1329-DR.pdf
 }
