@@ -29,6 +29,8 @@ export const frcBeltCalculator = defineFeature(function(context is Context, id i
         robotBeltPredicate(definition);
     }
     {
+        // Messages give lengths in FRC's inches, or FTC's millimeters
+        definition.unitSystem = isFrc(definition) ? UnitSystem.IMPERIAL : UnitSystem.METRIC;
         doRobotBelt(context, id, definition);
     });
 
@@ -255,7 +257,7 @@ function getStandaloneBeltDefinition(context is Context, id is Id, definition is
 {
     const pulleyTeeth = [definition.pulleyOneTeeth, definition.pulleyTwoTeeth];
     const beltValue = getBeltValue(getBeltTableAndPath(definition));
-    const centerToCenter = computeBeltCenterToCenter(beltValue.beltType, definition.beltTeeth, pulleyTeeth, 0 * meter);
+    const centerToCenter = computeBeltCenterToCenter(beltValue.beltType, beltValue.beltTeeth, pulleyTeeth, 0 * meter);
 
     // The selected 100T belt has a 3.45 in center to center distance.
     reportFeatureInfo(context, id, "The selected belt has a " ~ makeValueString(definition.unitSystem, centerToCenter) ~ " center to center distance.");
@@ -266,7 +268,7 @@ function getStandaloneBeltDefinition(context is Context, id is Id, definition is
                 "beltWidth" : beltValue.beltWidth,
                 "outsideThickness" : getBeltOutsideThickness(beltValue),
                 "rubberCoated" : beltValue.rubberCoated ?? false,
-                "beltTeeth" : definition.beltTeeth,
+                "beltTeeth" : beltValue.beltTeeth,
                 "pulleyDefinitions" : [
                         twoPulleyDefinition(zeroVector(2) * meter, pulleyTeeth[0]),
                         twoPulleyDefinition(vector(centerToCenter, 0 * meter), pulleyTeeth[1])
@@ -339,7 +341,7 @@ function getSimpleBeltDefinition(context is Context, id is Id, definition is map
     var idealCenterToCenter;
     try
     {
-        idealCenterToCenter = computeBeltCenterToCenter(beltValue.beltType, definition.beltTeeth, pulleyTeeth, measuredCenterToCenter) + definition.centerToCenterAdjustment;
+        idealCenterToCenter = computeBeltCenterToCenter(beltValue.beltType, beltValue.beltTeeth, pulleyTeeth, measuredCenterToCenter) + definition.centerToCenterAdjustment;
     }
     catch (error)
     {
@@ -359,7 +361,7 @@ function getSimpleBeltDefinition(context is Context, id is Id, definition is map
                 "beltWidth" : beltValue.beltWidth,
                 "outsideThickness" : getBeltOutsideThickness(beltValue),
                 "rubberCoated" : beltValue.rubberCoated ?? false,
-                "beltTeeth" : definition.beltTeeth,
+                "beltTeeth" : beltValue.beltTeeth,
                 "pulleyDefinitions" : [
                         twoPulleyDefinition(zeroVector(2) * meter, pulleyTeeth[0]),
                         twoPulleyDefinition(worldToPlane(pulleys.beltPlane, pulleys.beltPlane.origin + normalize(toSecond) * centerToCenter), pulleyTeeth[1])
@@ -464,7 +466,7 @@ function getComplexBeltDefinition(context is Context, id is Id, definition is ma
                 "beltWidth" : beltValue.beltWidth,
                 "outsideThickness" : getBeltOutsideThickness(beltValue),
                 "rubberCoated" : beltValue.rubberCoated ?? false,
-                "beltTeeth" : definition.beltTeeth,
+                "beltTeeth" : beltValue.beltTeeth,
                 "pulleyDefinitions" : pulleyDefinitions
             } as BeltDefinition;
 }
@@ -874,7 +876,7 @@ export function robotBeltManipulatorChange(context is Context, definition is map
 export function robotBeltEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query, clickedButton is string) returns map
 {
-    definition.isCustomBeltWidth = isCustomWidthBelt(definition);
+    definition.isCustomBelt = isCustomBeltChosen(definition);
     const selections = setSelectionTypes(context, oldDefinition, definition);
     definition = selections.definition;
 
@@ -887,7 +889,7 @@ export function robotBeltEditLogic(context is Context, id is Id, oldDefinition i
         }
     }
 
-    const beltChosen = (specifiedParameters.beltPath ?? false) || (specifiedParameters.doubleBeltPath ?? false) || (specifiedParameters.beltTeeth ?? false);
+    const beltChosen = (specifiedParameters[getBeltPathName(definition)] ?? false) || (specifiedParameters.beltTeeth ?? false);
     const autoChoose = isCreating && selections.changed && !beltChosen;
     if (!isOpenBelt(definition) && !isStandaloneBelt(definition) && (clickedButton == "selectClosestBelt" || autoChoose))
     {
@@ -1040,7 +1042,7 @@ function closestBeltTeeth(context is Context, definition is map) returns number
  */
 function setBeltTeeth(definition is map, teeth is number) returns map
 {
-    const pathName = isDoubleSidedBelt(definition) ? "doubleBeltPath" : "beltPath";
+    const pathName = getBeltPathName(definition);
     if (!hasCustomTeeth(definition[pathName]))
     {
         definition[pathName].teeth = teeth ~ "T";

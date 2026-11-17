@@ -4,6 +4,14 @@ from fs_cli.tables import Enum, Node, Table, Value, inch, mm
 
 BeltType = Enum("BeltType", ["_2_MM_GT2", "_3_MM_GT2", "_3_MM_HTD", "_5_MM_HTD", "RT25"])
 
+# A custom belt's type: any but REV's RT25 (a closed set), the most common first. Stored in documents: never rename or
+# remove one.
+CustomBeltType = Enum(
+    "CustomBeltType",
+    ["_5_MM_HTD", "_3_MM_GT2", "_3_MM_HTD", "_2_MM_GT2"],
+    names={"_5_MM_HTD": "5mm HTD", "_3_MM_GT2": "3mm GT2", "_3_MM_HTD": "3mm HTD", "_2_MM_GT2": "2mm GT2"},
+)
+
 
 def teeth_node(teeth: list[int]) -> Node:
     return Node("teeth", [Value(f"{count}T", {"beltTeeth": str(count)}) for count in teeth])
@@ -12,8 +20,8 @@ def teeth_node(teeth: list[int]) -> Node:
 # A belt of a width no supplier sells, or a custom one: its width is the feature's Custom width
 CUSTOM_WIDTH = "Custom"
 
-# Any belt of a type: any width (Custom) and any teeth (the feature's Belt teeth), and every width the suppliers sell
-GENERIC_SUPPLIER = "Generic"
+# A belt of any type, width, and teeth, given by the feature's own parameters: first, but not the default
+CUSTOM_SUPPLIER = "Custom"
 
 
 def width_node(widths: list[tuple[str, str]], extra: list[Value] = (), custom: bool = True) -> Node:
@@ -52,9 +60,9 @@ BELT_TYPES = {
     "RT25": BeltType["RT25"],
 }
 
-# The belts each supplier sells: by belt type, then width, their tooth counts. The most common first, as the first of
-# each is the default.
-SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
+# The belts each supplier sells, for FRC or FTC: by belt type, then width, their tooth counts. The most common first, as
+# the first of each is the default.
+FRC_SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
     "WCP": {
         "5mm HTD": {
             "9 mm": [
@@ -103,6 +111,7 @@ SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
             ],
         },
     },
+    # REV's ION system
     "REV": {
         "RT25": {
             "1/2 in.": [
@@ -110,8 +119,10 @@ SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
                 200, 208, 216,
             ],
         },
-        "3mm GT2": {"9 mm": [55, 85, 105, 120, 145, 184, 210, 270]},
     },
+}
+
+FTC_SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
     "goBILDA": {
         # vendor/goBILDA-2mm-GT2-belts.md
         "2mm GT2": {
@@ -125,6 +136,8 @@ SUPPLIERS: dict[str, dict[str, dict[str, list[int]]]] = {
             "9 mm": [43, 45, 49, 53, 55, 59, 63, 64, 68, 72, 74, 76, 78, 82, 84, 85, 89, 92, 94, 97, 101, 104, 107, 112],
         },
     },
+    # REV's FTC system
+    "REV": {"3mm GT2": {"9 mm": [55, 85, 105, 120, 145, 184, 210, 270]}},
 }
 
 
@@ -135,47 +148,46 @@ def width_value(belt_type: str, width: str) -> Value:
 
 
 def supplier_belts(belts: dict[str, dict[str, list[int]]]) -> Node:
-    """A supplier's belt types, each its widths, each its tooth counts."""
+    """A supplier's belt types, each its widths (or, if it has one, just its teeth), each its tooth counts."""
+    entries = []
+    for belt_type, widths in belts.items():
+        values = {"beltType": BELT_TYPES[belt_type]}
+        if len(widths) == 1:
+            ((width, teeth),) = widths.items()
+            # One width: no choice to make
+            entries.append(Value(belt_type, {**values, **width_value(belt_type, width).values}, teeth_node(teeth)))
+        else:
+            entries.append(Value(belt_type, values, Node(
+                "width",
+                [Value(width_value(belt_type, width).name, width_value(belt_type, width).values, teeth_node(teeth)) for width, teeth in widths.items()],
+                display_name="Belt width",
+            )))
+    return Node("beltType", entries, display_name="Belt type")
+
+
+def supplier_table(suppliers: dict[str, dict[str, dict[str, list[int]]]]) -> Node:
+    """Custom first (its belt's the feature's Custom belt parameters), then each supplier's belts; the first supplier
+    by default."""
     return Node(
-        "beltType",
-        [
-            Value(
-                belt_type,
-                {"beltType": BELT_TYPES[belt_type]},
-                Node(
-                    "width",
-                    [Value(**{**vars(width_value(belt_type, width)), "next": teeth_node(teeth)}) for width, teeth in widths.items()],
-                    display_name="Belt width",
-                ),
-            )
-            for belt_type, widths in belts.items()
-        ],
-        display_name="Belt type",
+        "supplier",
+        [Value(CUSTOM_SUPPLIER), *(Value(supplier, next=supplier_belts(belts)) for supplier, belts in suppliers.items())],
+        display_name="Belt supplier",
+        # Custom only if there's no supplier
+        default=next(iter(suppliers), CUSTOM_SUPPLIER),
     )
 
 
-def generic_belts(extra_widths: dict[str, list[Value]], types: list[str]) -> Node:
-    """Every belt type in `types` but REV's RT25 (a closed set): every width the suppliers sell, `extra_widths`, and
-    Custom, and any teeth (the feature's Belt teeth)."""
-    return Node(
-        "beltType",
-        [
-            Value(belt_type, {"beltType": BELT_TYPES[belt_type]}, width_node(WIDTHS[belt_type], extra_widths.get(belt_type, [])))
-            for belt_type in types
-        ],
-        display_name="Belt type",
-        default="5mm HTD",
-    )
+frc_belt = supplier_table(FRC_SUPPLIERS)
+ftc_belt = supplier_table(FTC_SUPPLIERS)
 
-
-belt = Node(
-    "supplier",
-    [
-        *(Value(supplier, next=supplier_belts(belts)) for supplier, belts in SUPPLIERS.items()),
-        Value(GENERIC_SUPPLIER, next=generic_belts({"5mm HTD": [RUBBER_COATED_15_MM]}, ["5mm HTD", "3mm GT2", "2mm GT2", "3mm HTD"])),
-    ],
-    display_name="Belt supplier",
+# Both widths of double sided belt come in the same lengths from the same suppliers (only FRC's)
+DOUBLE_BELT_TEETH = [100, 125, 150, 175, 200, 250, 300]
+frc_double_belt = supplier_table(
+    {supplier: {"5mm HTD": {"9 mm": DOUBLE_BELT_TEETH, "15 mm": DOUBLE_BELT_TEETH}} for supplier in ["WCP", "The Thrifty Bot"]}
 )
+# No FTC supplier sells them: only custom ones
+ftc_double_belt = supplier_table({})
+
 
 # What an open belt or a pulley's for (no supplier: open belts are cut to length)
 belt_type = Node(
@@ -185,30 +197,19 @@ belt_type = Node(
         Value("3mm GT2", {"beltType": BeltType["_3_MM_GT2"]}, width_node(WIDTHS["3mm GT2"])),
         Value("3mm HTD", {"beltType": BeltType["_3_MM_HTD"]}, width_node(WIDTHS["3mm HTD"])),
         Value("5mm HTD", {"beltType": BeltType["_5_MM_HTD"]}, width_node(WIDTHS["5mm HTD"])),
-        # REV's: a closed set, so no custom belts
-        Value("RT25", {"beltType": BeltType["RT25"]}, width_node(WIDTHS["RT25"], custom=False)),
+        # REV's: a closed set, so no custom belts, and one width
+        Value("RT25", {"beltType": BeltType["RT25"], "beltWidth": inch(0.5)}),
     ],
     display_name="Belt type",
     default="5mm HTD",
 )
 
-# Both widths of double sided belt come in the same lengths from the same suppliers
-DOUBLE_BELT_TEETH = [100, 125, 150, 175, 200, 250, 300]
-double_belt = Node(
-    "supplier",
-    [
-        *(
-            Value(supplier, next=supplier_belts({"5mm HTD": {"9 mm": DOUBLE_BELT_TEETH, "15 mm": DOUBLE_BELT_TEETH}}))
-            for supplier in ["WCP", "The Thrifty Bot"]
-        ),
-        Value(GENERIC_SUPPLIER, next=generic_belts({}, ["5mm HTD"])),
-    ],
-    display_name="Belt supplier",
-)
-
 CONTENTS = [
     BeltType,
-    Table("beltTable", belt),
-    Table("doubleBeltTable", double_belt),
+    CustomBeltType,
+    Table("frcBeltTable", frc_belt),
+    Table("ftcBeltTable", ftc_belt),
+    Table("frcDoubleBeltTable", frc_double_belt),
+    Table("ftcDoubleBeltTable", ftc_double_belt),
     Table("beltTypeTable", belt_type),
 ]

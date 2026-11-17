@@ -6,6 +6,7 @@ export import(path : "00b10ef1fb1a7418097fc0af", version : "2994750994597bce75af
 export import(path : "948c83c1b1ac83de4ccf921b", version : "5bd77bd9ef3230343bfbc217");
 export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
 export import(path : "d82c5bf9082d0054f8f0b419", version : "abd856d63642589f61cbad83");
+export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 
 const BELT_TEETH_BOUNDS = { (unitless) : [1, 100, 1e50] } as IntegerBoundSpec;
 
@@ -208,32 +209,54 @@ export predicate beltPredicate(definition is map)
             // An open belt's cut to length
             beltTypePredicate(definition);
         }
-        else
+        else if (!isDoubleSidedBelt(definition))
         {
-            if (!isDoubleSidedBelt(definition))
+            if (isFrc(definition))
             {
-                beltTablePredicate(definition);
+                annotation { "Name" : "FRC belt", "Lookup Table" : frcBeltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.frcBeltPath is LookupTablePath;
             }
             else
             {
-                doubleBeltTablePredicate(definition);
+                annotation { "Name" : "FTC belt", "Lookup Table" : ftcBeltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.ftcBeltPath is LookupTablePath;
             }
+        }
+        else if (isFrc(definition))
+        {
+            annotation { "Name" : "FRC double sided belt", "Lookup Table" : frcDoubleBeltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.frcDoubleBeltPath is LookupTablePath;
+        }
+        else
+        {
+            annotation { "Name" : "FTC double sided belt", "Lookup Table" : ftcDoubleBeltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.ftcDoubleBeltPath is LookupTablePath;
         }
 
         // Set by editing logic, as Onshape can't show parameters by a lookup table's value
-        annotation { "Name" : "Custom belt width", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomWidthBelt" }
-        definition.isCustomBeltWidth is boolean;
+        annotation { "Name" : "Custom belt", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isCustomBeltChosen" }
+        definition.isCustomBelt is boolean;
 
-        if (definition.isCustomBeltWidth)
+        if (definition.isCustomBelt)
         {
+            // An open belt's type is its table's, and it has no teeth to count
+            if (!isOpenBelt(definition))
+            {
+                annotation { "Name" : "Belt type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.customBeltType is CustomBeltType;
+            }
+
             customBeltWidthPredicate(definition);
+
+            if (!isOpenBelt(definition))
+            {
+                annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
+            }
         }
 
         if (!isOpenBelt(definition))
         {
-            annotation { "Name" : "Belt teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            isInteger(definition.beltTeeth, BELT_TEETH_BOUNDS);
-
             if (!isStandaloneBelt(definition))
             {
                 annotation { "Name" : "Select closest belt" }
@@ -292,7 +315,7 @@ export predicate optionsPredicate(definition is map)
 
 export predicate robotBeltPredicate(definition is map)
 {
-    unitSystemPredicate(definition);
+    programPredicate(definition);
 
     annotation { "Name" : "Belt mode", "UIHint" : ["HORIZONTAL_ENUM", "REMEMBER_PREVIOUS_VALUE"] }
     definition.beltMode is BeltMode;
@@ -305,29 +328,48 @@ export predicate robotBeltPredicate(definition is map)
 }
 
 /**
- * The lookup table the belt's chosen from, and its path in it (an open belt's is only its type and width), and its
- * `customWidth`, its Custom width if its width is Custom (see `getBeltValue`).
+ * The name of the parameter the belt's chosen with: its lookup table's (by its program, and whether it's open or
+ * double sided).
  */
-export function getBeltTableAndPath(definition is map) returns map
+export function getBeltPathName(definition is map) returns string
 {
-    var result = { "table" : beltTable, "path" : definition.beltPath, "customWidth" : definition.customBeltWidth };
     if (isOpenBelt(definition))
     {
-        result.table = beltTypeTable;
-        result.path = definition.beltTypePath;
+        return "beltTypePath";
     }
-    else if (isDoubleSidedBelt(definition))
-    {
-        result.table = doubleBeltTable;
-        result.path = definition.doubleBeltPath;
-    }
-    return result;
+    const program = isFrc(definition) ? "frc" : "ftc";
+    return program ~ (isDoubleSidedBelt(definition) ? "DoubleBeltPath" : "BeltPath");
 }
 
 /**
- * Custom belt width: whether the chosen belt's width is Custom, so its Custom width shows.
+ * The lookup table the belt's chosen from, and its path in it (an open belt's is only its type and width), and what
+ * the table leaves to the feature (see `getBeltValue`): a Custom belt's type, width, and teeth, or an open belt's
+ * Custom width.
  */
-export function isCustomWidthBelt(definition is map) returns boolean
+export function getBeltTableAndPath(definition is map) returns map
 {
-    return hasCustomWidth(getBeltTableAndPath(definition).path);
+    const tables = {
+            "beltTypePath" : beltTypeTable,
+            "frcBeltPath" : frcBeltTable,
+            "ftcBeltPath" : ftcBeltTable,
+            "frcDoubleBeltPath" : frcDoubleBeltTable,
+            "ftcDoubleBeltPath" : ftcDoubleBeltTable
+        };
+    const name = getBeltPathName(definition);
+    return {
+            "table" : tables[name],
+            "path" : definition[name],
+            "customType" : getCustomBeltType(definition.customBeltType),
+            "customWidth" : definition.customBeltWidth,
+            "customTeeth" : definition.beltTeeth
+        };
+}
+
+/**
+ * Custom belt: whether the belt chosen is Custom (an open belt's, its width), so the Custom belt parameters show.
+ */
+export function isCustomBeltChosen(definition is map) returns boolean
+{
+    const path = getBeltTableAndPath(definition).path;
+    return isOpenBelt(definition) ? hasCustomWidth(path) : hasCustomTeeth(path);
 }

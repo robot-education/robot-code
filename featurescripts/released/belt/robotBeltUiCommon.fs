@@ -15,29 +15,18 @@ export const BELT_WIDTH_BOUNDS = { (meter) : [1e-4, 0.015, 500], (inch) : 0.5, (
 export const CUSTOM_BELT_WIDTH = "Custom";
 
 /**
- * A belt table's supplier for belts of any width and teeth, as `robotBeltTables.py`'s `GENERIC_SUPPLIER`.
+ * A belt table's supplier for a belt of the feature's own (its Custom belt parameters), as `robotBeltTables.py`'s
+ * `CUSTOM_SUPPLIER`.
  */
-export const GENERIC_BELT_SUPPLIER = "Generic";
-
-export predicate beltTablePredicate(definition is map)
-{
-    annotation { "Name" : "Belt table", "Lookup Table" : beltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.beltPath is LookupTablePath;
-}
-
-export predicate doubleBeltTablePredicate(definition is map)
-{
-    annotation { "Name" : "Double belt table", "Lookup Table" : doubleBeltTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-    definition.doubleBeltPath is LookupTablePath;
-}
+export const CUSTOM_BELT_SUPPLIER = "Custom";
 
 /**
- * Whether a belt table's path is to a Generic belt, whose teeth are any (the feature's Belt teeth), rather than a
- * supplier's, whose teeth are the table's.
+ * Whether a belt table's path is to a Custom belt, whose type, width, and teeth are the feature's own (its Custom belt
+ * parameters), rather than a supplier's, which are the table's.
  */
 export function hasCustomTeeth(path is LookupTablePath)
 {
-    return path.supplier == GENERIC_BELT_SUPPLIER;
+    return path.supplier == CUSTOM_BELT_SUPPLIER;
 }
 
 /**
@@ -65,17 +54,29 @@ export function getCurrentBeltOptionsArray(tableAndPath is map)
 }
 
 /**
- * The belt chosen in a table (`tableAndPath`'s `table`, at its `path`), with its `customWidth` as its `beltWidth` if
- * its width is Custom.
+ * The belt chosen in a table (`tableAndPath`'s `table`, at its `path`), with what the table leaves to the feature from
+ * `tableAndPath`: its `customType`, `customWidth`, and `customTeeth`, for a custom belt (or a custom width).
  */
 export function getBeltValue(tableAndPath is map)
 {
     var value = getLookupTable(tableAndPath.table, tableAndPath.path);
-    if (value.beltWidth == undefined)
-    {
-        value.beltWidth = tableAndPath.customWidth;
-    }
+    value.beltType = value.beltType ?? tableAndPath.customType;
+    value.beltWidth = value.beltWidth ?? tableAndPath.customWidth;
+    value.beltTeeth = value.beltTeeth ?? tableAndPath.customTeeth;
     return value;
+}
+
+/**
+ * A custom belt's `BeltType`.
+ */
+export function getCustomBeltType(customBeltType is CustomBeltType) returns BeltType
+{
+    return switch (customBeltType) {
+                CustomBeltType._5_MM_HTD : BeltType._5_MM_HTD,
+                CustomBeltType._3_MM_GT2 : BeltType._3_MM_GT2,
+                CustomBeltType._3_MM_HTD : BeltType._3_MM_HTD,
+                CustomBeltType._2_MM_GT2 : BeltType._2_MM_GT2
+            };
 }
 
 /**
