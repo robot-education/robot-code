@@ -51,17 +51,6 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
         if (definition.creationMethod == SprocketCreationMethod.MANUAL)
         {
             locationPredicate(definition, "sprocket");
-
-            annotation { "Group Name" : "Sprocket", "Collapsed By Default" : false }
-            {
-                annotation { "Name" : "Chain type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                definition.chainType is ChainType;
-
-                annotation { "Name" : "Teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                isInteger(definition.teeth, SPROCKET_TEETH_BOUNDS);
-            }
-
-            startOffsetPredicate(definition);
         }
         else
         {
@@ -78,11 +67,39 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
         {
             annotation { "Group Name" : "Library sprocket", "Collapsed By Default" : false, "Driving Parameter" : "librarySprocket" }
             {
-                annotation { "Name" : "Sprocket", "Lookup Table" : sprocketProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.sprocketProduct is LookupTablePath;
+                // In Manual, the sprocket; in Chain, the chain sets each sprocket's chain and teeth, so a vendor and bore
+                if (definition.creationMethod == SprocketCreationMethod.MANUAL)
+                {
+                    annotation { "Name" : "Sprocket", "Lookup Table" : librarySprocketTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.librarySprocketPath is LookupTablePath;
+                }
+                else
+                {
+                    annotation { "Name" : "Vendor and bore", "Lookup Table" : sprocketProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.sprocketProduct is LookupTablePath;
+                }
             }
         }
-        else
+
+        if (definition.creationMethod == SprocketCreationMethod.MANUAL)
+        {
+            // A library sprocket is the sprocket
+            if (!definition.librarySprocket)
+            {
+                annotation { "Group Name" : "Sprocket", "Collapsed By Default" : false }
+                {
+                    annotation { "Name" : "Chain type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                    definition.chainType is ChainType;
+
+                    annotation { "Name" : "Teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isInteger(definition.teeth, SPROCKET_TEETH_BOUNDS);
+                }
+            }
+
+            startOffsetPredicate(definition);
+        }
+
+        if (!definition.librarySprocket)
         {
             // A stand-in has none of a printed sprocket's options
             borePredicate(definition);
@@ -104,7 +121,17 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
         {
             var sprocketPlane = applyStartOffset(context, definition, getLocationPlane(context, definition));
             addStartOffsetManipulator(context, id, definition, sprocketPlane);
-            sprockets = [{ "plane" : sprocketPlane, "chainType" : definition.chainType, "teeth" : definition.teeth }];
+            if (definition.librarySprocket)
+            {
+                // The library sprocket chosen
+                const choice = getLookupTable(librarySprocketTable, definition.librarySprocketPath);
+                const product = SPROCKET_PRODUCTS[choice.vendor][choice.bore][choice.index];
+                sprockets = [{ "plane" : sprocketPlane, "chainType" : product.chainType, "teeth" : product.teeth, "product" : product }];
+            }
+            else
+            {
+                sprockets = [{ "plane" : sprocketPlane, "chainType" : definition.chainType, "teeth" : definition.teeth }];
+            }
         }
         else
         {
@@ -115,10 +142,14 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
         {
             // Hidden, they keep their values
             definition = mergeMaps(definition, { "addProfileOffset" : false, "allowSimplification" : false, "addMateConnectors" : false });
-            sprockets = mapArray(sprockets, function(sprocket)
-                {
-                    return withLibraryProduct(definition, sprocket);
-                });
+            // In Chain, each sprocket is its vendor's for it (in Manual, the library sprocket chosen is the sprocket)
+            if (definition.creationMethod == SprocketCreationMethod.CHAIN)
+            {
+                sprockets = mapArray(sprockets, function(sprocket)
+                    {
+                        return withLibraryProduct(definition, sprocket);
+                    });
+            }
         }
 
         const bodies = createSprockets(context, id + "sprocket", definition, sprockets);
@@ -323,8 +354,7 @@ function reportMissingProducts(definition is map, sprockets is array, bodies is 
         return;
     }
     const sprocket = sprockets[indexOf(mapArray(sprockets, function(sprocket) { return sprocket.missing != undefined; }), true)];
-    const path = definition.sprocketProduct;
-    const choice = getLookupTable(sprocketProductTable, path);
+    const choice = getLookupTable(sprocketProductTable, definition.sprocketProduct);
     const chainName = getChainTypeName(sprocket.chainType);
     var teeth = [];
     for (var product in SPROCKET_PRODUCTS[choice.vendor][choice.bore])
@@ -334,10 +364,9 @@ function reportMissingProducts(definition is map, sprockets is array, bodies is 
             teeth = append(teeth, product.teeth ~ "T");
         }
     }
-    const what = path.vendor ~ " has no " ~ sprocket.teeth ~ "T " ~ chainName ~ " sprocket with a " ~ path.bore ~ " bore";
+    const what = choice.vendorName ~ " has no " ~ sprocket.teeth ~ "T " ~ chainName ~ " sprocket with a " ~ choice.bore ~ " bore";
     const has = teeth == [] ? "it has no " ~ chainName ~ " sprockets with that bore." : "its " ~ chainName ~ " ones have " ~ join(teeth, ", ") ~ ".";
-    const parameters = definition.creationMethod == SprocketCreationMethod.MANUAL ? ["sprocketProduct", "teeth"] : ["sprocketProduct"];
-    throw regenError(what ~ ": " ~ has, parameters, qUnion(missing));
+    throw regenError(what ~ ": " ~ has, ["sprocketProduct"], qUnion(missing));
 }
 
 function sprocketAttribute(sprocket is map, coordSystemId is string) returns SprocketAttribute

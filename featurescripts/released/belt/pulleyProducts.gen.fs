@@ -4,6 +4,417 @@ import(path : "d82c5bf9082d0054f8f0b419", version : "abd856d63642589f61cbad83");
 
 /* Generated from pulleyProducts.py by `fs gen` -- DO NOT EDIT */
 
+export const libraryPulleyTable = {
+        "name" : "vendor",
+        "displayName" : "Vendor",
+        "default" : "WCP",
+        "entries" : {
+            "WCP" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "5mm HTD",
+                        "entries" : {
+                            "5mm HTD" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "15T 9 mm",
+                                "entries" : {
+                                    "15T 9 mm" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "15T 15 mm" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T 9 mm" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T 15 mm" : { "bore" : "1/2\" Hex", "index" : 7, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "20T 9 mm" : { "bore" : "1/2\" Hex", "index" : 8, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "20T 15 mm" : { "bore" : "1/2\" Hex", "index" : 9, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T 9 mm" : { "bore" : "1/2\" Hex", "index" : 10, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T 15 mm" : { "bore" : "1/2\" Hex", "index" : 11, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T 9 mm" : { "bore" : "1/2\" Hex", "index" : 12, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T 15 mm" : { "bore" : "1/2\" Hex", "index" : 13, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T 9 mm" : { "bore" : "1/2\" Hex", "index" : 14, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T 15 mm" : { "bore" : "1/2\" Hex", "index" : 15, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "24T",
+                                "entries" : {
+                                    "24T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "48T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "60T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                        },
+                    },
+                    "8mm SplineXS" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "5mm HTD",
+                        "entries" : {
+                            "5mm HTD" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "12T 9 mm",
+                                "entries" : {
+                                    "12T 9 mm" : { "bore" : "8mm SplineXS", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "12T 15 mm" : { "bore" : "8mm SplineXS", "index" : 3, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "14T 9 mm" : { "bore" : "8mm SplineXS", "index" : 4, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "14T 15 mm" : { "bore" : "8mm SplineXS", "index" : 5, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "15T 9 mm" : { "bore" : "8mm SplineXS", "index" : 6, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "15T 15 mm" : { "bore" : "8mm SplineXS", "index" : 7, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "16T 9 mm" : { "bore" : "8mm SplineXS", "index" : 8, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "16T 15 mm" : { "bore" : "8mm SplineXS", "index" : 9, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T 9 mm" : { "bore" : "8mm SplineXS", "index" : 10, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T 15 mm" : { "bore" : "8mm SplineXS", "index" : 11, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "20T 9 mm" : { "bore" : "8mm SplineXS", "index" : 12, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "20T 15 mm" : { "bore" : "8mm SplineXS", "index" : 13, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T 9 mm" : { "bore" : "8mm SplineXS", "index" : 14, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T 15 mm" : { "bore" : "8mm SplineXS", "index" : 15, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T 9 mm" : { "bore" : "8mm SplineXS", "index" : 16, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T 15 mm" : { "bore" : "8mm SplineXS", "index" : 17, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T 9 mm" : { "bore" : "8mm SplineXS", "index" : 18, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T 15 mm" : { "bore" : "8mm SplineXS", "index" : 19, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "16T 9 mm",
+                                "entries" : {
+                                    "16T 9 mm" : { "bore" : "8mm SplineXS", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "16T 15 mm" : { "bore" : "8mm SplineXS", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                        },
+                    },
+                    "Falcon Spline" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "5mm HTD",
+                        "entries" : {
+                            "5mm HTD" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "12T",
+                                "entries" : {
+                                    "12T" : { "bore" : "Falcon Spline", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "16T 9 mm",
+                                "entries" : {
+                                    "16T 9 mm" : { "bore" : "Falcon Spline", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "16T 15 mm" : { "bore" : "Falcon Spline", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T 9 mm",
+                        "entries" : {
+                            "12T 9 mm" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                            "12T 15 mm" : { "bore" : "8mm CIM/NEO", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                            "18T 9 mm" : { "bore" : "8mm CIM/NEO", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                    "550" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T",
+                        "entries" : {
+                            "12T" : { "bore" : "550", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                    "775" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T",
+                        "entries" : {
+                            "12T" : { "bore" : "775", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                },
+            },
+            "The Thrifty Bot" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "15T 9.5 mm",
+                        "entries" : {
+                            "15T 9.5 mm" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "15T 18.5 mm" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "18T 9.5 mm" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "18T 18.5 mm" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "24T 9.5 mm" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "24T 18.5 mm" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "36T 9.5 mm" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                            "36T 18.5 mm" : { "bore" : "1/2\" Hex", "index" : 7, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                        },
+                    },
+                    "8mm SplineXS" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "5mm HTD",
+                        "entries" : {
+                            "5mm HTD" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "11T 15 mm",
+                                "entries" : {
+                                    "11T 15 mm" : { "bore" : "8mm SplineXS", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "12T 9 mm" : { "bore" : "8mm SplineXS", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "12T 15 mm" : { "bore" : "8mm SplineXS", "index" : 2, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "14T 9 mm" : { "bore" : "8mm SplineXS", "index" : 3, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "14T 15 mm" : { "bore" : "8mm SplineXS", "index" : 4, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "16T 9 mm" : { "bore" : "8mm SplineXS", "index" : 5, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "16T 15 mm" : { "bore" : "8mm SplineXS", "index" : 6, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "16T",
+                                "entries" : {
+                                    "16T" : { "bore" : "8mm SplineXS", "index" : 7, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                        },
+                    },
+                    "Falcon Spline" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "11T",
+                        "entries" : {
+                            "11T" : { "bore" : "Falcon Spline", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "11T",
+                        "entries" : {
+                            "11T" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "48T",
+                        "entries" : {
+                            "48T" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                        },
+                    },
+                },
+            },
+            "REV" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "16T",
+                        "entries" : {
+                            "16T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "3mm GT2",
+                        "entries" : {
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "16T",
+                                "entries" : {
+                                    "16T" : { "bore" : "8mm CIM/NEO", "index" : 1, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                            "RT25" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "12T",
+                                "entries" : {
+                                    "12T" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                        },
+                    },
+                    "MAXSpline" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "40T 1/2 in.",
+                        "entries" : {
+                            "24T 1/2 in." : { "bore" : "MAXSpline", "index" : 1, "vendor" : "REV", "vendorName" : "REV" },
+                            "24T 1 in." : { "bore" : "MAXSpline", "index" : 2, "vendor" : "REV", "vendorName" : "REV" },
+                            "32T 1/2 in." : { "bore" : "MAXSpline", "index" : 3, "vendor" : "REV", "vendorName" : "REV" },
+                            "32T 1 in." : { "bore" : "MAXSpline", "index" : 4, "vendor" : "REV", "vendorName" : "REV" },
+                            "40T 1/2 in." : { "bore" : "MAXSpline", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                            "40T 1 in." : { "bore" : "MAXSpline", "index" : 5, "vendor" : "REV", "vendorName" : "REV" },
+                            "48T 1/2 in." : { "bore" : "MAXSpline", "index" : 6, "vendor" : "REV", "vendorName" : "REV" },
+                            "48T 1 in." : { "bore" : "MAXSpline", "index" : 7, "vendor" : "REV", "vendorName" : "REV" },
+                            "56T 1/2 in." : { "bore" : "MAXSpline", "index" : 8, "vendor" : "REV", "vendorName" : "REV" },
+                            "56T 1 in." : { "bore" : "MAXSpline", "index" : 9, "vendor" : "REV", "vendorName" : "REV" },
+                            "64T 1/2 in." : { "bore" : "MAXSpline", "index" : 10, "vendor" : "REV", "vendorName" : "REV" },
+                            "64T 1 in." : { "bore" : "MAXSpline", "index" : 11, "vendor" : "REV", "vendorName" : "REV" },
+                        },
+                    },
+                    "550" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T",
+                        "entries" : {
+                            "12T" : { "bore" : "550", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                        },
+                    },
+                },
+            },
+            "AndyMark" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "24T 9 mm",
+                        "entries" : {
+                            "24T 9 mm" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "24T 15 mm" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "24T 18 mm" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                    "3/8\" Hex" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "14T 9 mm",
+                        "entries" : {
+                            "14T 9 mm" : { "bore" : "3/8\" Hex", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "24T 9 mm" : { "bore" : "3/8\" Hex", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "24T 15 mm" : { "bore" : "3/8\" Hex", "index" : 2, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "42T 15 mm",
+                        "entries" : {
+                            "42T 15 mm" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "42T 30 mm" : { "bore" : "1.125\" Round", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                    "0.958\" Round" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "39T",
+                        "entries" : {
+                            "39T" : { "bore" : "0.958\" Round", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                },
+            },
+            "VEX" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "beltType",
+                        "displayName" : "Belt type",
+                        "default" : "5mm HTD",
+                        "entries" : {
+                            "5mm HTD" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "18T 9 mm",
+                                "entries" : {
+                                    "18T 9 mm" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "18T 15 mm" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "24T 9 mm" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "24T 15 mm" : { "bore" : "1/2\" Hex", "index" : 7, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "30T 9 mm" : { "bore" : "1/2\" Hex", "index" : 8, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "30T 15 mm" : { "bore" : "1/2\" Hex", "index" : 9, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "36T 9 mm" : { "bore" : "1/2\" Hex", "index" : 10, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "36T 15 mm" : { "bore" : "1/2\" Hex", "index" : 11, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                            "3mm GT2" : {
+                                "name" : "pulley",
+                                "displayName" : "Pulley",
+                                "default" : "24T",
+                                "entries" : {
+                                    "24T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "36T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "48T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "60T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                        },
+                    },
+                    "Falcon Spline" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "16T",
+                        "entries" : {
+                            "16T" : { "bore" : "Falcon Spline", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "42T 9 mm",
+                        "entries" : {
+                            "42T 9 mm" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                            "42T 18 mm" : { "bore" : "1.125\" Round", "index" : 1, "vendor" : "VEX", "vendorName" : "VEX" },
+                        },
+                    },
+                    "550" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T",
+                        "entries" : {
+                            "12T" : { "bore" : "550", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                        },
+                    },
+                    "775" : {
+                        "name" : "pulley",
+                        "displayName" : "Pulley",
+                        "default" : "12T",
+                        "entries" : {
+                            "12T" : { "bore" : "775", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                        },
+                    },
+                },
+            },
+            "LAI" : {
+                "name" : "pulley",
+                "displayName" : "Pulley",
+                "default" : "18T",
+                "entries" : {
+                    "18T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "LAI", "vendorName" : "LAI" },
+                    "24T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "LAI", "vendorName" : "LAI" },
+                    "30T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "LAI", "vendorName" : "LAI" },
+                    "36T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "LAI", "vendorName" : "LAI" },
+                },
+            },
+        },
+    };
+
 export const pulleyProductTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
@@ -14,12 +425,12 @@ export const pulleyProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "WCP" },
-                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "WCP" },
-                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "WCP" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "WCP" },
-                    "550" : { "bore" : "550", "vendor" : "WCP" },
-                    "775" : { "bore" : "775", "vendor" : "WCP" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "550" : { "bore" : "550", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "775" : { "bore" : "775", "vendor" : "WCP", "vendorName" : "WCP" },
                 },
             },
             "The Thrifty Bot" : {
@@ -27,11 +438,11 @@ export const pulleyProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "TTB" },
-                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "TTB" },
-                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "TTB" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "TTB" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "TTB" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
                 },
             },
             "REV" : {
@@ -39,10 +450,10 @@ export const pulleyProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "REV" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "REV" },
-                    "MAXSpline" : { "bore" : "MAXSpline", "vendor" : "REV" },
-                    "550" : { "bore" : "550", "vendor" : "REV" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "REV", "vendorName" : "REV" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "REV", "vendorName" : "REV" },
+                    "MAXSpline" : { "bore" : "MAXSpline", "vendor" : "REV", "vendorName" : "REV" },
+                    "550" : { "bore" : "550", "vendor" : "REV", "vendorName" : "REV" },
                 },
             },
             "AndyMark" : {
@@ -50,10 +461,10 @@ export const pulleyProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "AM" },
-                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "AM" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "AM" },
-                    "0.958\" Round" : { "bore" : "0.958\" Round", "vendor" : "AM" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "0.958\" Round" : { "bore" : "0.958\" Round", "vendor" : "AM", "vendorName" : "AndyMark" },
                 },
             },
             "VEX" : {
@@ -61,21 +472,14 @@ export const pulleyProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "VEX" },
-                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "VEX" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "VEX" },
-                    "550" : { "bore" : "550", "vendor" : "VEX" },
-                    "775" : { "bore" : "775", "vendor" : "VEX" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "550" : { "bore" : "550", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "775" : { "bore" : "775", "vendor" : "VEX", "vendorName" : "VEX" },
                 },
             },
-            "LAI" : {
-                "name" : "bore",
-                "displayName" : "Bore",
-                "default" : "1/2\" Hex",
-                "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "LAI" },
-                },
-            },
+            "LAI" : { "bore" : "1/2\" Hex", "vendor" : "LAI", "vendorName" : "LAI" },
         },
     };
 

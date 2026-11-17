@@ -4,6 +4,498 @@ import(path : "93af3f24abb0f9f345268c81", version : "66e6f12bd269691031eca3e1");
 
 /* Generated from sprocketProducts.py by `fs gen` -- DO NOT EDIT */
 
+export const librarySprocketTable = {
+        "name" : "vendor",
+        "displayName" : "Vendor",
+        "default" : "WCP",
+        "entries" : {
+            "WCP" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "12T",
+                                "entries" : {
+                                    "12T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "14T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "16T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "17T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "20T" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "22T" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T" : { "bore" : "1/2\" Hex", "index" : 7, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "9T",
+                                "entries" : {
+                                    "9T" : { "bore" : "1/2\" Hex", "index" : 8, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "12T" : { "bore" : "1/2\" Hex", "index" : 9, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "15T" : { "bore" : "1/2\" Hex", "index" : 10, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 11, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                        },
+                    },
+                    "8mm SplineXS" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "10T",
+                        "entries" : {
+                            "10T" : { "bore" : "8mm SplineXS", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                            "12T" : { "bore" : "8mm SplineXS", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                    "Falcon Spline" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "10T",
+                        "entries" : {
+                            "10T" : { "bore" : "Falcon Spline", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "10T",
+                        "entries" : {
+                            "10T" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                        },
+                    },
+                    "SplineXL" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "24T",
+                                "entries" : {
+                                    "24T" : { "bore" : "SplineXL", "index" : 0, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T" : { "bore" : "SplineXL", "index" : 1, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T" : { "bore" : "SplineXL", "index" : 2, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "42T" : { "bore" : "SplineXL", "index" : 3, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "48T" : { "bore" : "SplineXL", "index" : 4, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "54T" : { "bore" : "SplineXL", "index" : 5, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "60T" : { "bore" : "SplineXL", "index" : 6, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "66T" : { "bore" : "SplineXL", "index" : 7, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "72T" : { "bore" : "SplineXL", "index" : 8, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "84T" : { "bore" : "SplineXL", "index" : 9, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "24T",
+                                "entries" : {
+                                    "18T" : { "bore" : "SplineXL", "index" : 11, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "24T" : { "bore" : "SplineXL", "index" : 10, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "30T" : { "bore" : "SplineXL", "index" : 12, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "36T" : { "bore" : "SplineXL", "index" : 13, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "42T" : { "bore" : "SplineXL", "index" : 14, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "48T" : { "bore" : "SplineXL", "index" : 15, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "54T" : { "bore" : "SplineXL", "index" : 16, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "60T" : { "bore" : "SplineXL", "index" : 17, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "66T" : { "bore" : "SplineXL", "index" : 18, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "72T" : { "bore" : "SplineXL", "index" : 19, "vendor" : "WCP", "vendorName" : "WCP" },
+                                    "84T" : { "bore" : "SplineXL", "index" : 20, "vendor" : "WCP", "vendorName" : "WCP" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "The Thrifty Bot" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "14T",
+                                "entries" : {
+                                    "14T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "22T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "10T",
+                                "entries" : {
+                                    "10T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "9T",
+                                "entries" : {
+                                    "9T" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "7T",
+                                "entries" : {
+                                    "7T" : { "bore" : "8mm CIM/NEO", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                        },
+                    },
+                    "3/8\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "9T",
+                                "entries" : {
+                                    "9T" : { "bore" : "3/8\" Hex", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "12T" : { "bore" : "3/8\" Hex", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "9T",
+                                "entries" : {
+                                    "9T" : { "bore" : "3/8\" Hex", "index" : 2, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "36T",
+                                "entries" : {
+                                    "36T" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "48T" : { "bore" : "1.125\" Round", "index" : 1, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "60T" : { "bore" : "1.125\" Round", "index" : 2, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "72T" : { "bore" : "1.125\" Round", "index" : 3, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "84T" : { "bore" : "1.125\" Round", "index" : 4, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "36T",
+                                "entries" : {
+                                    "24T" : { "bore" : "1.125\" Round", "index" : 6, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "36T" : { "bore" : "1.125\" Round", "index" : 5, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "48T" : { "bore" : "1.125\" Round", "index" : 7, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "60T" : { "bore" : "1.125\" Round", "index" : 8, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "72T" : { "bore" : "1.125\" Round", "index" : 9, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                    "84T" : { "bore" : "1.125\" Round", "index" : 10, "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "REV" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "16T",
+                                "entries" : {
+                                    "12T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "REV", "vendorName" : "REV" },
+                                    "16T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                                    "24T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "REV", "vendorName" : "REV" },
+                                    "32T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "9T",
+                                "entries" : {
+                                    "9T" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "REV", "vendorName" : "REV" },
+                                    "10T" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "REV", "vendorName" : "REV" },
+                                    "11T" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "REV", "vendorName" : "REV" },
+                                    "12T" : { "bore" : "1/2\" Hex", "index" : 7, "vendor" : "REV", "vendorName" : "REV" },
+                                    "16T" : { "bore" : "1/2\" Hex", "index" : 8, "vendor" : "REV", "vendorName" : "REV" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 9, "vendor" : "REV", "vendorName" : "REV" },
+                                    "20T" : { "bore" : "1/2\" Hex", "index" : 10, "vendor" : "REV", "vendorName" : "REV" },
+                                    "24T" : { "bore" : "1/2\" Hex", "index" : 11, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                        },
+                    },
+                    "MAXSpline" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "24T",
+                                "entries" : {
+                                    "24T" : { "bore" : "MAXSpline", "index" : 0, "vendor" : "REV", "vendorName" : "REV" },
+                                    "32T" : { "bore" : "MAXSpline", "index" : 1, "vendor" : "REV", "vendorName" : "REV" },
+                                    "40T" : { "bore" : "MAXSpline", "index" : 2, "vendor" : "REV", "vendorName" : "REV" },
+                                    "48T" : { "bore" : "MAXSpline", "index" : 3, "vendor" : "REV", "vendorName" : "REV" },
+                                    "56T" : { "bore" : "MAXSpline", "index" : 4, "vendor" : "REV", "vendorName" : "REV" },
+                                    "64T" : { "bore" : "MAXSpline", "index" : 5, "vendor" : "REV", "vendorName" : "REV" },
+                                    "72T" : { "bore" : "MAXSpline", "index" : 6, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "16T",
+                                "entries" : {
+                                    "16T" : { "bore" : "MAXSpline", "index" : 7, "vendor" : "REV", "vendorName" : "REV" },
+                                    "18T" : { "bore" : "MAXSpline", "index" : 8, "vendor" : "REV", "vendorName" : "REV" },
+                                    "20T" : { "bore" : "MAXSpline", "index" : 9, "vendor" : "REV", "vendorName" : "REV" },
+                                    "24T" : { "bore" : "MAXSpline", "index" : 10, "vendor" : "REV", "vendorName" : "REV" },
+                                    "28T" : { "bore" : "MAXSpline", "index" : 11, "vendor" : "REV", "vendorName" : "REV" },
+                                    "32T" : { "bore" : "MAXSpline", "index" : 12, "vendor" : "REV", "vendorName" : "REV" },
+                                    "36T" : { "bore" : "MAXSpline", "index" : 13, "vendor" : "REV", "vendorName" : "REV" },
+                                    "40T" : { "bore" : "MAXSpline", "index" : 14, "vendor" : "REV", "vendorName" : "REV" },
+                                    "44T" : { "bore" : "MAXSpline", "index" : 15, "vendor" : "REV", "vendorName" : "REV" },
+                                    "48T" : { "bore" : "MAXSpline", "index" : 16, "vendor" : "REV", "vendorName" : "REV" },
+                                    "52T" : { "bore" : "MAXSpline", "index" : 17, "vendor" : "REV", "vendorName" : "REV" },
+                                    "56T" : { "bore" : "MAXSpline", "index" : 18, "vendor" : "REV", "vendorName" : "REV" },
+                                    "60T" : { "bore" : "MAXSpline", "index" : 19, "vendor" : "REV", "vendorName" : "REV" },
+                                    "64T" : { "bore" : "MAXSpline", "index" : 20, "vendor" : "REV", "vendorName" : "REV" },
+                                    "68T" : { "bore" : "MAXSpline", "index" : 21, "vendor" : "REV", "vendorName" : "REV" },
+                                    "72T" : { "bore" : "MAXSpline", "index" : 22, "vendor" : "REV", "vendorName" : "REV" },
+                                    "76T" : { "bore" : "MAXSpline", "index" : 23, "vendor" : "REV", "vendorName" : "REV" },
+                                    "80T" : { "bore" : "MAXSpline", "index" : 24, "vendor" : "REV", "vendorName" : "REV" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "AndyMark" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "14T",
+                                "entries" : {
+                                    "14T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "22T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "26T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "10T",
+                                "entries" : {
+                                    "10T" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "14T" : { "bore" : "1/2\" Hex", "index" : 5, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 6, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                },
+                            },
+                        },
+                    },
+                    "8mm CIM/NEO" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "10T",
+                        "entries" : {
+                            "10T" : { "bore" : "8mm CIM/NEO", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                    "3/8\" Hex" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "18T",
+                        "entries" : {
+                            "14T" : { "bore" : "3/8\" Hex", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "18T" : { "bore" : "3/8\" Hex", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "22T" : { "bore" : "3/8\" Hex", "index" : 2, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "24T" : { "bore" : "3/8\" Hex", "index" : 3, "vendor" : "AM", "vendorName" : "AndyMark" },
+                            "26T" : { "bore" : "3/8\" Hex", "index" : 4, "vendor" : "AM", "vendorName" : "AndyMark" },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "38T",
+                                "entries" : {
+                                    "32T" : { "bore" : "1.125\" Round", "index" : 1, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "38T" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "44T" : { "bore" : "1.125\" Round", "index" : 2, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "50T" : { "bore" : "1.125\" Round", "index" : 3, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "56T" : { "bore" : "1.125\" Round", "index" : 4, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "62T" : { "bore" : "1.125\" Round", "index" : 5, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "66T" : { "bore" : "1.125\" Round", "index" : 6, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "68T" : { "bore" : "1.125\" Round", "index" : 7, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "74T" : { "bore" : "1.125\" Round", "index" : 8, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "28T",
+                                "entries" : {
+                                    "22T" : { "bore" : "1.125\" Round", "index" : 10, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "24T" : { "bore" : "1.125\" Round", "index" : 11, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "28T" : { "bore" : "1.125\" Round", "index" : 9, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "34T" : { "bore" : "1.125\" Round", "index" : 12, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "40T" : { "bore" : "1.125\" Round", "index" : 13, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "52T" : { "bore" : "1.125\" Round", "index" : 15, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "56T" : { "bore" : "1.125\" Round", "index" : 14, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "58T" : { "bore" : "1.125\" Round", "index" : 16, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                    "64T" : { "bore" : "1.125\" Round", "index" : 17, "vendor" : "AM", "vendorName" : "AndyMark" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            "VEX" : {
+                "name" : "bore",
+                "displayName" : "Bore",
+                "default" : "1/2\" Hex",
+                "entries" : {
+                    "1/2\" Hex" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "16T",
+                                "entries" : {
+                                    "16T" : { "bore" : "1/2\" Hex", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "18T" : { "bore" : "1/2\" Hex", "index" : 1, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "22T" : { "bore" : "1/2\" Hex", "index" : 2, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "12T",
+                                "entries" : {
+                                    "12T" : { "bore" : "1/2\" Hex", "index" : 3, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "15T" : { "bore" : "1/2\" Hex", "index" : 4, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                        },
+                    },
+                    "3/8\" Hex" : {
+                        "name" : "teeth",
+                        "displayName" : "Teeth",
+                        "default" : "16T",
+                        "entries" : {
+                            "16T" : { "bore" : "3/8\" Hex", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                            "22T" : { "bore" : "3/8\" Hex", "index" : 1, "vendor" : "VEX", "vendorName" : "VEX" },
+                        },
+                    },
+                    "1.125\" Round" : {
+                        "name" : "chainType",
+                        "displayName" : "Chain type",
+                        "default" : "#25",
+                        "entries" : {
+                            "#25" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "32T",
+                                "entries" : {
+                                    "32T" : { "bore" : "1.125\" Round", "index" : 0, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "34T" : { "bore" : "1.125\" Round", "index" : 1, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "36T" : { "bore" : "1.125\" Round", "index" : 2, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "38T" : { "bore" : "1.125\" Round", "index" : 3, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "40T" : { "bore" : "1.125\" Round", "index" : 4, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "42T" : { "bore" : "1.125\" Round", "index" : 5, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "44T" : { "bore" : "1.125\" Round", "index" : 6, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "48T" : { "bore" : "1.125\" Round", "index" : 7, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "54T" : { "bore" : "1.125\" Round", "index" : 8, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "58T" : { "bore" : "1.125\" Round", "index" : 9, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "60T" : { "bore" : "1.125\" Round", "index" : 10, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "64T" : { "bore" : "1.125\" Round", "index" : 11, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "72T" : { "bore" : "1.125\" Round", "index" : 12, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                            "#35" : {
+                                "name" : "teeth",
+                                "displayName" : "Teeth",
+                                "default" : "28T",
+                                "entries" : {
+                                    "22T" : { "bore" : "1.125\" Round", "index" : 14, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "24T" : { "bore" : "1.125\" Round", "index" : 15, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "26T" : { "bore" : "1.125\" Round", "index" : 16, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "28T" : { "bore" : "1.125\" Round", "index" : 13, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "30T" : { "bore" : "1.125\" Round", "index" : 17, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "32T" : { "bore" : "1.125\" Round", "index" : 18, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "36T" : { "bore" : "1.125\" Round", "index" : 19, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "42T" : { "bore" : "1.125\" Round", "index" : 20, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "44T" : { "bore" : "1.125\" Round", "index" : 21, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "54T" : { "bore" : "1.125\" Round", "index" : 22, "vendor" : "VEX", "vendorName" : "VEX" },
+                                    "60T" : { "bore" : "1.125\" Round", "index" : 23, "vendor" : "VEX", "vendorName" : "VEX" },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    };
+
 export const sprocketProductTable = {
         "name" : "vendor",
         "displayName" : "Vendor",
@@ -14,11 +506,11 @@ export const sprocketProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "WCP" },
-                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "WCP" },
-                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "WCP" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "WCP" },
-                    "SplineXL" : { "bore" : "SplineXL", "vendor" : "WCP" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "8mm SplineXS" : { "bore" : "8mm SplineXS", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "Falcon Spline" : { "bore" : "Falcon Spline", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "WCP", "vendorName" : "WCP" },
+                    "SplineXL" : { "bore" : "SplineXL", "vendor" : "WCP", "vendorName" : "WCP" },
                 },
             },
             "The Thrifty Bot" : {
@@ -26,10 +518,10 @@ export const sprocketProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "TTB" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "TTB" },
-                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "TTB" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "TTB" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "TTB", "vendorName" : "The Thrifty Bot" },
                 },
             },
             "REV" : {
@@ -37,8 +529,8 @@ export const sprocketProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "REV" },
-                    "MAXSpline" : { "bore" : "MAXSpline", "vendor" : "REV" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "REV", "vendorName" : "REV" },
+                    "MAXSpline" : { "bore" : "MAXSpline", "vendor" : "REV", "vendorName" : "REV" },
                 },
             },
             "AndyMark" : {
@@ -46,10 +538,10 @@ export const sprocketProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "AM" },
-                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "AM" },
-                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "AM" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "AM" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "8mm CIM/NEO" : { "bore" : "8mm CIM/NEO", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "AM", "vendorName" : "AndyMark" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "AM", "vendorName" : "AndyMark" },
                 },
             },
             "VEX" : {
@@ -57,9 +549,9 @@ export const sprocketProductTable = {
                 "displayName" : "Bore",
                 "default" : "1/2\" Hex",
                 "entries" : {
-                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "VEX" },
-                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "VEX" },
-                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "VEX" },
+                    "1/2\" Hex" : { "bore" : "1/2\" Hex", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "3/8\" Hex" : { "bore" : "3/8\" Hex", "vendor" : "VEX", "vendorName" : "VEX" },
+                    "1.125\" Round" : { "bore" : "1.125\" Round", "vendor" : "VEX", "vendorName" : "VEX" },
                 },
             },
         },

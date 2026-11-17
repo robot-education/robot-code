@@ -173,26 +173,30 @@ def entry(product: Product, bore: str, fields: dict[str, str]) -> str:
     return "{ " + ", ".join(f"{tables.string(name)} : {value}" for name, value in fields.items()) + " }"
 
 
-def vendor_bore_table(found: dict[str, dict[str, list[str]]]) -> tables.Node:
-    """A lookup table choosing a vendor, then a bore, of `found` (entries by vendor and bore), each leaf naming them."""
-    return tables.Node(
-        "vendor",
-        [
-            tables.Value(
-                VENDORS[vendor],
-                next=tables.Node(
-                    "bore",
-                    [
-                        tables.Value(bore, {"vendor": tables.string(vendor), "bore": tables.string(bore)})
-                        for bore in BORES
-                        if bore in found[vendor]
-                    ],
-                ),
-            )
-            for vendor in VENDORS
-            if vendor in found
-        ],
-    )
+def vendor_bore_table(
+    found: dict[str, dict[str, list[str]]], then: Callable[[str, str], tables.Node | None] = lambda vendor, bore: None
+) -> tables.Node:
+    """A lookup table choosing a vendor, then a bore (unless it has one), of `found` (entries by vendor and bore), then
+    `then`'s levels for them, if any: its leaves give `vendor` (its key in `found`), `vendorName`, and `bore`."""
+
+    def values(vendor: str, bore: str) -> dict[str, str]:
+        return {
+            "vendor": tables.string(vendor),
+            "vendorName": tables.string(VENDORS[vendor]),
+            "bore": tables.string(bore),
+        }
+
+    entries = []
+    for vendor in VENDORS:
+        if vendor not in found:
+            continue
+        bores = [bore for bore in BORES if bore in found[vendor]]
+        if len(bores) == 1:
+            entries.append(tables.Value(VENDORS[vendor], values(vendor, bores[0]), next=then(vendor, bores[0])))
+        else:
+            bore_node = tables.Node("bore", [tables.Value(bore, values(vendor, bore), next=then(vendor, bore)) for bore in bores])
+            entries.append(tables.Value(VENDORS[vendor], next=bore_node))
+    return tables.Node("vendor", entries)
 
 
 def vendor_bore_map(found: dict[str, dict[str, list[str]]]) -> str:

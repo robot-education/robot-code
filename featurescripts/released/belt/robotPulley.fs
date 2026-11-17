@@ -39,19 +39,6 @@ export function robotPulleyEditLogic(context is Context, id is Id, oldDefinition
 
 function doRobotPulley(context is Context, id is Id, definition is map)
 {
-    var pulleyDefinitions;
-    if (definition.creationMethod == CreationMethod.MANUAL)
-    {
-        const pointDistances = getPointDistances(definition);
-        // Manual mode will only ever create a single pulley
-        pulleyDefinitions = [getManualPulleyDefinition(context, definition, pointDistances)];
-        addManualManipulators(context, id, definition, pulleyDefinitions[0], pointDistances);
-    }
-    else
-    {
-        pulleyDefinitions = getBeltPulleyDefinitions(context, definition);
-    }
-
     // Stand-ins for library pulleys have none of a printed pulley's options (hidden, they keep their values)
     const library = isLibraryPulley(definition);
     if (library)
@@ -65,6 +52,24 @@ function doRobotPulley(context is Context, id is Id, definition is map)
                     "allowSimplification" : false,
                     "addMateConnectors" : true
                 });
+    }
+
+    var pulleyDefinitions;
+    if (definition.creationMethod == CreationMethod.MANUAL)
+    {
+        const pointDistances = getPointDistances(definition);
+        // Manual mode will only ever create a single pulley
+        pulleyDefinitions = [getManualPulleyDefinition(context, definition, pointDistances)];
+        addManualManipulators(context, id, definition, pulleyDefinitions[0], pointDistances);
+    }
+    else
+    {
+        pulleyDefinitions = getBeltPulleyDefinitions(context, definition);
+    }
+
+    // In Belt, each pulley is its vendor's for it (in Manual, the library pulley chosen is the pulley)
+    if (library && definition.creationMethod == CreationMethod.BELT)
+    {
         pulleyDefinitions = mapArray(pulleyDefinitions, function(pulleyDefinition)
             {
                 return isIdlerDefinition(pulleyDefinition) ? pulleyDefinition : withLibraryProduct(definition, pulleyDefinition);
@@ -127,6 +132,15 @@ function doRobotPulley(context is Context, id is Id, definition is map)
 }
 
 /**
+ * Manual's library pulley: the one chosen.
+ */
+function getManualLibraryPulley(definition is map) returns map
+{
+    const choice = getLookupTable(libraryPulleyTable, definition.libraryPulleyPath);
+    return PULLEY_PRODUCTS[choice.vendor][choice.bore][choice.index];
+}
+
+/**
  * `pulleyDefinition` with the library pulley it's built as (`product`, its vendor's and bore's, of its belt type and
  * teeth, the narrowest at least as wide as its belt), or `missing` if its vendor has none.
  */
@@ -180,8 +194,7 @@ function reportMissingProducts(context is Context, definition is map, pulleyDefi
         return;
     }
     const pulleyDefinition = pulleyDefinitions[missing[0]];
-    const path = definition.pulleyProduct;
-    const choice = getLookupTable(pulleyProductTable, path);
+    const choice = getLookupTable(pulleyProductTable, definition.pulleyProduct);
     const beltName = getBeltTypeName(pulleyDefinition.beltType);
     // Its teeth and widths, once each, in order
     var teeth = [];
@@ -194,12 +207,11 @@ function reportMissingProducts(context is Context, definition is map, pulleyDefi
             widths = isIn(widthString(product.width), widths) ? widths : append(widths, widthString(product.width));
         }
     }
-    const what = path.vendor ~ " has no " ~ pulleyDefinition.teeth ~ "T " ~ beltName ~ " pulley " ~ widthString(pulleyDefinition.beltWidth) ~
-        " or wider with a " ~ path.bore ~ " bore";
+    const what = choice.vendorName ~ " has no " ~ pulleyDefinition.teeth ~ "T " ~ beltName ~ " pulley " ~ widthString(pulleyDefinition.beltWidth) ~
+        " or wider with a " ~ choice.bore ~ " bore";
     const has = teeth == [] ? "it has no " ~ beltName ~ " pulleys with that bore." :
         "its " ~ beltName ~ " ones have " ~ join(teeth, ", ") ~ " (" ~ join(widths, ", ") ~ " wide).";
-    const parameters = definition.creationMethod == CreationMethod.MANUAL ? ["pulleyProduct", "pulleyTeeth"] : ["pulleyProduct"];
-    throw regenError(what ~ ": " ~ has, parameters, qUnion(mapArray(missing, function(i)
+    throw regenError(what ~ ": " ~ has, ["pulleyProduct"], qUnion(mapArray(missing, function(i)
                     {
                         return pulleys[i];
                     })));
@@ -305,6 +317,11 @@ function getPulleyWidth(definition is map, beltType is BeltType, beltWidth is Va
  */
 function getPointDistances(definition is map) returns array
 {
+    if (isLibraryPulley(definition))
+    {
+        const pulleyWidth = getManualLibraryPulley(definition).width;
+        return vector([0 * meter, pulleyWidth, -pulleyWidth]) / 2;
+    }
     const beltValue = getBeltTypeValue(definition);
     const pulleyWidth = getPulleyWidth(definition, beltValue.beltType, beltValue.beltWidth);
     if (!definition.twoBelts)
@@ -342,6 +359,19 @@ function getManualPulleyDefinition(context is Context, definition is map, pointD
 
     var plane = applyStartOffset(context, definition, basePlane);
     plane = applyPointManipulator(definition, plane, pointDistances);
+
+    if (isLibraryPulley(definition))
+    {
+        // The library pulley chosen: its belt is as wide as it, for the stand-in's attributes
+        const product = getManualLibraryPulley(definition);
+        return {
+                    "plane" : plane,
+                    "beltType" : product.beltType,
+                    "beltWidth" : product.width,
+                    "teeth" : product.teeth,
+                    "product" : product
+                } as PulleyDefinition;
+    }
 
     const beltValue = getBeltTypeValue(definition);
     var pulleyDefinition = {

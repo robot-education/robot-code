@@ -25,8 +25,8 @@ def path(vendor: str, bore: str) -> str:
 
 
 def pulley(vendor: str, bore: str, belt: str, teeth: int, width: str) -> str:
-    """`withLibraryProduct` of a pulley in Manual."""
-    definition = f'{{ "creationMethod" : CreationMethod.MANUAL, "pulleyProduct" : {path(vendor, bore)} }}'
+    """`withLibraryProduct` of a belt's pulley, in Belt."""
+    definition = f'{{ "creationMethod" : CreationMethod.BELT, "pulleyProduct" : {path(vendor, bore)} }}'
     pulley_definition = f'{{ "plane" : XY_PLANE, "beltType" : BeltType.{belt}, "beltWidth" : {width}, "teeth" : {teeth} }} as PulleyDefinition'
     return f"withLibraryProduct({definition}, {pulley_definition})"
 
@@ -54,13 +54,13 @@ def test_a_vendor_without_the_pulley_says_what_it_has():
     expression = pulley("WCP", '1/2" Hex', "_5_MM_HTD", 17, "9 * millimeter")
     assert evaluate(expression + ".missing", PULLEY) is True
     assert evaluate(expression + ".product", PULLEY) is None
-    definition = f'{{ "creationMethod" : CreationMethod.MANUAL, "pulleyProduct" : {path("WCP", '1/2" Hex')} }}'
+    definition = f'{{ "creationMethod" : CreationMethod.BELT, "pulleyProduct" : {path("WCP", '1/2" Hex')} }}'
     error = to_python(evaluate(caught(f"reportMissingProducts(newContext(), {definition}, [{expression}], [qNothing()])"), PULLEY))
     assert error["customMessage"] == (
         'WCP has no 17T 5mm HTD pulley 9 mm or wider with a 1/2" Hex bore: '
         "its 5mm HTD ones have 15T, 18T, 20T, 24T, 30T, 36T (9 mm, 15 mm wide)."
     )
-    assert error["faultyParameters"] == ["pulleyProduct", "pulleyTeeth"]
+    assert error["faultyParameters"] == ["pulleyProduct"]
 
 
 def test_a_vendor_without_the_sprocket_says_what_it_has():
@@ -102,3 +102,26 @@ def test_products_insert_every_parameter_in_full(snapshot):
                 assert product.configuration[parameter["id"]] == "false"
             elif parameter["type"] == "enum":
                 assert product.configuration[parameter["id"]] in {option["id"] for option in parameter["options"]}
+
+
+def lookup(**levels: str) -> str:
+    return "{ " + ", ".join(f"{json.dumps(key)} : {json.dumps(value)}" for key, value in levels.items()) + " } as LookupTablePath"
+
+
+@pytest.mark.parametrize(
+    "levels,part_number",
+    [
+        ({"vendor": "WCP", "bore": '1/2" Hex', "beltType": "5mm HTD", "pulley": "24T 15 mm"}, "WCP-0992"),
+        ({"vendor": "WCP", "bore": '1/2" Hex', "beltType": "3mm GT2", "pulley": "36T"}, "WCP-0663"),
+    ],
+)
+def test_in_manual_the_library_pulley_chosen_is_the_pulley(levels, part_number):
+    product = to_python(evaluate(f'getManualLibraryPulley({{ "libraryPulleyPath" : {lookup(**levels)} }})', PULLEY))
+    assert product["partNumber"] == part_number
+
+
+def test_in_manual_the_library_sprocket_chosen_is_the_sprocket():
+    levels = lookup(vendor="WCP", bore='1/2" Hex', chainType="#25", teeth="16T")
+    choice = evaluate(f"getLookupTable(librarySprocketTable, {levels})", SPROCKET)
+    product = to_python(evaluate("SPROCKET_PRODUCTS[choice.vendor][choice.bore][choice.index]", SPROCKET, choice=choice))
+    assert product["partNumber"] == "WCP-0578"

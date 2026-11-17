@@ -41,17 +41,19 @@ export enum PulleyKind
 export predicate isManualIdler(definition is map)
 {
     definition.creationMethod == CreationMethod.MANUAL && definition.pulleyKind == PulleyKind.IDLER;
+    // A library pulley is a pulley (isLibraryPulley, which a precondition's condition can't call)
+    definition.program != Program.FRC || !definition.libraryPulley;
 }
 
 /**
  * Whether it builds stand-ins for FRCDesignLib's pulleys (FRC's), which FRCDesign's Auto Assembly swaps in, rather than
- * pulleys to print. Idlers it makes as it does otherwise.
+ * pulleys to print. In Manual, the library pulley chosen is the pulley; in Belt, each is its vendor's for the belt's
+ * pulley there, and idlers are made as they are otherwise.
  */
 export predicate isLibraryPulley(definition is map)
 {
-    // isFrc and !isManualIdler, which a precondition's condition can't call
+    // isFrc, which a precondition's condition can't call
     definition.program == Program.FRC;
-    definition.creationMethod != CreationMethod.MANUAL || definition.pulleyKind != PulleyKind.IDLER;
     definition.libraryPulley;
 }
 
@@ -65,8 +67,17 @@ export predicate libraryPulleyPredicate(definition is map)
     {
         annotation { "Group Name" : "Library pulley", "Collapsed By Default" : false, "Driving Parameter" : "libraryPulley" }
         {
-            annotation { "Name" : "Pulley", "Lookup Table" : pulleyProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.pulleyProduct is LookupTablePath;
+            // In Manual, the pulley; in Belt, the belt sets each pulley's type and teeth, so a vendor and bore
+            if (definition.creationMethod == CreationMethod.MANUAL)
+            {
+                annotation { "Name" : "Pulley", "Lookup Table" : libraryPulleyTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.libraryPulleyPath is LookupTablePath;
+            }
+            else
+            {
+                annotation { "Name" : "Vendor and bore", "Lookup Table" : pulleyProductTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.pulleyProduct is LookupTablePath;
+            }
         }
     }
 }
@@ -234,16 +245,21 @@ export predicate pulleyPredicate(definition is map)
         definition.beltSelections is Query;
     }
 
-    if (definition.creationMethod == CreationMethod.MANUAL)
-    {
-        pulleyGeneralPredicate(definition);
-
-        startOffsetPredicate(definition);
-    }
-
-    if (isFrc(definition) && !isManualIdler(definition))
+    // FRCDesignLib's pulleys are FRC's
+    if (isFrc(definition))
     {
         libraryPulleyPredicate(definition);
+    }
+
+    if (definition.creationMethod == CreationMethod.MANUAL)
+    {
+        // A library pulley is the pulley
+        if (!isLibraryPulley(definition))
+        {
+            pulleyGeneralPredicate(definition);
+        }
+
+        startOffsetPredicate(definition);
     }
 
     // A stand-in has none of a printed pulley's options

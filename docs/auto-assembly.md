@@ -207,12 +207,18 @@ declaration.
   (`15t Aluminum Pulley (HTD 5mm, 9mm Wide, 1/2" Hex Bore)`), since a studio's option ids are often renamed copies
   that don't match their names. Its configuration is its studio's every parameter, its record's value or the
   default, with Simplified Model off. Idlers, round belt pulleys and double sprockets are left out.
-- **Choosing.** Library pulley (FRC only, pulleys not idlers) and Library sprocket are checkboxes which choose a
-  vendor and a bore from a lookup table (`pulleyProductTable`, `sprocketProductTable`). Each pulley or sprocket the
-  feature builds, in Manual or from a belt or chain, is that vendor's product for it: of its belt type and teeth,
-  the narrowest at least as wide as its belt (The Thrifty Bot's are 9.5 and 18.5 mm, for 9 and 15 mm belts), or of
-  its chain (#25H on #25's) and teeth, the vendor's first. Where the vendor has none, the feature draws the stand-in
-  it would have and errors, naming the teeth and widths the vendor has.
+- **Choosing.** Library pulley (FRC only) and Library sprocket are checkboxes. Chosen, the library part is the
+  source of truth:
+  - In Manual, a lookup table chooses the part itself (`libraryPulleyTable`: vendor, bore, belt type, and teeth with
+    width; `librarySprocketTable`: vendor, bore, chain, and teeth), each level left out where it has one option, and
+    defaulting to the studio's own default. It replaces the feature's own type, width and teeth (a library pulley is
+    always a pulley, not an idler).
+  - From a belt or chain, which has set each pulley's or sprocket's type and teeth, a lookup table chooses a vendor
+    and a bore (`pulleyProductTable`, `sprocketProductTable`), and each is that vendor's product for it: of its belt
+    type and teeth, the narrowest at least as wide as its belt (The Thrifty Bot's are 9.5 and 18.5 mm, for 9 and
+    15 mm belts), or of its chain (#25H on #25's) and teeth, the vendor's first. Where the vendor has none, the
+    feature draws the stand-in it would have and errors, naming the teeth and widths the vendor has. Idlers are
+    built as they are otherwise.
 - **Stand-ins.** `addStandIn` (`core/autoAssembly.fs`) builds the pitch circle's disc, as wide as the pulley (a
   sprocket's teeth, as library sprockets' widths aren't in their records), with a hole the shaft fits in (a hex's
   across its corners; none for a motor pinion's 550 or 775 bore), named and numbered as the product, out of the bill
