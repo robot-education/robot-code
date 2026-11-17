@@ -131,3 +131,28 @@ def test_set_by_parameters_follow_what_their_functions_read(tmp_path):
     assert "Top row distance" not in rendered[1] and "Distance between holes" not in rendered[1]
     for page in rendered[2:4]:
         assert "Top row distance" not in page and "Side row distance" in page and "Distance between holes" in page
+
+
+def test_set_by_follows_a_lookup_table_a_level_at_a_time(tmp_path):
+    # Robot belt's hidden Custom belt is set by isCustomBeltChosen, which reads only its table's supplier (or an open
+    # belt's width) of tables of hundreds of belts: choosing Custom shows the custom belt's parameters, in fs ui and on
+    # the page alike
+    config = load_config()
+    project = _project(config)
+    path = feature("robotBelt.fs")
+    cases = [
+        {"frcBeltPath": "Custom"},
+        {"frcBeltPath": "WCP > 5mm HTD > 15 mm > 100T"},
+        {"program": "FTC", "ftcBeltPath": "Custom"},
+        {"beltMode": "COMPLEX", "openBelt": "true", "frcBeltTypePath": "5mm HTD > Custom"},
+    ]
+    data, conditions = dialog_data(project, config.std_dir, path, None)
+    tree = data["parameters"]["isCustomBelt"]["setBy"]
+    assert tree["k"] == "program"
+    drawn = run_script(page_script(data, conditions), cases, tmp_path)
+    rendered = [split_page(render_feature(project, config.std_dir, path, None, settings)[0])[1] for settings in cases]
+    assert [same(result["html"]) for result in drawn] == [same(page) for page in rendered]
+    assert "Belt teeth" in rendered[0] and "Belt width" in rendered[0]
+    assert "Belt teeth" not in rendered[1]
+    assert "Belt teeth" in rendered[2]
+    assert "Belt width" in rendered[3] and "Belt teeth" not in rendered[3]

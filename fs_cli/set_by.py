@@ -6,11 +6,14 @@ settings (`apply`), and `fs audit`'s page (and the preview) for every combinatio
 
 A tree is found by running the function with nothing chosen: when it reads an enum, boolean, or lookup table parameter
 which isn't chosen yet, it's run again for each of that parameter's values. So it branches only on what's read, in the
-order it's read (`isCustomFrame(definition) && ...` reads no frame when the frame isn't custom).
+order it's read (`isCustomFrame(definition) && ...` reads no frame when the frame isn't custom). A lookup table's path
+is chosen a level at a time, as the function reads its levels (`path.supplier == "Custom"` branches on the supplier
+alone, not on every belt each supplier sells), so a table of hundreds of rows costs only the levels read.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import pathlib
 from typing import Any, Iterator
 
@@ -61,6 +64,23 @@ class NeedKey(Exception):
         self.key = key
 
 
+class NeedLevel(Exception):
+    """A level of a lookup table parameter's (`parameter`) path the function read which isn't chosen yet."""
+
+    def __init__(self, parameter: str) -> None:
+        super().__init__(parameter)
+        self.parameter = parameter
+
+
+@dataclasses.dataclass(frozen=True)
+class PartialPath:
+    """A lookup table parameter's path, chosen a level at a time: its levels chosen so far (name to choice), and
+    whether it's whole (its last choice is a leaf), when reading a level it doesn't have gives undefined."""
+
+    levels: tuple[tuple[str, str], ...] = ()
+    whole: bool = False
+
+
 class Reads(dict):
     """A definition map's entries (see `fs_eval.values.FSMap`), which raise `NeedKey` for a parameter in `open` (not
     chosen yet) when it's read."""
@@ -89,6 +109,22 @@ class Reads(dict):
         return dict.__contains__(self, key)
 
 
+class LevelReads(Reads):
+    """A lookup table parameter's (`parameter`) partial path's levels (see `PartialPath`), which raise `NeedLevel` for
+    a level in `open` when it's read."""
+
+    def __init__(self, entries: dict, open: frozenset, parameter: str) -> None:
+        super().__init__(entries, open)
+        self.parameter = parameter
+
+    def copied(self) -> LevelReads:
+        return LevelReads(self, self.open, self.parameter)
+
+    def _check(self, key: Any) -> None:
+        if key in self.open and not dict.__contains__(self, key):
+            raise NeedLevel(self.parameter)
+
+
 class SetBy:
     """A feature's "Set By" parameters (`parameters`: each one's key and function), worked out for its dialog as
     `builder` declared it."""
@@ -104,6 +140,7 @@ class SetBy:
         self._evaluator: Any = None
         self._module: Any = None
         self._enums: dict[tuple[str, str], Any] = {}
+        self._path_tag: Any = None
 
     def _load(self) -> None:
         if self._module is None:
@@ -138,9 +175,26 @@ class SetBy:
         from fs_eval.values import FSMap, key_of
 
         self._load()
-        entries = {key_of(key): (key, value) for key, value in chosen.items() if value is not None}
+        entries = {}
+        for key, value in chosen.items():
+            if isinstance(value, PartialPath):
+                value = self._partial_path(key, value)
+            if value is not None:
+                entries[key_of(key)] = (key, value)
         definition = FSMap(Reads(entries, frozenset(key_of(key) for key in open)))
         return self._evaluator.eval(f"{function}(definition)", self._module, definition=definition)
+
+    def _partial_path(self, key: str, partial: PartialPath) -> Any:
+        """A partial path as a LookupTablePath which raises `NeedLevel` when one of its table's levels it hasn't chosen
+        is read (unless it's whole)."""
+        from fs_eval.values import FSMap, key_of
+
+        if self._path_tag is None:
+            self._path_tag = self._evaluator.eval("{} as LookupTablePath", self._module).tag
+        chosen = dict(partial.levels)
+        levels = set() if partial.whole else _level_names(self.builder.parameters[key].annotation.get("Lookup Table")) - set(chosen)
+        entries = {key_of(level): (level, choice) for level, choice in chosen.items()}
+        return FSMap(LevelReads(entries, frozenset(key_of(level) for level in levels), key), self._path_tag)
 
     def _setting(self, key: str, result: Any) -> str | None:
         """A function's result as the parameter's setting (as `fs ui --set` takes it), or None if it isn't one."""
@@ -210,6 +264,8 @@ class SetBy:
         }
         runs = 0
 
+        lookups = {name for name in branchable if self.builder.parameters[name].kind == "lookup"}
+
         def explore(chosen: dict[str, Any]) -> dict | None:
             nonlocal runs
             runs += 1
@@ -218,6 +274,9 @@ class SetBy:
             try:
                 return {"v": self._setting(key, self.run(function, chosen, frozenset(branchable - set(chosen))))}
             except NeedKey as need:
+                if need.key in lookups:
+                    # Read: its levels are chosen as they're read
+                    return explore({**chosen, need.key: PartialPath()})
                 branches = {}
                 for setting, value in self._choices(self.builder.parameters[need.key]):
                     branch = explore({**chosen, need.key: value})
@@ -225,10 +284,50 @@ class SetBy:
                         return None
                     branches[setting] = branch
                 return {"k": need.key, "b": branches}
+            except NeedLevel as need:
+                # The next level of its path which isn't chosen (the one read, or one above it)
+                name = need.parameter
+                table = self.builder.parameters[name].annotation.get("Lookup Table")
+                partial = chosen[name]
+                node = _node_at(table, partial.levels)
+                assert node is not None
+                branches = {}
+                for choice, entry in node["entries"].items():
+                    levels = (*partial.levels, (str(node["name"]), str(choice)))
+                    whole = not (isinstance(entry, dict) and isinstance(entry.get("entries"), dict) and entry["entries"])
+                    branch = explore({**chosen, name: PartialPath(levels, whole)})
+                    if branch is None:
+                        return None
+                    branches[str(choice)] = branch
+                return {"k": name, "l": str(node["name"]), "b": branches}
             except Exception:  # noqa: BLE001 - anything the function throws: the page uses the default
                 return {"v": None}
 
         return explore({})
+
+
+def _level_names(table: Any) -> set[str]:
+    """Every level's name in a lookup table."""
+    names: set[str] = set()
+
+    def visit(node: Any) -> None:
+        entries = node.get("entries") if isinstance(node, dict) else None
+        if isinstance(entries, dict) and entries:
+            names.add(str(node.get("name")))
+            for entry in entries.values():
+                visit(entry)
+
+    visit(table)
+    return names
+
+
+def _node_at(table: Any, levels: tuple[tuple[str, str], ...]) -> dict | None:
+    """The level a path chosen this far chooses next, or None if it's whole."""
+    node = table
+    for _, choice in levels:
+        node = node["entries"][choice]
+    entries = node.get("entries") if isinstance(node, dict) else None
+    return node if isinstance(entries, dict) and entries else None
 
 
 def _lookup_paths(table: Any, prefix: tuple[str, ...] = ()) -> Iterator[list[str]]:

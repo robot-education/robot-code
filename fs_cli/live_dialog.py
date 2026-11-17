@@ -521,13 +521,14 @@ function setting(key) {
 }
 
 // A parameter's setting editing logic would set from its "Set By" function (see fs_cli.set_by.SetBy.tree): following
-// the tree by the settings of the parameters it read
+// the tree by the settings of the parameters it read, and for a lookup table, by its choice at the level a node names
 function setByValue(node) {
   while (node && node.k !== undefined) {
     const parameter = DIALOG.parameters[node.k];
     let value = parameter ? setting(node.k) : undefined;
     if (parameter && parameter.kind === "lookup" && parameter.tree) {
-      value = lookupLevels(parameter.tree, value).map(([, choice]) => choice).join(" > ");
+      const levels = lookupLevels(parameter.tree, value);
+      value = node.l === undefined ? levels.map(([, choice]) => choice).join(" > ") : (levels.find(([level]) => level.name === node.l) || [])[1];
     }
     node = node.b[value];
   }
