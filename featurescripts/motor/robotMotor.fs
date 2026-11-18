@@ -206,7 +206,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
             if (declaration != undefined)
             {
                 declarePart(context, id + "face", {
-                            "owner" : mountedTo(context, definition.scope, plane),
+                            "owner" : partBehind(context, definition.scope, plane),
                             "coordSystem" : connector,
                             "connector" : "face",
                             "declaration" : declaration
@@ -453,26 +453,6 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
 export function faceConnector(plane is Plane) returns CoordSystem
 {
     return coordSystem(plane.origin, -plane.x, plane.normal);
-}
-
-/**
- * The part the face sits on: of the merge scope's parts, the one reaching nearest the plane from behind it. Found by
- * where they are, as nothing in their history says which one the face is on.
- */
-function mountedTo(context is Context, scope is Query, plane is Plane) returns Query
-{
-    var nearest;
-    var reach;
-    for (var part in evaluateQuery(context, scope))
-    {
-        const top = evBox3d(context, { "topology" : part, "cSys" : coordSystem(plane), "tight" : true }).maxCorner[2];
-        if (reach == undefined || top > reach)
-        {
-            nearest = part;
-            reach = top;
-        }
-    }
-    return nearest;
 }
 
 /**

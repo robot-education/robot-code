@@ -96,7 +96,7 @@ also sets the shown Merge scope and Flip primary axis (see How it works).
       coordinates; an error if it doesn't), then a sketch of the pilot's hole (its pilot, plus Bore fit's clearance)
       and the holes which aren't skipped (std's clearance hole for the screw, as Fit chooses), extruded that far
       behind the plane and subtracted from the merge scope in one boolean. Declared, the part it's mounted to
-      (`mountedTo`: of the merge scope's parts, the one reaching nearest the plane from behind, found by where they
+      (`partBehind`, `core/autoAssembly.fs`: of the merge scope's parts, the one reaching nearest the plane from behind, found by where they
       are, as nothing in their history says) gets the `face` connector (`declarePart`, `faceConnector`: the face's
       center, its z axis into the motor, its x axis the drawing's right), carrying the declaration.
    6. The block motor (`buildBlockMotor`): FRCDesign's Block Motor (`deriveBlockMotor`), configured as the table says

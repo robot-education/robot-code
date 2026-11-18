@@ -55,6 +55,11 @@ def fetch(path: pathlib.Path, names: list[str]) -> None:
                     }
                     for parameter in configuration.get("parameters") or []
                 ],
+                # Each configuration the library indexed, by the options it sets apart from the defaults
+                "records": [
+                    {key: record[key] for key in ("values", "name", "partNumber") if record.get(key) is not None}
+                    for record in configuration.get("records") or []
+                ],
             }
         )
     snapshot = {"source": f"{LIBRARY_API}/configuration/insertable/{{id}}?v={version} ({LIBRARY})", "parts": parts}
@@ -66,6 +71,23 @@ def fetch(path: pathlib.Path, names: list[str]) -> None:
 def load(path: pathlib.Path) -> dict[str, dict]:
     """A snapshot's parts, by name."""
     return {part["name"]: part for part in json.loads(path.read_text())["parts"]}
+
+
+def records(part: dict) -> list[dict]:
+    """A part's indexed configurations, each with every parameter's option named (`options`, as `product` takes them)
+    beside its name and part number."""
+    found = []
+    for record in part.get("records", []):
+        options = {}
+        for parameter in part["parameters"]:
+            if parameter["type"] != "enum":
+                continue
+            option_id = record.get("values", {}).get(parameter["id"], parameter["default"])
+            option = next((o for o in parameter["options"] if o["id"] == option_id), None)
+            if option is not None:
+                options[parameter["name"]] = option["name"]
+        found.append({"name": record["name"], "partNumber": record.get("partNumber"), "options": options})
+    return found
 
 
 def _fs_string(value: str) -> str:

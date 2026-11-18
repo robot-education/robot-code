@@ -1,7 +1,10 @@
 # Auto Assembly from FeatureScripts, and simplification
 
-**Status: proposal.** Nothing here is built yet. It's the contract between robot-code's FeatureScripts and
-FRCDesignApp for two things built together:
+**Status: robot-code's side is built, untried in Onshape; FRCDesignApp's isn't.** Built: the annotations and their
+checks, `core/autoAssembly.fs`, `core/simplify.fs`, `core/bearing.fs`, the library snapshots (`fs_cli/library.py`),
+Robot motor, Robot bearing and Robot bushing. Not yet: Robot gear, Robot lighten, Robot shaft's hardware, the part
+sets, and everything in FRCDesignApp. This is the contract between robot-code's FeatureScripts and FRCDesignApp for two
+things built together:
 
 - **Declared parts**: a FeatureScript names the library part that goes where it cut something, and Auto Assembly puts
   that part in an assembly.
@@ -296,9 +299,9 @@ its pockets and teeth.
 Unreleased, so it changes freely. It declares the motor or gearbox whose face it cuts, has a stand-in, and allows
 simplification.
 
-**What it declares.** Each entry of `motorTables.py` names its product: the library's motor, by its document and tab,
-and the configuration to insert (the Krakens' standard back cap, their first vendor, Simplified Model off). The
-generated table carries it as it carries the face. Where the library has the motor:
+**What it declares.** Each FRC entry of `motorTables.py` names its product: the library's motor, by its document and
+tab, at its defaults (a NEO by its Version), from the snapshot in `motor/vendor/frcdesign-motors.json`. The generated
+table carries it as it carries the face. Where the library has the motor:
 
 | Robot motor's entry | Library part (Motors & Servos, or Gearboxes) |
 | --- | --- |
@@ -307,27 +310,24 @@ generated table carries it as it carries the face. Where the library has the mot
 | NEO V1.0, V1.1 | NEO Brushless Motor, by its Version |
 | NEO 2.0, NEO Vortex, NEO 550 | NEO 2.0, NEO Vortex (assembly), NEO 550 Brushless Motor |
 | CIM, Mini CIM, RS-775, Minion, Thrifty Pulsar | CIM Motor, Mini CIM Motor (assemblies), RS-775 Motor, Minion, Thrifty Pulsar 775 |
-| MAXPlanetary, PlanetaryX, UltraPlanetary, VersaPlanetary | The Gearboxes group's, where it has one |
-| Yellow Jackets, goBILDA planetary | ConfigLib's (FTC), once its library is loaded the same way |
+| MAXPlanetary, PlanetaryX, UltraPlanetary, VersaPlanetary | MAXPlanetary (REV), PlanetaryX (WCP), UltraPlanetary (REV), VersaPlanetary v2 (VEX) |
+| Yellow Jackets, goBILDA planetary | None yet: ConfigLib's (FTC), once its library is loaded the same way |
 
-The product table is generated from the snapshot, as the others are, with each motor matched by name in
-`motorTables.py`, so the faces' sources stay where they are.
-
-**Host connector.** On the part the face sits on: of the merge scope's parts, the one nearest the plane behind it. At
+**Host connector.** On the part the face sits on (`partBehind`): of the merge scope's parts, the one nearest the plane behind it. At
 the face's center, Z out of the plate (toward the motor), X the face's drawing's right: the motor's `face`. With no
 merge scope (a block motor alone), there's none, and the stand-in carries the declaration.
 
 **Stand-in.** Block motor is its stand-in checkbox. FRCDesign's Block Motor already lines up with the face
 (`blockAngle`); its connector on the plane becomes `face`, carrying the declaration, and the part is excluded from the
-bill of materials and colored as stand-ins are. The gearboxes' faces take Block MAXPlanetary and Block PlanetaryX
-where they're the same gearbox, at their defaults, which adds them to Has block model. The CIM, Mini CIM and RS-775
-have no block model in FRCDesignLib; they get envelopes of our own, as the Minion's.
+bill of materials and colored as stand-ins are. Gearboxes have no block motor yet: Block MAXPlanetary and Block
+PlanetaryX could be theirs. The CIM, Mini CIM and RS-775 have no block model in FRCDesignLib; envelopes of our own, as
+the Minion's, would give them one.
 
 **Simplified.** Deriving another document's Part Studio costs the most of anything Robot motor builds, so simplified
-it builds its own envelope (cylinders for body, pilot and shaft) for every motor, and derives nothing. That needs an
-envelope for each motor Block Motor covers: its diameter, length behind the face, pilot height and shaft, read from
-Block Motor's sketches as its turns were, or from the vendors' drawings. The cut is the same either way. In an
-assembly, a motor placed by Auto Assembly is placed with its Simplified Model on when the assembly is simplified.
+it leaves the block motor out where there's a merge scope to carry the declaration; the cut is the same. Building an
+envelope of our own in its place needs each Block Motor motor's diameter, length, pilot height and shaft, read from
+Block Motor's sketches (an Onshape call or two). In an assembly, a motor placed by Auto Assembly is placed with its
+Simplified Model on when the assembly is simplified.
 
 ## Robot bearing and Robot bushing
 
@@ -363,8 +363,8 @@ What they do:
    (so the angle reference turns it): the product's `face` connector, on the face of its flange (or of the bearing,
    unflanged) that sits on the plate. Flanged Radial Bearing already has a connector (`supportsFasten`); its place
    and name follow this.
-5. **Stand-in**: a ring at the product's outside diameter and width, with its flange, and its bore at its inside
-   diameter (a hex bore as a circle across its corners): one revolve.
+5. **Stand-in**: a ring at the product's outside diameter and width, its hole at its inner diameter (a hex or square
+   bore at its nominal size): one extrude.
 6. **Retention** (Robot bearing): below.
 
 `"Auto Assembly" : true` on both. Neither allows simplification: their stand-ins are already as simple as they get.
@@ -375,32 +375,34 @@ What they do:
 Off, the bearing is cut and declared with nothing holding it. On, its group starts with a **Retention type**, Hat or
 Screws. Both use the Position group's angle reference and Angle, and cut their holes through the same merge scope.
 
-**Hat** is today's feature: COTS, Standard or Custom hat, its table, and its mounting holes. Its Auto Assembly
-options:
+**Hat** is the old feature's: COTS, Standard or Custom hat (a dropdown in the group), its mounting holes and their hole
+tables. A standard or COTS hat's size is **Hat centers** (1.25, 1.5 or 2 in.); every hat's bore is the bearing's. Its
+Auto Assembly options:
 
-- A COTS hat declares itself: WCP's Bearing Retention Hat, whose configurations are the same bore and centers as the
-  hat table's (0.875 in. bore at 1.25 or 2 in. centers, 1.125 in. at 1.5 or 2 in.). Its connector goes on the plate
-  where the hat's underside meets it, at the bore's center, X toward a mounting hole.
-- **Screws**: each mounting hole declares a screw, and with Clearance holes a nut on the far side, from the fasteners
-  part set (`fastenerTables.py`): Head, Length (or Automatic, as Auto Assembly sizes them now, from what the hole goes
-  through) and Finish, in the hole's size. Each hole's host connector is at its top edge, Z out of the hole: the
-  fasteners' own convention, so they need nothing new in the library.
-
-A hat's bore comes from the product's outside diameter now, so the hat table is chosen by its centers alone, and a
-product with no hat of its size says so.
+- A COTS hat declares itself: WCP's Bearing Retention Hat for the bearing's outside diameter at Hat centers (0.875 in.
+  at 1.25 or 2 in., 1.125 in. at 1.5 or 2 in.), or an error. Its connector goes on the bearing's part at the bore's
+  center, X toward a mounting hole.
+- **Declare screws**, for a standard or custom hat: a screw at each mounting hole, seated on the hat's top, from the
+  fasteners part set: Screw vendor, Screw head, Screw finish, and Screw length or **Automatic length** (no length in
+  the declaration, for Auto Assembly to size from what the hole goes through). #10-32 only, as the hat's holes are;
+  24 tpi tapped holes declare none, with an info saying why. Each is on a connector named as the fasteners' own
+  (`mateConnector`), Z out of the hole. A COTS hat's screws aren't declared, as the library doesn't give its
+  thickness, so where they seat; Auto Assembly's hole fastening can fasten them.
 
 **Screws** retains the bearing with screw heads over its outer race or flange:
 
 - **Holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
 - **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart), from the plane's X axis.
-- **Hole circle**: editing logic sets its diameter from the product and the screw's size, so each hole clears the
-  bore by a wall and its head overlaps the bearing; it can be overridden.
-- **Auto Assembly**: as the hat's screws: a screw in each hole, a washer under its head optionally (a washer widens
-  the overlap), and with Clearance holes a nut.
+- **Hole circle**: the bearing's outside diameter, plus the hole, plus a 0.03 in. wall each side, so each hole clears
+  the bore and a head over it overlaps the bearing (`screwPositions`); **Override hole circle** sets it by hand.
+- **Declare screws**: as a printed hat's, seated on the bearing's part's face. No washer or nut is declared; Auto
+  Assembly's planner adds a nut to a hole it fastens through.
 
 ### Robot bushing
 
-The same, with Flanged Bushing's products, and no Retention group.
+The same, with Flanged Bushing's products (but its hex-outside one), and no Retention group: `featurescripts/bushing/`.
+
+The stand-ins have no flange: the library's sizes name the outside diameter, width and bore, not a flange's.
 
 ### What changes for documents
 
@@ -468,9 +470,9 @@ Each of these is unverified, and the design leans on it:
 
 - **Which part sets first.** Proposed: e-clips and retaining rings, then end screws, as part sets; gears from the
   library's studios, with connectors added by hand.
-- **Order of work.** Proposed: the Onshape checks; `core/autoAssembly.fs` and `core/simplify.fs`; Robot motor
-  (unreleased, and it exercises a host connector, a stand-in and simplification at once); Robot bearing and Robot
-  bushing; Robot gear; Robot lighten; Robot shaft's hardware with the first part set; then the app: the part scan and run, the manifest's icons and
-  references, and the Simplify menu.
+- **What's left, in order.** The Onshape checks; then Robot gear; Robot lighten; Robot shaft's hardware with the first
+  part set; then the app: the part scan and run, the manifest's icons and references, and the Simplify menu. The
+  manifest lists no referenced products yet (`autoAssembly` is a boolean): the admin card's guard needs `fs release`
+  to collect them from a feature's tables.
 - **Robot motor's envelopes.** Proposed: read from Block Motor's sketches through Onshape's features endpoint, a call
   or two.

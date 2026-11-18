@@ -130,3 +130,23 @@ export function makeStandIn(context is Context, id is Id, definition is map)
                 });
     }
 }
+
+/**
+ * The part a face sits on, for its host connector: of `scope`'s parts, the one reaching nearest `plane` from behind it
+ * (against its normal). Found by where they are, as nothing in their history says which one the face is on.
+ */
+export function partBehind(context is Context, scope is Query, plane is Plane) returns Query
+{
+    var nearest;
+    var reach;
+    for (var part in evaluateQuery(context, scope))
+    {
+        const top = evBox3d(context, { "topology" : part, "cSys" : coordSystem(plane), "tight" : true }).maxCorner[2];
+        if (reach == undefined || top > reach)
+        {
+            nearest = part;
+            reach = top;
+        }
+    }
+    return nearest;
+}
