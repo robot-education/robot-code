@@ -7,7 +7,8 @@ Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body: Robot bearin
 | --- | --- |
 | `robotBushing.fs` | The feature: its dialog |
 | `../core/bearing.fs` | Position and Bore, the bore, the declaration, and the Auto Assembly body, shared with Robot bearing |
-| `../released/bearing/robotBearingTables.py` | FRCDesignLib's bushings (`bushingTable`), from `vendor/frcdesign-bushings.json` |
+| `../released/bearing/robotBearingTables.py` | The bushings part set's bushings (`bushingTable`), from `../bushings/bushingTables.py` |
+| `../bushings/bushings.fs`, `bushingTables.gen.fs` | FRCDesign's bushings part set: the bushings' sizes, flanges, steps and bores (`BUSHINGS`, `BUSHING_BORES`) |
 
 ## Changelog
 
@@ -36,14 +37,17 @@ whole table entry.
 
 ## How it works
 
-Robot bearing's steps 2, 3 and 5, in its groups (Bushing: the bushing and Bore fit; Position) (see `../released/bearing/robotBearing.md`): the bushing from `bushingTable` (Type,
-Size, Vendor), the plane, and `placeBearing`, declaring it as a bushing.
+Robot bearing's steps 2, 3 and 5 (see `../released/bearing/robotBearing.md`), in its groups (Bushing: the bushing and
+Bore fit; Position):
 
-The library's Flanged Bushing with a hex outside (0.375 in. ID x 1/2 in. hex OD) isn't offered: its bore would be a
-hex.
+1. The bushing (`libraryBushing`): its `bushingTable` entry (Bore, Size, Material, Dimensions, and Vendor, skipping a
+   level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, flange, and any
+   step, with its hole at its bore's corners (the bearings' `boreRadius`), as a `BearingPart`.
+2. The plane, and `placeBearing`, declaring it as a bushing: a bushing with a step gets a counterbore for it, at the
+   same fit, and its Auto Assembly body has the step under its flange. Until the bushings set is released, its studio
+   has no document, so it's declared nothing, with Robot bearing's info.
 
 ## Issues found
 
 - None of the geometry has run in Onshape.
-- The Auto Assembly body has no flange or step: the library's sizes give a step's outside diameter for two, and a flange's for
-  two, but not their thicknesses.
+- Only the bushings the set offers: WCP's and VEX's wait for their flanges (see `../bushings/bushings.md`).

@@ -4,6 +4,9 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "core/bearing.fs", version : "");
 import(path : "released/bearing/robotBearingTables.gen.fs", version : "");
+// FRCDesign's bushings part set: its bushings' sizes, and the bearings' bore radius
+import(path : "bushings/bushings.fs", version : "");
+import(path : "bearings/bearings.fs", version : "");
 
 /**
  * Cuts a bore for a bushing, and declares it for Auto Assembly, with an Auto Assembly body: Robot bearing's placement, without its
@@ -38,14 +41,38 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
         }
     }
     {
-        const part = getLookupTable(bushingTable, definition.bushing);
-        if (!canBeBearingPart(part))
-        {
-            throw regenError("Choose a different bushing.", ["bushing"]);
-        }
-        const plane = bearingPlane(context, id, definition, part as BearingPart);
-        placeBearing(context, id + "place", definition, plane, part as BearingPart, AutoAssemblyKind.BUSHING);
+        const part = libraryBushing(definition);
+        const plane = bearingPlane(context, id, definition, part);
+        placeBearing(context, id + "place", definition, plane, part, AutoAssemblyKind.BUSHING);
     });
+
+/**
+ * The bushing chosen, as FRCDesign's bushings part set makes it: its sizes, flange and step from the set's `BUSHINGS`,
+ * and its body's hole at its bore's corners (`boreRadius`).
+ */
+function libraryBushing(definition is map) returns BearingPart
+{
+    const entry = getLookupTable(bushingTable, definition.bushing);
+    if (entry.product == undefined)
+    {
+        throw regenError("Choose a different bushing.", ["bushing"]);
+    }
+    const made = BUSHINGS[entry.vendor][entry.material][entry.bore][entry.size][entry.dimensions];
+    var part = {
+        "outerDiameter" : made.outerDiameter,
+        "width" : made.width,
+        "innerDiameter" : 2 * boreRadius(BUSHING_BORES[entry.bore][entry.size]),
+        "flangeDiameter" : made.flangeDiameter,
+        "flangeThickness" : made.flangeThickness,
+        "product" : entry.product
+    };
+    if (made.stepDiameter != undefined)
+    {
+        part.stepDiameter = made.stepDiameter;
+        part.stepHeight = made.stepHeight;
+    }
+    return part as BearingPart;
+}
 
 export function robotBushingManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {

@@ -1,0 +1,340 @@
+{
+  "source": "featurescripts/bushings/bushingTables.py",
+  "studios": {
+    "bushing": {
+      "feature": "libraryBushing",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "bottomMateConnector": "bottomMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "NYLON"
+          },
+          "name": "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)",
+          "material": "Nylon 6/6"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUNDED_HEX",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_3_4",
+            "dimensions": "OD_1_X_0_563_STEP"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_3_4",
+            "dimensions": "OD_1_125_X_0_333"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_7_8"
+          },
+          "name": "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_1"
+          },
+          "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "REV"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
+          "vendor": "REV Robotics",
+          "partNumber": "REV-21-2396",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "BRONZE",
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0267",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "NYLON"
+          },
+          "name": "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0004",
+          "material": "Nylon 6/6"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "BRONZE",
+            "bore": "ROUNDED_HEX",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0266",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_3_4"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0268",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_7_8"
+          },
+          "name": "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0269",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT",
+            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_1"
+          },
+          "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
+          "vendor": "The Thrifty Bot",
+          "partNumber": "TTB-0270",
+          "material": "Bronze - SAE 841"
+        }
+      ]
+    }
+  },
+  "vendors": [
+    {
+      "id": "GENERIC",
+      "name": "Generic"
+    },
+    {
+      "id": "REV",
+      "name": "REV"
+    },
+    {
+      "id": "THRIFTYBOT",
+      "name": "ThriftyBot"
+    }
+  ],
+  "bushings": [
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_333",
+      "outerDiameter": 0.01905,
+      "width": 0.0084582,
+      "flangeDiameter": 0.022225
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "NYLON",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_375",
+      "outerDiameter": 0.01905,
+      "width": 0.009525,
+      "flangeDiameter": 0.022225
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_375",
+      "outerDiameter": 0.015875,
+      "width": 0.009525,
+      "flangeDiameter": 0.01905
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_1_X_0_563_STEP",
+      "outerDiameter": 0.0254,
+      "width": 0.0143002,
+      "flangeDiameter": 0.031115
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_7_8",
+      "boreSize": 0.022225,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1",
+      "boreSize": 0.0254,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115
+    },
+    {
+      "vendor": "REV",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_1_X_0_563_STEP",
+      "outerDiameter": 0.0254,
+      "width": 0.0143002,
+      "flangeDiameter": 0.031115,
+      "partNumber": "REV-21-2396"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_333",
+      "outerDiameter": 0.01905,
+      "width": 0.0084582,
+      "flangeDiameter": 0.022225,
+      "partNumber": "TTB-0267"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "NYLON",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_375",
+      "outerDiameter": 0.01905,
+      "width": 0.009525,
+      "flangeDiameter": 0.022225,
+      "partNumber": "TTB-0004"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_375",
+      "outerDiameter": 0.015875,
+      "width": 0.009525,
+      "flangeDiameter": 0.01905,
+      "partNumber": "TTB-0266"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115,
+      "partNumber": "TTB-0268"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_7_8",
+      "boreSize": 0.022225,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115,
+      "partNumber": "TTB-0269"
+    },
+    {
+      "vendor": "THRIFTYBOT",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1",
+      "boreSize": 0.0254,
+      "dimensions": "OD_1_125_X_0_333",
+      "outerDiameter": 0.028575,
+      "width": 0.0084582,
+      "flangeDiameter": 0.031115,
+      "partNumber": "TTB-0270"
+    }
+  ]
+}

@@ -355,66 +355,6 @@
      "partNumber": "217-7347"
     }
    ]
-  },
-  {
-   "name": "Bearing Retention Hat (WCP)",
-   "documentId": "871d0cad06b1c23db69c5d1e",
-   "elementId": "c5041a53e6746dbc5de1296e",
-   "elementType": "PARTSTUDIO",
-   "parameters": [
-    {
-     "id": "List_33chXAse2hzXm2",
-     "name": "Configuration",
-     "type": "enum",
-     "default": "Default",
-     "options": [
-      {
-       "id": "Default",
-       "name": "0.875\" Bore, 1.25\" C-C"
-      },
-      {
-       "id": "_0_875__Bore__2__C_C",
-       "name": "0.875\" Bore, 2\" C-C"
-      },
-      {
-       "id": "_1_125__Bore__1_5__C_C",
-       "name": "1.125\" Bore, 1.5\" C-C"
-      },
-      {
-       "id": "_1_125__Bore__2__C_C",
-       "name": "1.125\" Bore, 2\" C-C"
-      }
-     ]
-    }
-   ],
-   "records": [
-    {
-     "values": {},
-     "name": "0.875\" OD Bearing Retention Plate (1.25\" C-C)",
-     "partNumber": "WCP-0487"
-    },
-    {
-     "values": {
-      "List_33chXAse2hzXm2": "_0_875__Bore__2__C_C"
-     },
-     "name": "0.875\" OD Bearing Retention Plate (2\" C-C)",
-     "partNumber": "WCP-0327"
-    },
-    {
-     "values": {
-      "List_33chXAse2hzXm2": "_1_125__Bore__1_5__C_C"
-     },
-     "name": "1.125\" OD Bearing Retention Plate (1.5\" C-C)",
-     "partNumber": "WCP-0488"
-    },
-    {
-     "values": {
-      "List_33chXAse2hzXm2": "_1_125__Bore__2__C_C"
-     },
-     "name": "1.125\" OD Bearing Retention Plate (2\" C-C)",
-     "partNumber": "WCP-0328"
-    }
-   ]
   }
  ]
 }

@@ -9,7 +9,7 @@ custom) or with two or three screws whose heads overlap it. Formerly Robot beari
 | --- | --- |
 | `robotBearing.fs` | The feature: its dialog, the retention (hat or screws), the hat, and the screws it declares |
 | `../../core/bearing.fs` | The placement Robot bushing shares: Position and Bore, the bore, the declaration, and the Auto Assembly body |
-| `robotBearingTables.py` | The bearings part set's FRC bearings (from `../../bearings/bearingTables.py`), FRCDesignLib's bushings and WCP's hats (from `vendor/frcdesign-bushings.json`, `robotBearingTables.py fetch`), and the fasteners' Screw studio; generates `robotBearingTables.gen.fs` |
+| `robotBearingTables.py` | The bearings part set's FRC bearings (from `../../bearings/bearingTables.py`), the bushings part set's bushings (from `../../bushings/bushingTables.py`), WCP's hats (from `vendor/frcdesign-hats.json`, `robotBearingTables.py fetch`), and the fasteners' Screw studio; generates `robotBearingTables.gen.fs` |
 | `../../bearings/bearings.fs`, `bearingTables.gen.fs` | FRCDesign's bearings part set: the bearings' sizes, flanges and bores (`BEARINGS`, `BEARING_BORES`, `boreRadius`) |
 | `bearingHatTables.py` | The hats' hole tables; generates `bearingHatTables.gen.fs` |
 | `../../core/autoAssembly.fs` | Declarations and Auto Assembly bodies |

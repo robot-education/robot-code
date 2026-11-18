@@ -345,7 +345,7 @@ shape and from the same `core/` predicates:
 
 | Group | Parameters |
 | --- | --- |
-| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Type, Bore, Size, Dimensions, Seal and Vendor, skipping a level with one option (`robotBearingTable`); or **Bushing**: FRCDesignLib's Flanged Bushing, by size and vendor (`bushingTable`). Then Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`) |
+| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Type, Bore, Size, Dimensions, Seal and Vendor, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Bore, Size, Material, Dimensions and Vendor, the same way (`bushingTable`). Then Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`) |
 | Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
 | Retention (Robot bearing) | Below |
 | Other options | Auto Assembly body |
@@ -402,10 +402,12 @@ Auto Assembly options:
 
 ### Robot bushing
 
-The same, with Flanged Bushing's products (but its hex-outside one), and no Retention group: `featurescripts/bushing/`.
+The same, with the bushings part set's bushings, and no Retention group: `featurescripts/bushing/`. A bushing with a
+step under its flange (REV's) gets a counterbore for it, and its Auto Assembly body has the step.
 
-A bushing's Auto Assembly body has no flange: FRCDesignLib's sizes name its outside diameter, width and bore, not a
-flange's. Bushings move to a part set of their own, as the bearings set says, once there is one.
+The bushings part set (`featurescripts/bushings/`, `libraryBushing`, in a Bushing Part Studio) is built as the bearings'
+is, from FRCDesignLib's Flanged Bushing records, with flanges from The Thrifty Bot's and REV's STEP files. WCP's and
+VEX's bushings wait for their flanges to be measured.
 
 ### What changes for documents
 

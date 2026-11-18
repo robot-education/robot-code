@@ -171,6 +171,17 @@ def test_imports(tmp_path):
         generate(tmp_path, "2960", {})
 
 
+
+def test_a_definition_can_import_another_definitions_output_before_its_written(tmp_path):
+    (tmp_path / "parts").mkdir()
+    (tmp_path / "parts" / "aTables.py").write_text("from fs_cli.tables import Enum\nCONTENTS = [Enum('A', ['X'])]\n")
+    (tmp_path / "parts" / "bTables.py").write_text(
+        "from fs_cli.gen import Import\nCONTENTS = [Import('parts/aTables.gen.fs')]\n"
+    )
+    results = {result.output.name: result for result in generate(tmp_path, "2960", {})}
+    assert 'import(path : "parts/aTables.gen.fs", version : "");' in results["bTables.gen.fs"].code
+
+
 # Sketches
 
 

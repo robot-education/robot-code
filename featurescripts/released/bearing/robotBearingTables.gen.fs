@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "bearings/bearingTables.gen.fs", version : ""); // bearings/bearingTables.gen.fs
+import(path : "bushings/bushingTables.gen.fs", version : ""); // bushings/bushingTables.gen.fs
 
 /* Generated from robotBearingTables.py by `fs gen` -- DO NOT EDIT */
 
@@ -1237,132 +1238,85 @@ export const robotBearingTable = {
     };
 
 export const bushingTable = {
-        "name" : "bushing",
-        "displayName" : "Type",
+        "name" : "bore",
+        "displayName" : "Bore",
         "entries" : {
-            "Flanged" : {
+            "Rounded hex" : {
                 "name" : "size",
                 "displayName" : "Size",
                 "entries" : {
-                    "1/2\" Rounded Hex ID x 0.750\" OD x 0.313\" WD (Bronze)" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
+                    "1/2 in" : {
+                        "name" : "material",
+                        "displayName" : "Material",
                         "entries" : {
-                            "Generic" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_1_2__Rounded_Hex_ID_x__75__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "_1_2__Rounded_Hex_ID_x__75__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "VEX Robotics" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "VEX_Robotics", "List_6NyGa5gyitSbIX" : "_1_2__Rounded_Hex_ID_x__75__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
+                            "Bronze" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_1_2" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_1_2" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
+                                },
+                            },
+                            "Nylon" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "NYLON" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "NYLON" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
+                                },
+                            },
                         },
                     },
-                    "1/2\" Rounded Hex ID x 0.750\" OD x 0.313\" WD (Nylon)" : {
+                    "3/8 in" : {
                         "name" : "vendor",
                         "displayName" : "Vendor",
                         "entries" : {
-                            "Generic" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD__Bronze_" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "VEX Robotics" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "VEX_Robotics", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD__Bronze_" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
+                            "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_3_8" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.GENERIC },
+                            "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_3_8" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.THRIFTYBOT },
                         },
                     },
-                    "1/2\" Rounded Hex ID x 0.750\" OD x 0.333\" WD (Bronze)" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
+                },
+            },
+            "Round" : {
+                "name" : "size",
+                "displayName" : "Size",
+                "entries" : {
+                    "3/4 in" : {
+                        "name" : "dimensions",
+                        "displayName" : "Dimensions",
                         "entries" : {
-                            "Generic" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
+                            "1 in OD x 0.563 in (1.125 in step)" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
+                                    "REV" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "REV" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.REV },
+                                },
+                            },
+                            "1.125 in OD x 0.333 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_125_X_0_333" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.THRIFTYBOT },
+                                },
+                            },
                         },
                     },
-                    "1/2\" Rounded Hex ID x 0.750\" OD x 0.375\" WD (Nylon)" : {
+                    "7/8 in" : {
                         "name" : "vendor",
                         "displayName" : "Vendor",
                         "entries" : {
-                            "Generic" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_375__WD__Bronze_" }, "name" : "Flanged Bushing" }, "width" : 0.375 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_375__WD__Bronze_" }, "name" : "Flanged Bushing" }, "width" : 0.375 * inch },
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_7_8" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.GENERIC },
+                            "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_7_8" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.THRIFTYBOT },
                         },
                     },
-                    "3/8\" Rounded Hex ID x 0.625\" OD x 0.313\" WD" : {
+                    "1 in" : {
                         "name" : "vendor",
                         "displayName" : "Vendor",
                         "entries" : {
-                            "Generic" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_3_8__Rounded_Hex_ID_x_0_625__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "_3_8__Rounded_Hex_ID_x_0_625__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                        },
-                    },
-                    "3/8\" Rounded Hex ID x 0.625\" OD x 0.375\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_3_8__Rounded_Hex_ID_x_0_625__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.375 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "Copy_of_3_8__Rounded_Hex_ID_x_0_625__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.375 * inch },
-                        },
-                    },
-                    "0.250\" ID x 0.500\" OD x 0.313\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.25 * inch, "outerDiameter" : 0.5 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Default" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.25 * inch, "outerDiameter" : 0.5 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "Default" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                        },
-                    },
-                    "0.375\" ID x 0.625\" OD x 0.313\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_375__ID_x_0_625__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.375 * inch, "outerDiameter" : 0.625 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "_375__ID_x_0_625__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                        },
-                    },
-                    "0.500\" ID x 0.750\" OD x 0.313\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_5__ID_x__75__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.5 * inch, "outerDiameter" : 0.75 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "_5__ID_x__75__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                        },
-                    },
-                    "0.75\" ID x 0.875\" OD x 0.313\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 0.875 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_75__ID_x__875__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 0.875 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "_75__ID_x__875__OD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                        },
-                    },
-                    "0.75\" ID x 1\" OD x 0.563\" WD (1.125\" OD Step)" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 1 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_0_75__ID_x_1__OD_x_0_563__WD__1_125__OD_Step_" }, "name" : "Flanged Bushing" }, "width" : 0.563 * inch },
-                            "REV Robotics" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 1 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "REV_Robotics", "List_6NyGa5gyitSbIX" : "_0_75__ID_x_1__OD_x_0_563__WD__1_125__OD_Step_" }, "name" : "Flanged Bushing" }, "width" : 0.563 * inch },
-                        },
-                    },
-                    "0.75\" ID x 1.125\" OD x 0.333\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_0_75__ID_x_0_875__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 0.75 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "Copy_of_0_75__ID_x_0_875__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                        },
-                    },
-                    "0.875\" ID x 1.125\" OD x 0.333\" WD" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 0.875 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_0_75__ID_x_1_125__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 0.875 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "Copy_of_0_75__ID_x_1_125__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                        },
-                    },
-                    "1\" ID x 1.125\" OD x 0.333\" WD (1.225\" OD Flange)" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 1 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "_1__ID_x_1_125__OD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                            "The Thrifty Bot" : { "innerDiameter" : 1 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "The_Thrifty_Bot", "List_6NyGa5gyitSbIX" : "_1__ID_x_1_125__OD" }, "name" : "Flanged Bushing" }, "width" : 0.333 * inch },
-                        },
-                    },
-                    "1\" ID x 1.125\" OD x 0.313\" WD (1.25\" OD Flange)" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
-                        "entries" : {
-                            "Generic" : { "innerDiameter" : 1 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "Default", "List_6NyGa5gyitSbIX" : "Copy_of_1__ID_x_1_125__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
-                            "West Coast Products" : { "innerDiameter" : 1 * inch, "outerDiameter" : 1.125 * inch, "product" : { "documentId" : "836cd26e60025118646fa104", "elementId" : "cc56166393300da5561c023f", "configuration" : { "List_24h7uw0br82pR5" : "West_Coast_Products", "List_6NyGa5gyitSbIX" : "Copy_of_1__ID_x_1_125__OD_x_0_313__WD" }, "name" : "Flanged Bushing" }, "width" : 0.313 * inch },
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_1" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.GENERIC },
+                            "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_1" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.THRIFTYBOT },
                         },
                     },
                 },

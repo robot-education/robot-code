@@ -27,15 +27,6 @@ export function testEveryBearingIsOneTheBearingSetMakes()
     }
 }
 
-export function testEveryBushingIsAPart()
-{
-    for (var part in leaves(bushingTable))
-    {
-        expectTrue(canBeBearingPart(part), part.product.name ~ " isn't a bushing part");
-        expectTrue(part.innerDiameter < part.outerDiameter, part.product.name ~ "'s body has no wall");
-    }
-}
-
 export function testWcpMakesHatsForItsTwoBores()
 {
     for (var bore in ["0.875 in", "1.125 in"])

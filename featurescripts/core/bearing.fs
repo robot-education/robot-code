@@ -27,6 +27,9 @@ export type BearingPart typecheck canBeBearingPart;
  * @field width {ValueWithUnits} : Its whole width, a flange's included.
  * @field flangeDiameter {ValueWithUnits} : @optional A flanged part's flange, which sits on the face, outside the bore,
  * @field flangeThickness {ValueWithUnits} : @requiredif {`flangeDiameter` is given.} this thick.
+ * @field stepDiameter {ValueWithUnits} : @optional A step under the flange, wider than the body, which the bore is
+ *          counterbored for,
+ * @field stepHeight {ValueWithUnits} : @requiredif {`stepDiameter` is given.} this tall.
  * @field innerDiameter {ValueWithUnits} : Its Auto Assembly body's hole: its inner diameter, or a hex's or square's nominal size.
  * @field product {map} : The library's part (`Product`).
  */
@@ -38,6 +41,7 @@ export predicate canBeBearingPart(value)
     isLength(value.innerDiameter);
     value.flangeDiameter == undefined || isLength(value.flangeDiameter);
     value.flangeDiameter == undefined || isLength(value.flangeThickness);
+    value.stepDiameter == undefined || (isLength(value.stepDiameter) && isLength(value.stepHeight));
     canBeProduct(value.product);
 }
 
@@ -114,7 +118,21 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
                 "endBound" : BoundingType.BLIND,
                 "endDepth" : depth
             });
-    const tool = qCreatedBy(id + "boreTool", EntityType.BODY);
+    if (part.stepDiameter != undefined)
+    {
+        // A counterbore for the step under its flange, at the same fit
+        const stepSketchId = id + "stepSketch";
+        const stepSketch = newSketchOnPlane(context, stepSketchId, { "sketchPlane" : plane });
+        skCircle(stepSketch, "step", { "center" : vector(0, 0) * meter, "radius" : (part.stepDiameter + boreFitClearance(definition, part.stepDiameter)) / 2 });
+        skSolve(stepSketch);
+        opExtrude(context, id + "stepTool", {
+                    "entities" : qSketchRegion(stepSketchId),
+                    "direction" : -plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : part.stepHeight
+                });
+    }
+    const tool = qUnion([qCreatedBy(id + "boreTool", EntityType.BODY), qCreatedBy(id + "stepTool", EntityType.BODY)])->qBodyType(BodyType.SOLID);
     try
     {
         opBoolean(context, id + "bore", {
@@ -152,7 +170,7 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
     {
         buildBearingBody(context, id + "autoAssemblyBody", plane, part, declaration);
     }
-    cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
+    cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     return host;
 }
 
@@ -163,18 +181,32 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
 function buildBearingBody(context is Context, id is Id, plane is Plane, part is BearingPart, declaration)
 {
     const flanged = part.flangeDiameter != undefined;
-    extrudeRing(context, id + "body", plane, part.outerDiameter, part.innerDiameter, -plane.normal,
-        flanged ? part.width - part.flangeThickness : part.width);
+    const below = flanged ? part.width - part.flangeThickness : part.width;
+    if (part.stepDiameter == undefined)
+    {
+        extrudeRing(context, id + "body", plane, part.outerDiameter, part.innerDiameter, -plane.normal, below);
+    }
+    else
+    {
+        // The step from the face down, and the body below it
+        extrudeRing(context, id + "body", plane, part.stepDiameter, part.innerDiameter, -plane.normal, part.stepHeight);
+        var stepBottom = plane;
+        stepBottom.origin -= plane.normal * part.stepHeight;
+        extrudeRing(context, id + "lower", stepBottom, part.outerDiameter, part.innerDiameter, -plane.normal, below - part.stepHeight);
+    }
     if (flanged)
     {
         extrudeRing(context, id + "flange", plane, part.flangeDiameter, part.innerDiameter, plane.normal, part.flangeThickness);
+    }
+    if (flanged || part.stepDiameter != undefined)
+    {
         opBoolean(context, id + "union", {
-                    "tools" : qUnion([qCreatedBy(id + "body", EntityType.BODY), qCreatedBy(id + "flange", EntityType.BODY)])->qBodyType(BodyType.SOLID),
+                    "tools" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
                     "operationType" : BooleanOperationType.UNION
                 });
     }
     makeAutoAssemblyBody(context, id + "declare", {
-                "body" : qCreatedBy(id + "body", EntityType.BODY)->qBodyType(BodyType.SOLID),
+                "body" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
                 "connectors" : { "mateConnector" : bearingConnector(plane) },
                 "declaration" : declaration,
                 "name" : part.product.name
