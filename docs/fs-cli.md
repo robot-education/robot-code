@@ -296,6 +296,19 @@ edits, and array items can be added): it has tabs for the lookup tables, writeup
 terminal, or Claude Code in it), `fs audit --open` shows the feature's preview there: it writes `.fs-audit/open.json`,
 which the extension watches for.
 
+A part set's feature (see [docs/parts.md](parts.md)) is used through its Part Studios' configurations, not its own
+dialog, so for a Feature Studio in a part set's folder the page and the preview show those in the dialog's place: a
+panel for each Part Studio using one of its features (on the page each in turn; in VS Code's preview each chosen as a
+file's features are), with Onshape's styles and its inputs as dropdowns (a checkbox's as a checkbox). Choosing options
+shows what the configuration shows with them: an option shows while a rule controlling it holds, and an input shows
+while its condition holds and it has an option shown; a hidden input keeps its value, which later conditions read.
+Where a choice is hidden, the panel shows the first option shown (what Onshape shows there isn't documented).
+`fs_cli/configurations.py` reads a configuration from Onshape's JSON (`parse_configuration`: what
+`ConfiguredStudio.configuration_body` writes, or what `fs configuration URL` reads back from Onshape) and works out
+what it shows (`Configuration.state`), and the page's script (its `RUNTIME`) does the same; a test checks the two draw
+alike, and another that every configuration a part set's manifest lists shows its own choices. The panels are read
+from the definitions as they are on disk, as `fs parts` would build them.
+
 `fs audit --artifact` writes the page as a claude.ai Artifact's, to publish (Claude Code's Artifact tool) so people can
 comment on it: without the document around it (publishing adds one), its colors following the viewer's theme (`--theme`
 then sets only the dialog's), and its side gutter clearing a phone's system bars.

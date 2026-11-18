@@ -52,6 +52,10 @@ The folder holds:
   tab's name, its feature, and its configuration's inputs. Its `EXPORTS` write what reads the set outside Onshape
   (FRCDesignApp's manifest, `fasteners.gen.json`), including where each Part Studio was last released.
 
+`fs audit` on the set's Feature Studio, and VS Code's feature preview of it, show its Part Studios' configurations as
+Onshape will, choices and all, rather than the feature's own dialog (see [fs-cli.md](fs-cli.md)'s `fs audit`): no API
+calls, so it's the first place to look at a change.
+
 ## Trying a change
 
 Push it, then build the set's test Part Studios in the backend document:
@@ -94,8 +98,10 @@ A release:
 4. Builds each Part Studio in the main document, by its tab's name (`Screw`), from that studio as just pushed, and
    writes the set's manifest beside them as a file tab, `fasteners.parts.json`: the definition's manifest export with
    each studio's tab there (`elementId`) in place of where it was last released. A studio whose feature makes a mate
-   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and a second on its
-   top where it has one (`topMateConnector`, from `top_mate_connector`). A fasten mate names a connector
+   connector names the id it gives it (`mateConnector`, from `ConfiguredStudio.mate_connector`), and others on its
+   top and bottom where it has them (`topMateConnector` and `bottomMateConnector`, from `top_mate_connector` and
+   `bottom_mate_connector`). A record naming one of these stands for its own configuration where it differs (a radial
+   bearing's `topMateConnector` is `mateConnector`, its top being where it seats). A fasten mate names a connector
    `<featureId>.<id>`, and Onshape's API shows no mate connector a feature makes, so this is how FRCDesignApp fastens
    to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.

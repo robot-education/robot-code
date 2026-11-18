@@ -135,7 +135,18 @@ def test_finish_comes_between_head_and_length_and_shows_where_theres_a_choice():
     generic = {"vendor": "GENERIC", "size": "NO_10_32", "head": "BUTTON"}
     assert [option.id for option in finish.options if shows(option, generic)] == []
     mcmaster = {"vendor": "MCMASTER", "size": "NO_10_32", "head": "BUTTON"}
-    assert [option.id for option in finish.options if shows(option, mcmaster)] == ["BLACK", "ZINC_PLATED"]
+    assert [option.id for option in finish.options if shows(option, mcmaster)] == ["BLACK", "ZINC_PLATED", "STAINLESS"]
+
+
+def test_mcmasters_stainless_button_heads_reach_four_inches():
+    lengths = DEFINITION["SCREWS"][("MCMASTER", "NO_10_32", "BUTTON")]
+    variant = DEFINITION["Variant"]("STAINLESS")
+    stainless = [length for length, variants in lengths.items() if variant in variants]
+    assert (len(stainless), stainless[-1]) == (23, 4)
+    four = lengths[Fraction(4)][variant]
+    assert (four.part_number, four.material.name, four.full_thread) == ("92949A831", "Stainless Steel", True)
+    # Generic offers every length anyone makes
+    assert Fraction(7, 2) in DEFINITION["SCREWS"][("GENERIC", "NO_10_32", "BUTTON")]
 
 
 def test_washer_finishes():
@@ -150,8 +161,10 @@ def test_washer_finishes():
     assert records[("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS")]["name"] == (
         "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)"
     )
-    # Generic makes one washer in each size, so its type and finish are hidden
-    assert records[("GENERIC", "NO_10_32")]["name"] == "#10 Washer (1/2 in OD x 0.049 in)"
+    # Generic makes SAE washers and every other one made in a size, in one finish, which is hidden
+    generic = [values for values in records if values[:2] == ("GENERIC", "NO_10_32")]
+    assert len(generic) == 8 and all(len(values) == 3 for values in generic)
+    assert records[("GENERIC", "NO_10_32", "OD_1_2_X_0_049")]["name"] == "#10 Washer (1/2 in OD x 0.049 in)"
 
 
 def test_andymarks_washers_take_their_stated_bores():
@@ -348,13 +361,13 @@ def test_each_default_shows_with_the_others():
         assert selection in studio.combinations()
 
 
-def test_defaults_are_whats_inserted_most():
+def test_defaults():
     assert DEFINITION["STUDIOS"]["screw"].defaults() == {
-        "vendor": "GENERIC",
+        "vendor": "MCMASTER",
         "size": "NO_10_32",
         "head": "BUTTON",
         "finish": "BLACK",
-        "length": "IN_0_375",
+        "length": "IN_0_5",
         "fullyThreaded": "false",
     }
     assert DEFINITION["STUDIOS"]["nut"].defaults() == {"size": "NO_10_32", "type": "NYLOCK"}

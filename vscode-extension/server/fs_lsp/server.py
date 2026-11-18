@@ -820,6 +820,11 @@ async def render_ui(ls: FeatureScriptServer, params) -> dict:
     if path is None or found is None:
         return {"error": "Open a FeatureScript file in the robot-code repo to preview it.", "features": []}
     project, _ = found
+    settings = {str(key): str(value) for key, value in _param(params, "settings") or []}
+    theme = _param(params, "theme") or "dark"
+    configured = await _render_configuration(project, path, _param(params, "feature"), settings, theme)
+    if configured is not None:
+        return configured
     sources = dict(project.overlays)
     own = parse_file(path.resolve(), sources.get(path.resolve()))
     features = list(own.declarations.features) if own else []
@@ -828,8 +833,6 @@ async def render_ui(ls: FeatureScriptServer, params) -> dict:
         feature = features[0] if features else None
     if feature is None:
         return {"error": f"{path.name} doesn't define a feature.", "features": []}
-    settings = {str(key): str(value) for key, value in _param(params, "settings") or []}
-    theme = _param(params, "theme") or "dark"
     try:
         std_dir = load_config(project.root).std_dir
         info: dict = {}
@@ -841,6 +844,27 @@ async def render_ui(ls: FeatureScriptServer, params) -> dict:
         [key, value] for key, value in settings.items() if key not in parameters or value != parameters[key].default_setting
     ]
     return {"html": page, "warnings": warnings, "features": features, "feature": feature, "settings": kept}
+
+
+async def _render_configuration(project: Project, path: pathlib.Path, feature: str | None, settings: dict[str, str], theme: str) -> dict | None:
+    """A part set's Feature Studio's preview: its Part Studios' configurations (see `fs_cli.configurations`), as
+    `render_ui` returns a dialog, each a "feature" to choose by its label; or None for any other file. They're read
+    from the definitions on disk."""
+    from fs_cli.config import ConfigError, load_config
+    from fs_cli.configurations import ConfigurationError, configuration_page, part_set_views
+
+    try:
+        views = await asyncio.to_thread(part_set_views, load_config(project.root), path)
+    except (ConfigError, ConfigurationError) as error:
+        return {"error": str(error), "features": []}
+    if not views:
+        return None
+    labels = [view.label for view in views]
+    view = views[labels.index(feature)] if feature in labels else views[0]
+    defaults = view.configuration.defaults()
+    page = configuration_page(view.tab, view.configuration, settings, theme)
+    kept = [[key, value] for key, value in settings.items() if key in defaults and value != defaults[key]]
+    return {"html": page, "warnings": [], "features": labels, "feature": view.label, "settings": kept}
 
 
 def _param(params, name: str):

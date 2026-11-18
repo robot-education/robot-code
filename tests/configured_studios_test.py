@@ -359,6 +359,8 @@ def test_manifest_names_a_top_mate_connector_only_where_the_studio_has_one():
     assert "topMateConnector" not in studio().manifest()
     topped = dataclasses.replace(studio(), mate_connector="bottom", top_mate_connector="top")
     assert topped.manifest() == {"feature": topped.feature, "mateConnector": "bottom", "topMateConnector": "top"}
+    ended = dataclasses.replace(topped, bottom_mate_connector="end")
+    assert ended.manifest()["bottomMateConnector"] == "end"
 
 
 def test_configured_studios_searches_nested_maps():
