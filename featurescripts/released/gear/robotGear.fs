@@ -201,6 +201,8 @@ const MODULE_BOUNDS = { (meter) : [1e-5, 0.001, 0.1], (millimeter) : 1, (inch) :
 // A module's, times pi: module 1's, and 20 DP's
 const CIRCULAR_PITCH_BOUNDS = { (meter) : [3e-5, 0.00314, 0.3], (millimeter) : 3.14, (inch) : 0.157 } as LengthBoundSpec;
 const GEAR_TEETH_BOUNDS = { (unitless) : [4, 24, 1000] } as IntegerBoundSpec;
+// An internal gear's pinion's: a motor's, by default
+const PINION_TEETH_BOUNDS = { (unitless) : [4, 12, 1000] } as IntegerBoundSpec;
 const RACK_TEETH_BOUNDS = { (unitless) : [1, 10, 1000] } as IntegerBoundSpec;
 const PRESSURE_ANGLE_BOUNDS = { (degree) : [10, 20, 35] } as AngleBoundSpec;
 const THICKNESS_BOUNDS = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;
@@ -240,38 +242,39 @@ predicate isGear(definition is map)
 }
 
 /**
- * A spur or bevel gear, which can have a bore and a mate: not a rack or an internal gear.
+ * What has a bore: a spur or bevel gear (and its mate), or an internal gear's pinion, made with it (with Gear pair).
  */
-predicate isExternalGear(definition is map)
+predicate hasBore(definition is map)
 {
-    definition.gearType == GearType.GEAR || definition.gearType == GearType.BEVEL;
+    definition.gearType == GearType.GEAR || definition.gearType == GearType.BEVEL || (definition.gearType == GearType.INTERNAL && definition.gearPair);
 }
 
 /**
- * Made with its mate: with Gear pair.
+ * Made with its mate (an internal gear's, its pinion): with Gear pair.
  */
 predicate isPair(definition is map)
 {
-    isExternalGear(definition);
+    isGear(definition);
     definition.gearPair;
 }
 
 /**
- * A spur gear made with its mate, whose centers are their pitch radii apart (and the center to
- * center adjustment): not a bevel gear, whose mate shares its apex.
+ * A spur or internal gear made with its mate, whose centers are their pitch radii apart (an internal gear's, less its
+ * pinion's), and the center to center adjustment: not a bevel gear, whose mate shares its apex.
  */
 predicate isSpurPair(definition is map)
 {
-    definition.gearType == GearType.GEAR;
+    definition.gearType == GearType.GEAR || definition.gearType == GearType.INTERNAL;
     definition.gearPair;
 }
 
 /**
- * A pair whose mate is placed by its teeth and the angle (a bevel gear's always is), not its pitch circle.
+ * A pair whose mate is placed by its teeth and the angle (a bevel or internal gear's always is: its mate's teeth are
+ * set above), not its pitch circle.
  */
 predicate isMateByTeeth(definition is map)
 {
-    definition.gearType == GearType.BEVEL || definition.mateSizeBy == GearSize.TEETH;
+    definition.gearType == GearType.BEVEL || definition.gearType == GearType.INTERNAL || definition.mateSizeBy == GearSize.TEETH;
 }
 
 /**
@@ -332,6 +335,13 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
                 annotation { "Name" : "Shaft angle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 isAngle(definition.shaftAngle, SHAFT_ANGLE_BOUNDS);
+            }
+
+            // An internal gear's teeth are shaped for its pinion, with or without Gear pair
+            if (definition.gearType == GearType.INTERNAL)
+            {
+                annotation { "Name" : "Mating gear teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isInteger(definition.internalMateTeeth, PINION_TEETH_BOUNDS);
             }
 
             annotation { "Name" : "Pitch", "Default" : GearPitch.DP_20, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
@@ -518,11 +528,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        // An internal gear has no bore or mate
-        if (isExternalGear(definition))
+        if (isGear(definition))
         {
-            borePredicate(definition);
-
             annotation { "Name" : "Gear pair", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.gearPair is boolean;
 
@@ -530,8 +537,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             {
                 annotation { "Group Name" : "Gear pair", "Collapsed By Default" : false, "Driving Parameter" : "gearPair" }
                 {
-                    // A bevel gear's mate is placed by its teeth (Mating gear teeth, above): it shares the apex
-                    if (definition.gearType != GearType.BEVEL)
+                    // A bevel or internal gear's mate is placed by its teeth (Mating gear teeth, above)
+                    if (definition.gearType == GearType.GEAR)
                     {
                         annotation { "Name" : "Mate selection", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                         definition.mateSizeBy is GearSize;
@@ -557,6 +564,12 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                     }
                 }
             }
+        }
+
+        // A spur or bevel gear's (and its mate's), or an internal gear's pinion's: the ring has none
+        if (hasBore(definition))
+        {
+            borePredicate(definition);
         }
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
@@ -597,6 +610,11 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             // Its teeth reach as far toward its apex as its thickness does, and its mate's as far
             definition.faceWidth = bevelShape(definition, module, size.teeth).faceWidth;
         }
+        else if (definition.gearType == GearType.INTERNAL)
+        {
+            // Its pinion's, likewise
+            definition.mateTeeth = definition.internalMateTeeth;
+        }
         // On the location at its bottom, middle, top, or apex (its plane is its middle, or a bevel gear's back)
         const distances = gearPointDistances(definition, module, size.teeth);
         var gearPlane = applyPointManipulator(definition, locationPlane, distances);
@@ -636,7 +654,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        const bore = isExternalGear(definition) ? definitionBore(definition) : undefined;
+        const bore = hasBore(definition) ? definitionBore(definition) : undefined;
         for (var i, built in gears)
         {
             if (definition.addMateConnectors)
@@ -646,7 +664,8 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                             "owner" : built.body
                         });
             }
-            if (bore != undefined)
+            // Not an internal gear's ring
+            if (bore != undefined && built.hubRadius != undefined)
             {
                 cutBores(context, id + ("bore" ~ (i == 0 ? "" : i)), bore, [built.plane], [undefined], [built.body]);
                 if (warning == undefined && boreReach(bore) >= built.hubRadius)
@@ -733,7 +752,7 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
     else if (definition.gearType == GearType.INTERNAL)
     {
         // Its teeth inside a ring
-        var form = getInternalGearForm(module, teeth, pressureAngle(definition), rootFilletSize(definition), getProfileOffset(definition));
+        var form = getInternalGearForm(module, teeth, definition.mateTeeth, pressureAngle(definition), rootFilletSize(definition), getProfileOffset(definition));
         form.outsideRadius = internalRingRadius(definition, module, teeth);
         // Past its roots (a router bit's slots and fillets are inside the root circle)
         if (form.outsideRadius <= form.rootRadius + TOLERANCE.zeroLength * meter)
@@ -750,7 +769,12 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
     }
     else
     {
-        const form = getGearForm(module, teeth, pressureAngle(definition), rootFilletSize(definition), getProfileOffset(definition));
+        var form = getGearForm(module, teeth, pressureAngle(definition), rootFilletSize(definition), getProfileOffset(definition));
+        // An internal gear's pinion: its involutes reach down to where the gear's tips touch them
+        if (definition.ringTeeth != undefined)
+        {
+            form.contactRadius = internalMesh(module, definition.ringTeeth, teeth, pressureAngle(definition)).mateContactRadius;
+        }
         result.hubRadius = form.rootRadius;
         const profile = sketchGearProfile(context, id + "profile", gearPlane, form, undefined);
         result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
@@ -823,7 +847,7 @@ function checkBitSlots(context is Context, id is Id, definition is map, gearPlan
     var profile;
     if (internal)
     {
-        sharp = getInternalGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
+        sharp = getInternalGearForm(form.module, form.teeth, form.mateTeeth, form.pressureAngle, 0, form.offset);
         sharp.outsideRadius = form.outsideRadius;
         profile = sketchInternalGearProfile(context, id + "sharpProfile", gearPlane, sharp);
     }
@@ -899,33 +923,45 @@ function matePlacement(context is Context, id is Id, definition is map, gearPlan
 
 /**
  * The definition of a gear's mate (with `teeth`, its mate's): of the opposite hand, with Mating gear teeth's mate the
- * gear.
+ * gear. An internal gear's is its pinion: a spur gear of the same hand (they turn the same way), with the gear's teeth
+ * (`ringTeeth`, for its involutes, see `buildGear`).
  */
 function mateDefinition(definition is map, teeth is number) returns map
 {
-    var mate = definition;
-    if (mate.hand != undefined)
+    // A copy: maps are values
+    if (definition.gearType == GearType.INTERNAL)
     {
-        mate.hand = mate.hand == GearHand.RIGHT ? GearHand.LEFT : GearHand.RIGHT;
+        definition.gearType = GearType.GEAR;
+        definition.ringTeeth = teeth;
     }
-    mate.mateTeeth = teeth;
-    return mate;
+    else if (definition.hand != undefined)
+    {
+        definition.hand = definition.hand == GearHand.RIGHT ? GearHand.LEFT : GearHand.RIGHT;
+    }
+    definition.mateTeeth = teeth;
+    return definition;
 }
 
 /**
  * How a gear (with `teeth`) and its mate (with `mateTeeth`) mesh, for `gearMatePlane`: their teeth, and for a spur pair, how far apart their centers are (their pitch radii, and
- * the center to center adjustment), or for a bevel pair, their cones (see `bevelPairCones`) and shaft angle.
+ * the center to center adjustment), or for a bevel pair, their cones (see `bevelPairCones`) and shaft angle. An
+ * internal gear's pinion (`internal`) is inside it, so their centers are its pitch radius less the pinion's apart.
  */
 export function gearMesh(definition is map, module is ValueWithUnits, teeth is number, mateTeeth is number) returns map
 {
     var result = {
         "teeth" : teeth,
-        "mateTeeth" : mateTeeth
+        "mateTeeth" : mateTeeth,
+        "internal" : definition.gearType == GearType.INTERNAL
     };
     if (definition.gearType == GearType.BEVEL)
     {
         result.cones = bevelPairCones(module, teeth, mateTeeth, definition.shaftAngle);
         result.shaftAngle = definition.shaftAngle;
+    }
+    else if (definition.gearType == GearType.INTERNAL)
+    {
+        result.centerDistance = module * (teeth - mateTeeth) / 2 + definition.centerToCenterAdjustment;
     }
     else
     {
@@ -945,17 +981,25 @@ export function gearMesh(definition is map, module is ValueWithUnits, teeth is n
  * Their teeth mesh where their pitch circles touch: with a tooth of the gear there, the mate has a gap. The gear's
  * tooth nearest it is `angle` (from its first tooth to `toward`) less a whole number of teeth around; turning the gear
  * back by that angle turns the mate forward by it times the gears' ratio (each about its axis toward its apex, for
- * bevel gears), so the mate turns from a gap there by that much.
+ * bevel gears), so the mate turns from a gap there by that much. An internal gear's pinion (`mesh.internal`) is inside
+ * it, toward the pitch point, and turns the same way, back by that much.
  */
 export function gearMatePlane(gearPlane is Plane, toward is Vector, mesh is map) returns Plane
 {
     const axis = gearPlane.normal;
     const angle = atan2(dot(cross(gearPlane.x, toward), axis), dot(gearPlane.x, toward));
-    const turn = 180 * degree / mesh.mateTeeth + angle * mesh.teeth / mesh.mateTeeth;
+    const turn = 180 * degree / mesh.mateTeeth + (mesh.internal ? -angle : angle) * mesh.teeth / mesh.mateTeeth;
     var origin;
     var mateAxis;
     var pitchPoint;
-    if (mesh.cones == undefined)
+    if (mesh.internal)
+    {
+        origin = gearPlane.origin + toward * mesh.centerDistance;
+        mateAxis = axis;
+        // Past the pinion's center, on the gear's pitch circle (the adjustment moves the pinion, not it)
+        pitchPoint = origin + toward * (mesh.centerDistance * mesh.mateTeeth / (mesh.teeth - mesh.mateTeeth));
+    }
+    else if (mesh.cones == undefined)
     {
         origin = gearPlane.origin + toward * mesh.centerDistance;
         mateAxis = axis;
@@ -1398,8 +1442,8 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
 
 /**
  * An internal gear's ring's outside radius: by Ring thickness, the thickness out from its teeth's roots (`1.25 m`
- * outside its pitch circle), pitch circle, or tips (`internalTipRadius`), all without the profile offset; or its
- * Outside diameter's.
+ * outside its pitch circle), pitch circle, or tips (`internalTipRadius`, for its pinion's teeth), all without the
+ * profile offset; or its Outside diameter's.
  */
 export function internalRingRadius(definition is map, module is ValueWithUnits, teeth is number) returns ValueWithUnits
 {
@@ -1411,7 +1455,7 @@ export function internalRingRadius(definition is map, module is ValueWithUnits, 
     const from = switch (definition.ringFrom) {
             InternalRingFrom.ROOT : pitchRadius + 1.25 * module,
             InternalRingFrom.PITCH : pitchRadius,
-            InternalRingFrom.TIP : internalTipRadius(pitchRadius, module, pressureAngle(definition))
+            InternalRingFrom.TIP : internalTipRadius(pitchRadius, module * definition.internalMateTeeth / 2, module, pressureAngle(definition))
         };
     return from + definition.ringThickness;
 }
@@ -1476,7 +1520,7 @@ export function robotGearEditLogic(context is Context, id is Id, oldDefinition i
         definition.pitchCircle = definition.location;
         definition.location = qNothing();
     }
-    if (isSpurPair(definition) && definition.mateSizeBy == GearSize.TEETH &&
+    if (definition.gearType == GearType.GEAR && definition.gearPair && definition.mateSizeBy == GearSize.TEETH &&
         oldDefinition.angleReference != definition.angleReference && isPitchCircle(context, definition.angleReference, module))
     {
         definition.mateSizeBy = GearSize.PITCH_CIRCLE;

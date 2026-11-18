@@ -51,6 +51,99 @@ export function testSpurMateHasAToothAtTheGearsGap()
     expectNear((turned / degree + 360) % 18, 0, 1e-6);
 }
 
+/**
+ * An internal gear with `teeth`, and its pinion with `mateTeeth`, as `gearMesh` sees them.
+ */
+function internalPair(teeth is number, mateTeeth is number) returns map
+{
+    return gearMesh({ "gearType" : GearType.INTERNAL, "centerToCenterAdjustment" : 0 * meter }, MODULE, teeth, mateTeeth);
+}
+
+export function testInternalPinionIsInsideThePitchRadiiLessApart()
+{
+    const mesh = internalPair(72, 12);
+    expectNear(mesh.centerDistance, 30 * MODULE, 1e-12 * meter);
+    const mate = gearMatePlane(XY_PLANE, X_DIRECTION, mesh);
+    expectNear(norm(mate.origin - vector(30, 0, 0) * MODULE), 0 * meter, 1e-9 * meter);
+    expectNear(norm(mate.normal - Z_DIRECTION), 0, 1e-9);
+    // The adjustment moves it out, as a spur pair's
+    const adjusted = gearMesh({ "gearType" : GearType.INTERNAL, "centerToCenterAdjustment" : 0.003 * inch }, MODULE, 72, 12);
+    expectNear(adjusted.centerDistance, 30 * MODULE + 0.003 * inch, 1e-12 * meter);
+}
+
+export function testInternalPinionHasAGapAtTheGearsTooth()
+{
+    // The gear's first tooth (pointing in) is toward the pinion, whose x axis (a tooth) is half a tooth (15 degrees)
+    // around from the pitch point, beyond it
+    const mate = gearMatePlane(XY_PLANE, X_DIRECTION, internalPair(72, 12));
+    expectNear(norm(mate.x - vector(cos(15 * degree), sin(15 * degree), 0)), 0, 1e-9);
+}
+
+export function testInternalPinionTurnsWithTheGear()
+{
+    // A whole tooth of the gear (5 degrees) around, it still has a tooth toward the pinion, so the pinion has a gap at
+    // the pitch point: its teeth are a whole number of teeth (30 degrees) and a half from it. Half a tooth around, a gap,
+    // so a tooth.
+    for (var teethAround in [1, 0.5, 3.25])
+    {
+        const toward = vector(cos(5 * teethAround * degree), sin(5 * teethAround * degree), 0);
+        const mate = gearMatePlane(XY_PLANE, toward, internalPair(72, 12));
+        const turned = atan2(dot(cross(toward, mate.x), Z_DIRECTION), dot(toward, mate.x));
+        // Turning the gear by a tooth turns the pinion by one of its own, the same way
+        const expected = (15 - 30 * (teethAround - floor(teethAround)) + 3600) % 30;
+        expectNear((turned / degree + 3600) % 30, expected, 1e-6);
+    }
+}
+
+export function testInternalMesh()
+{
+    // A 10T pinion in a 60T 20 degree gear: the gear's tips stop at where the line of action touches the pinion's base
+    // circle, so they touch the pinion down to it
+    const mesh = internalMesh(MODULE, 60, 10, 20 * degree);
+    const base = 30 * MODULE * cos(20 * degree);
+    const between = 25 * MODULE * sin(20 * degree);
+    expectNear(mesh.tipRadius, sqrt(base ^ 2 + between ^ 2), 1e-12 * meter);
+    expectNear(mesh.mateContactRadius, 5 * MODULE * cos(20 * degree), 1e-12 * meter);
+    // The pinion's tips cross the line of action √(r_a² - r_b²) past where it touches the pinion's base circle
+    const mateBase = 5 * MODULE * cos(20 * degree);
+    expectNear(mesh.contactRadius, sqrt(base ^ 2 + (between + sqrt((6 * MODULE) ^ 2 - mateBase ^ 2)) ^ 2), 1e-12 * meter);
+    // A 60T pinion in a 100T gear: its tips are a module in, so they touch the pinion above its base circle
+    const large = internalMesh(MODULE, 100, 60, 20 * degree);
+    expectNear(large.tipRadius, 49 * MODULE, 1e-12 * meter);
+    expectTrue(large.mateContactRadius > 30 * MODULE * cos(20 * degree), "above its base circle");
+}
+
+export function testInternalMeshInterferesWithFewTeethBetween()
+{
+    // As simulated (shapes turned through the mesh): a 10T pinion's tips hit a 14T gear's coming out of mesh, and a 16T
+    // one's at 14.5 degrees, but not at 20
+    expectTrue(internalMeshInterferes(MODULE, 14, 10, 20 * degree), "10T in 14T, 20 degrees");
+    expectTrue(!internalMeshInterferes(MODULE, 16, 10, 20 * degree), "10T in 16T, 20 degrees");
+    expectTrue(internalMeshInterferes(MODULE, 16, 10, 14.5 * degree), "10T in 16T, 14.5 degrees");
+    expectTrue(!internalMeshInterferes(MODULE, 18, 10, 14.5 * degree), "10T in 18T, 14.5 degrees");
+    expectTrue(internalMeshInterferes(MODULE, 26, 20, 20 * degree), "20T in 26T, 20 degrees");
+    expectTrue(!internalMeshInterferes(MODULE, 28, 20, 20 * degree), "20T in 28T, 20 degrees");
+    expectTrue(internalMeshInterferes(MODULE, 40, 30, 14.5 * degree), "30T in 40T, 14.5 degrees");
+    expectTrue(!internalMeshInterferes(MODULE, 40, 30, 20 * degree), "30T in 40T, 20 degrees");
+    // Small pinions in large gears don't, their tips trimmed (they would, a module in)
+    expectTrue(!internalMeshInterferes(MODULE, 60, 10, 14.5 * degree), "10T in 60T, 14.5 degrees");
+    expectTrue(!internalMeshInterferes(MODULE, 200, 10, 20 * degree), "10T in 200T, 20 degrees");
+}
+
+export function testInternalRootMeetsTheFlankWherePinionTipsTouch()
+{
+    // A 72T 14.5 degree gear's full round meets its flanks below where a 36T pinion's tips touch them: it's the fillet
+    // meeting them there instead
+    const form = getInternalGearForm(MODULE, 72, 36, 14.5 * degree, 1, 0 * meter);
+    const full = internalFullRound(form);
+    expectTrue(norm(full.tangent) < form.contactRadius, "the full round's below it");
+    const root = internalRoot(form);
+    expectNear(norm(root.flankTop), form.contactRadius, 1e-9 * meter);
+    // A 12T pinion's tips touch them lower down: the full round
+    const small = getInternalGearForm(MODULE, 72, 12, 14.5 * degree, 1, 0 * meter);
+    expectNear(norm(internalRoot(small).flankTop), norm(internalFullRound(small).tangent), 1e-12 * meter);
+}
+
 export function testBevelMateSharesTheApex()
 {
     const pair = gearMesh({ "gearType" : GearType.BEVEL, "shaftAngle" : 90 * degree }, MODULE, 20, 20);
@@ -473,7 +566,8 @@ function internalGear(from is InternalRingFrom) returns map
             "ringSizeBy" : InternalRingSize.THICKNESS,
             "ringThickness" : 0.25 * inch,
             "ringFrom" : from,
-            "outsideDiameter" : 4 * inch
+            "outsideDiameter" : 4 * inch,
+            "internalMateTeeth" : 12
         };
 }
 
@@ -482,9 +576,14 @@ export function testInternalRingIsMeasuredFromItsTeeth()
     // Its pitch radius is 1.8 in., its roots 1.25 modules out, and its tips a module in (above its base circle, at 14.5°)
     expectNear(internalRingRadius(internalGear(InternalRingFrom.ROOT), MODULE, 72), (1.8 + 0.0625 + 0.25) * inch, 1e-12 * meter);
     expectNear(internalRingRadius(internalGear(InternalRingFrom.PITCH), MODULE, 72), (1.8 + 0.25) * inch, 1e-12 * meter);
-    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 72), (1.8 - 0.05 + 0.25) * inch, 1e-12 * meter);
-    // A 40T gear's tips are on its base circle
-    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 40), (cos(14.5 * degree) + 0.25) * inch, 1e-12 * meter);
+    // With a 12T pinion, its tips are where the line of action touches the pinion's base circle, outside a module in
+    const tip = sqrt((1.8 * cos(14.5 * degree)) ^ 2 + (1.5 * sin(14.5 * degree)) ^ 2) * inch;
+    expectTrue(tip > 1.75 * inch, "outside a module in");
+    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 72), tip + 0.25 * inch, 1e-12 * meter);
+    // With a 60T one, a module in
+    var large = internalGear(InternalRingFrom.TIP);
+    large.internalMateTeeth = 60;
+    expectNear(internalRingRadius(large, MODULE, 72), (1.8 - 0.05 + 0.25) * inch, 1e-12 * meter);
     var outside = internalGear(InternalRingFrom.ROOT);
     outside.ringSizeBy = InternalRingSize.OUTSIDE_DIAMETER;
     expectNear(internalRingRadius(outside, MODULE, 72), 2 * inch, 1e-12 * meter);

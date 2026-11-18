@@ -1128,44 +1128,193 @@ export function sketchToothGap(context is Context, id is Id, plane is Plane, for
 
 
 /**
- * An internal gear's tooth form, for a module (`m`) and pressure angle (`α`): its teeth point in toward its center,
- * and its gaps are an external gear's teeth (of the same teeth and pitch), so its flanks are the same involutes, from
- * the same base circle. Its tips are `m` inside its pitch circle, but no lower than its base circle (below it, there's
- * no involute: an internal gear with few teeth, for its pressure angle, has shorter teeth), and its roots `1.25 m`
- * outside it, rounded by `rootFillet`, as `getGearForm`'s (see `internalRoot`). The whole profile is offset by
- * `offset`, which grows the part (shrinks it, if negative: for clearance), so its teeth grow inward, and its gaps
- * shrink. Its ring's `outsideRadius` is set by its caller, for `sketchInternalGearProfile`.
+ * An internal gear's tooth form, for a module (`m`) and pressure angle (`α`), meshing with a pinion of `mateTeeth`: its
+ * teeth point in toward its center, and its gaps are an external gear's teeth (of the same teeth and pitch), so its
+ * flanks are the same involutes, from the same base circle. Its tips are `m` inside its pitch circle, but no lower than
+ * where the pinion's base circle meets the line of action (`internalTipRadius`): below it, they'd hit the pinion's
+ * flank below its base circle, where it has no involute. Its roots are `1.25 m` outside it, rounded by `rootFillet`, as
+ * `getGearForm`'s (see `internalRoot`), but meeting the flanks no lower than where the pinion's tips touch them
+ * (`contactRadius`). The whole profile is offset by `offset`, which grows the part (shrinks it, if negative: for
+ * clearance), so its teeth grow inward, and its gaps shrink. Its ring's `outsideRadius` is set by its caller, for
+ * `sketchInternalGearProfile`.
+ *
+ * It's an error if the pinion doesn't fit (`internalMeshInterferes`, without the profile offset).
  *
  * @returns {{
  *      @field internal {boolean} : `true`.
  *      @field module {ValueWithUnits} :
  *      @field pressureAngle {ValueWithUnits} :
  *      @field teeth {number} :
+ *      @field mateTeeth {number} : Its pinion's.
  *      @field pitchRadius {ValueWithUnits} :
  *      @field baseRadius {ValueWithUnits} :
  *      @field tipRadius {ValueWithUnits} : Its teeth's tips, inside its pitch circle.
  *      @field rootRadius {ValueWithUnits} : Its gaps' roots, outside its pitch circle.
+ *      @field contactRadius {ValueWithUnits} : Where its pinion's tips touch its flanks, without the profile offset.
  *      @field filletFraction {number} : By a fraction of the full round, or:
  *      @field filletRadius {ValueWithUnits} : A router bit's.
  *      @field offset {ValueWithUnits} :
  * }}
  */
-export function getInternalGearForm(module is ValueWithUnits, teeth is number, pressureAngle is ValueWithUnits, rootFillet, offset is ValueWithUnits) returns map
+export function getInternalGearForm(module is ValueWithUnits, teeth is number, mateTeeth is number, pressureAngle is ValueWithUnits, rootFillet,
+    offset is ValueWithUnits) returns map
 {
+    if (mateTeeth >= teeth || internalMeshInterferes(module, teeth, mateTeeth, pressureAngle))
+    {
+        throw regenError("Mating gear teeth is too large for an internal gear, decrease the value or increase teeth.", ["internalMateTeeth", "teeth"]);
+    }
     var form = getGearForm(module, teeth, pressureAngle, rootFillet, offset);
+    const mesh = internalMesh(module, teeth, mateTeeth, pressureAngle);
     form.internal = true;
-    form.tipRadius = internalTipRadius(form.pitchRadius, module, pressureAngle) - offset;
+    form.mateTeeth = mateTeeth;
+    form.tipRadius = mesh.tipRadius - offset;
     form.rootRadius = form.pitchRadius + 1.25 * module - offset;
+    form.contactRadius = mesh.contactRadius;
     return form;
 }
 
 /**
- * An internal gear's tips' radius, without a profile offset: `m` inside its pitch radius, but no lower than its base
- * circle.
+ * An internal gear's tips' radius, without a profile offset, meshing with a pinion of `matePitchRadius`: `m` inside
+ * its pitch radius, but no lower than where the line of action touches the pinion's base circle (its interference
+ * point), `√(r_b² + (a sin α)²)` from its center, for `a` the distance between their centers. Below it, its tips would
+ * reach the pinion's flank below its base circle, where there's no involute, clipping it (an undercut pinion's root, or
+ * the radial flank a pinion's model is often drawn with); and no contact starts before it, so nothing's lost. It's never
+ * below the gear's own base circle.
  */
-export function internalTipRadius(pitchRadius is ValueWithUnits, module is ValueWithUnits, pressureAngle is ValueWithUnits) returns ValueWithUnits
+export function internalTipRadius(pitchRadius is ValueWithUnits, matePitchRadius is ValueWithUnits, module is ValueWithUnits,
+    pressureAngle is ValueWithUnits) returns ValueWithUnits
 {
-    return max(pitchRadius - module, pitchRadius * cos(pressureAngle));
+    const baseRadius = pitchRadius * cos(pressureAngle);
+    return max(pitchRadius - module, sqrt(baseRadius ^ 2 + ((pitchRadius - matePitchRadius) * sin(pressureAngle)) ^ 2));
+}
+
+/**
+ * Where an internal gear (of `teeth`) and its pinion (of `mateTeeth`) touch, without a profile offset: the gear's
+ * `tipRadius` (`internalTipRadius`); how far out its pinion's tips touch its flanks (`contactRadius`); and how far in
+ * its tips touch the pinion's (`mateContactRadius`), from each one's center. Both meet along the line of action, which
+ * touches both base circles on the same side of the pitch point: the pinion's tips cross it `√(r_a1² - r_b1²)` past
+ * where it touches the pinion's base circle, which is `a sin α` past where it touches the gear's (for `a` the distance
+ * between their centers), and the gear's tips `√(r_a2² - r_b2²)` past that.
+ *
+ * @returns {{
+ *      @field tipRadius {ValueWithUnits} :
+ *      @field contactRadius {ValueWithUnits} :
+ *      @field mateContactRadius {ValueWithUnits} :
+ * }}
+ */
+export function internalMesh(module is ValueWithUnits, teeth is number, mateTeeth is number, pressureAngle is ValueWithUnits) returns map
+{
+    const pitchRadius = module * teeth / 2;
+    const matePitchRadius = module * mateTeeth / 2;
+    const baseRadius = pitchRadius * cos(pressureAngle);
+    const mateBaseRadius = matePitchRadius * cos(pressureAngle);
+    const between = (pitchRadius - matePitchRadius) * sin(pressureAngle);
+    const tipRadius = internalTipRadius(pitchRadius, matePitchRadius, module, pressureAngle);
+    const mateTipAlong = sqrt((matePitchRadius + module) ^ 2 - mateBaseRadius ^ 2);
+    const tipAlong = max(sqrt(tipRadius ^ 2 - baseRadius ^ 2) - between, 0 * meter);
+    return {
+            "tipRadius" : tipRadius,
+            "contactRadius" : sqrt(baseRadius ^ 2 + (between + mateTipAlong) ^ 2),
+            "mateContactRadius" : sqrt(mateBaseRadius ^ 2 + tipAlong ^ 2)
+        };
+}
+
+/**
+ * How many points along each tooth's tip corners' paths `internalMeshInterferes` checks.
+ */
+const INTERNAL_MESH_SAMPLES = 400;
+
+/**
+ * Whether an internal gear (of `teeth`) and its pinion (of `mateTeeth`) interfere as they turn, without a profile
+ * offset: whether either's tip corners, on their paths relative to the other, go into its teeth. With few teeth
+ * between them, the pinion's tips hit the gear's as they come out of mesh. The gear's tips are as `internalTipRadius`
+ * makes them, and the pinion's flanks are involutes down to its base circle, and radial below it (as the involute's
+ * there, so that an undercut pinion has more room).
+ *
+ * Their centers `a` apart, each corner's only inside the other's tip circle on a short arc of its own tip circle (where
+ * the circles cross the other's): the corner is sampled along that arc, `INTERNAL_MESH_SAMPLES` times, and each point
+ * taken into the other's frame (the gears turned to put it there, the pinion `z₂/z₁` times as far as the gear, the same
+ * way), then checked against the tooth nearest it. Meshing with a tooth of the gear on the line from its center through
+ * the pinion's, the pinion has a gap there.
+ */
+export function internalMeshInterferes(module is ValueWithUnits, teeth is number, mateTeeth is number, pressureAngle is ValueWithUnits) returns boolean
+{
+    const gear = getGearForm(module, teeth, pressureAngle, 0, 0 * meter);
+    const pinion = getGearForm(module, mateTeeth, pressureAngle, 0, 0 * meter);
+    const between = gear.pitchRadius - pinion.pitchRadius;
+    const tipRadius = internalTipRadius(gear.pitchRadius, pinion.pitchRadius, module, pressureAngle);
+    const tolerance = TOLERANCE.zeroLength * meter;
+    // An angle wrapped to within half of `pitch` of 0
+    const wrapped = function(angle is ValueWithUnits, pitch is ValueWithUnits) returns ValueWithUnits
+        {
+            return angle - pitch * round(angle / pitch);
+        };
+    const gearPitch = 360 * degree / teeth;
+    const pinionPitch = 360 * degree / mateTeeth;
+    // 1. The pinion's tip corners (at `beta` about its center), in the gear's teeth: between its tip and root circles,
+    // and inside a tooth's flanks (less than half a pitch less half a gap's width from its middle)
+    const pinionCorner = tipArcInside(between, pinion.tipRadius, tipRadius, false);
+    const pinionHalf = toothHalfAngle(pinion, pinion.tipRadius);
+    for (var i = 0; pinionCorner != undefined && i <= INTERNAL_MESH_SAMPLES; i += 1)
+    {
+        const beta = pinionCorner * (2 * i / INTERNAL_MESH_SAMPLES - 1);
+        const point = vector(between, 0 * meter) + vector(cos(beta), sin(beta)) * pinion.tipRadius;
+        const radius = norm(point);
+        if (radius > tipRadius + tolerance && radius < gear.rootRadius)
+        {
+            for (var side in [-1, 1])
+            {
+                // Its tooth's middle, half a pitch from the gap facing the gear's tooth on the x axis: the gear turned
+                // by the pinion's turn over the ratio
+                const turn = (beta - side * pinionHalf - pinionPitch / 2) * mateTeeth / teeth;
+                const fromTooth = wrapped(atan2(point[1], point[0]) - turn, gearPitch);
+                if ((gearPitch / 2 - internalGapHalfAngle(gear, radius) - abs(fromTooth)) / radian * radius > tolerance)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    // 2. The gear's tip corners (at `gamma` about its center), in the pinion's teeth: inside its tip circle, and its
+    // flanks (radial below its base circle)
+    const gearCorner = tipArcInside(between, tipRadius, pinion.tipRadius, true);
+    const gearHalf = gearPitch / 2 - internalGapHalfAngle(gear, tipRadius);
+    for (var i = 0; gearCorner != undefined && i <= INTERNAL_MESH_SAMPLES; i += 1)
+    {
+        const gamma = gearCorner * (2 * i / INTERNAL_MESH_SAMPLES - 1);
+        const point = vector(cos(gamma), sin(gamma)) * tipRadius - vector(between, 0 * meter);
+        const radius = norm(point);
+        if (radius < pinion.tipRadius - tolerance && radius > pinion.rootRadius)
+        {
+            for (var side in [-1, 1])
+            {
+                const turn = (gamma - side * gearHalf) * teeth / mateTeeth;
+                const fromTooth = wrapped(atan2(point[1], point[0]) - turn - pinionPitch / 2, pinionPitch);
+                if ((toothHalfAngle(pinion, max(radius, pinion.baseRadius)) - abs(fromTooth)) / radian * radius > tolerance)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Half the arc of a tip circle (of `radius`) which is past another's (of `otherRadius`), their centers `between` apart,
+ * as an angle about its center from the line between them, toward the pitch point: a pinion's (`internal` false)
+ * outside its internal gear's tip circle, or an internal gear's (`internal`) inside its pinion's. `undefined` if none
+ * of it is.
+ */
+function tipArcInside(between is ValueWithUnits, radius is ValueWithUnits, otherRadius is ValueWithUnits, internal is boolean)
+{
+    // The law of cosines, for where the circles cross
+    const c = internal ? (radius ^ 2 + between ^ 2 - otherRadius ^ 2) / (2 * between * radius) : (otherRadius ^ 2 - between ^ 2 - radius ^ 2) / (2 * between * radius);
+    if (c >= 1)
+    {
+        return undefined;
+    }
+    return acos(max(c, -1));
 }
 
 /**
@@ -1322,6 +1471,18 @@ export function internalFillet(form is map, radius is ValueWithUnits)
 }
 
 /**
+ * The radius of a fillet at an internal gear's root which meets its flank at `radius` (between its tip and root
+ * circles): tangent to the flank there, and to the root circle (inside it). Its center is along the flank's normal
+ * (toward the gap) from the point `p`, and its radius from the root circle, so for `n` the normal and `R` the root's
+ * radius, `|p + r n| = R - r`, or `r = (R² - |p|²) / (2 (p · n + R))`.
+ */
+export function internalFilletAt(form is map, radius is ValueWithUnits) returns ValueWithUnits
+{
+    const flank = internalFlankAt(form, internalRollAt(form, radius));
+    return (form.rootRadius ^ 2 - squaredNorm(flank.point)) / (2 * (dot(flank.point, flank.normal) + form.rootRadius));
+}
+
+/**
  * How many points along a router bit's round end `internalSlot` looks for where it first meets the flank, before
  * halving the range it's in.
  */
@@ -1408,7 +1569,8 @@ export function internalSlot(form is map, radius is ValueWithUnits) returns map
  * `halfGapCurves`) from the gap's middle, on the root circle, to where the flank starts (`flankTop`). By fraction
  * (`form.filletFraction`), a fillet of that fraction of the full round's radius (see `internalFullRound`, `internalFillet`)
  * and the root circle between it and the middle; the full round itself; or without one, a sharp corner on the root
- * circle. A router bit's (`form.filletRadius`): its radius's fillets where two fit, or the full round, if it's that
+ * circle. A fillet meeting the flank below where the pinion's tips touch it (`form.contactRadius`) would cut into
+ * where they mesh, so it's the fillet meeting it there instead, if that's smaller (`internalFilletAt`). A router bit's (`form.filletRadius`): its radius's fillets where two fit, or the full round, if it's that
  * big; or where they don't, a slot (`internalSlot`).
  *
  * @returns {{
@@ -1443,6 +1605,11 @@ export function internalRoot(form is map) returns map
             throw regenError("Could not create full root fillet.", ["rootFillet"]);
         }
         radius = full.radius * form.filletFraction;
+        // Meeting the flanks no lower than where its pinion's tips touch them
+        if (form.contactRadius != undefined)
+        {
+            radius = min(radius, internalFilletAt(form, form.contactRadius));
+        }
     }
     else
     {

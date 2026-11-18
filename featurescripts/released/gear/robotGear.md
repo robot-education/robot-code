@@ -10,22 +10,22 @@ circle, sits on its location by its bottom (or middle, top, or a bevel gear's ap
 Gear pair, the gear it meshes with is made too. Its roots are fully rounded (or, as Onshape's Spur gear's Root fillet,
 a third or a quarter of the gap's width; or a router bit's radius, with a slot of the bit's width down each gap too
 narrow for it; a bevel gear's are full rounds, or a router bit's slots where it can't reach them), or without Root
-fillet, sharp, and it can have a bore (an internal gear's roots are rounded the same ways, and it has no bore or
-Gear pair). A bevel gear's teeth can end square to its pitch cone, their roots flush with a
+fillet, sharp, and it can have a bore (an internal gear's roots are rounded the same ways; its teeth are shaped for
+its pinion, by Mating gear teeth, and its pinion is its mate, with the bore). A bevel gear's teeth can end square to its pitch cone, their roots flush with a
 whole round top (Flat top), rather than cut off by it.
 
 | File | What it is |
 | --- | --- |
 | `robotGear.fs` | The feature: its dialog, the gear and its mate (`buildGear`, `gearMesh`, `gearMatePlane`, `bevelPairCones`), a bevel gear's depths, shape, and section (`bevelDepths`, `bevelShape`, `bevelSection`), and cutting a rack (`cutRack`) |
-| `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`, `lowestContactRadius`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, tooth gap, and router bit slots (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`, `bevelBitRoot`), an internal gear's form, roots, router bit slots, and profile (`getInternalGearForm`, `internalGapHalfAngle`, `internalFullRound`, `internalFillet`, `internalSlot`, `internalRoot`, `sketchInternalGearProfile`), and a cut rack's teeth and regions (`rackToothCenters`, `partialTeeth`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
+| `gearCommon.fs` | The tooth form (`getGearForm`), its roots (`gearRoot`, `halfGapCurves`, `lowestContactRadius`), a gear's profile (`sketchGearProfile`), a bevel gear's cones, proportions, spherical involute teeth, tooth gap, and router bit slots (`bevelCones`, `gleasonProportions`, `sphericalInvolute`, `sphericalBevelForm`, `sketchToothGap`, `bevelBitRoot`), an internal gear's form, its mesh with its pinion, roots, router bit slots, and profile (`getInternalGearForm`, `internalTipRadius`, `internalMesh`, `internalMeshInterferes`, `internalGapHalfAngle`, `internalFullRound`, `internalFillet`, `internalFilletAt`, `internalSlot`, `internalRoot`, `sketchInternalGearProfile`), and a cut rack's teeth and regions (`rackToothCenters`, `partialTeeth`, `rackCutRegions`, `rackRootFilletRadius`, `relieveRackRoots`, `sketchRackCut`) |
 | `../../core/bore.fs` | The bore: its parameters, and cutting it |
 | `../../core/boreProfiles.py` | SplineXS bores at each standard fit, sketched with their fit, generating `boreProfiles.gen.fs` |
 | `../../../tests/featurescript/bore_test.fs` | Tests of bores' sizes and fits, and the SplineXS bores' clearances |
 | `../../core/location.fs`, `../../core/startOffset.fs`, `../../core/profileOffset.fs` | The location, starting offset, and profile offset |
 | `../../core/pointManipulator.fs` | Where the gear sits on its location, as Robot pulley's (`pointManipulatorPredicate`, `applyPointManipulator`) |
 | `../../core/mounting.fs` | The gear pair's Angle reference and Angle, as Robot motor's (`angleReferencePredicate`, `angleOffsetPredicate`, `applyAngleReference`, `applyAngleOffset`), and the rack's angle reference's point (`angleReferencePoint`) |
-| `../../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), internal gears' profiles (their flanks, tips, root fillets, router bit fillets and slots, and profile offset), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), a partial rack's teeth and stop, and the SplineXS bores' profiles |
-| `../../../tests/featurescript/gear_test.fs` | Tests of an internal gear's ring's outside (by thickness from each diameter, or Outside diameter, and switching to it), and of where a gear's mate goes (spur, with the center to center adjustment, and bevel), bevel gears' crown gear and thickness errors, their shape, points, section (with and without Flat top), and Gleason proportions, and joining round faces' angles |
+| `../../../tests/featurescript/fs_eval_sketch_test.py` | Tests of gears' profiles, root fillets, and router bit slots (and racks'), internal gears' profiles (their flanks, tips stopping at their pinion's interference point, too large a pinion, root fillets, router bit fillets and slots, and profile offset), the standard and custom pitches, pitch circles' teeth, bevel gaps, the units values are shown in, where a rack's teeth go and what's cut (never a partial tooth at an end), a partial rack's teeth and stop, and the SplineXS bores' profiles |
+| `../../../tests/featurescript/gear_test.fs` | Tests of an internal gear's ring's outside (by thickness from each diameter, or Outside diameter, and switching to it), its mesh with its pinion (its tips, where they touch, which pinions interfere, against a simulation, and its roots meeting its flanks no lower than the pinion's tips touch them), and of where a gear's mate goes (spur, with the center to center adjustment, internal, and bevel), bevel gears' crown gear and thickness errors, their shape, points, section (with and without Flat top), and Gleason proportions, and joining round faces' angles |
 | `../../../tests/featurescript/fs_eval_bevel_test.py` | Tests of spherical bevel gears' teeth: taken back onto the sphere (their roots' radial lines too), a pair meshes (touching on both sides, not overlapping) through a tooth; their thickness at the pitch cone; their gap's sketch; where a router bit cuts slots |
 | `robotGearIcon.py` | Its icon, a thin spur gear with a hex bore through it, generating `robotGearIcon.svg` |
 | `spurGear.local.fs` | Onshape's Spur gear, for reference (see Compared with Spur gear): not synced |
@@ -36,7 +36,10 @@ Since v1.1.0 (`fs changes robotGear`).
 
 - Internal gears (Gear type's Internal): teeth inside a ring, sized by Ring size (Ring thickness, measured from their
   root, pitch, or tip diameter, or Outside diameter), with Size by, Pitch, Thickness, Root fillet (all its types,
-  router bit slots too), Helical gear, and Profile offset; no bore or Gear pair.
+  router bit slots too), Helical gear, and Profile offset. Their teeth are shaped for their pinion (Mating gear teeth,
+  12 by default): their tips stop where they'd hit its flanks below its base circle (a module in, they clipped a small
+  pinion's roots), and their roots meet their flanks no lower than its tips touch them. A pinion too large for them is
+  an error. With Gear pair, the pinion is made too, with the bore.
 
 ## Strings
 
@@ -78,6 +81,7 @@ Its own parameters have none. From `core/`:
 | Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, taking what's in front of Flat top's front cone from the gap, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Too few teeth for an internal gear, increase teeth. / Profile offset is too large, decrease the value. | error | an internal gear's gaps come to points below its root circle (the second with a positive profile offset) | `teeth` / `profileOffsetDistance` | Cannot create hem, increase total length. |
+| Mating gear teeth is too large for an internal gear, decrease the value or increase teeth. | error | an internal gear's pinion has as many teeth or more, or the two's tip corners, turning, go into the other's teeth (`internalMeshInterferes`): with few teeth between them | `internalMateTeeth`, `teeth` | Selected offset is too large, decrease the value. |
 | Profile offset is too small, increase the value. | error | an internal gear's teeth come to points outside its tip circle | `profileOffsetDistance`, `teeth` | Selected offset is too large, decrease the value. |
 | Could not create full root fillet. | error | an internal gear's full round (or a fraction of it) doesn't touch its flanks between its tip and root circles, or is bigger than their curvature where it does (`internalFullRound`, `internalFillet`) | `rootFillet` | Radius of fillet on face too large. |
 | Bit diameter is too large, decrease the value. | error | an internal gear's router bit fillets don't fit its flanks, or its slot's round end, a little wider than the full round, doesn't meet them (`internalSlot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
@@ -103,7 +107,7 @@ Its own parameters have none. From `core/`:
 | Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a rack's teeth come to points below the face, or meet at their roots | `profileOffsetDistance` | Selected offset is too large, decrease the value. |
 | Pitch diameter is `<diameter>`. | info | a spur or internal gear (not a bevel gear), without a warning | | none |
 | ... Outside diameter is `<diameter>`. | info | added to an internal gear's, sized by Ring thickness | | none |
-| ... Gear centers are `<distance>` apart. | info | added to a spur pair's | | none |
+| ... Gear centers are `<distance>` apart. | info | added to a spur or internal pair's | | none |
 | Bore cuts into gear teeth, decrease bore size or increase teeth. / Bore cuts into mating gear teeth, ... (a bevel gear's: decrease bore size or thickness, or increase teeth.) | warning | the bore's corners (and entrance chamfer) reach its root, or a bevel gear's root cone at its top, without an earlier warning | `boreHexSize`, `hexWidth`, `boreDiameter`, `splineType`, `teeth`, `thickness` | Selected offset is too large, decrease the value. |
 | Select a mate pitch circle. | error | Mate selection Pitch circle, with none | `matePitchCircle` | Select a circle or arc. |
 | Mate pitch circle must be parallel to gear. / Mate pitch circle is too small for this pitch, select a larger circle. / Mate pitch circle is centered on gear, select a circle beside it. | error | likewise | `matePitchCircle`, the circle | Limit face must be parallel to face being moved. |
@@ -116,7 +120,8 @@ Its own parameters have none. From `core/`:
 
 1. **Precondition**: Gear type (Gear, Rack, Bevel, or Internal), and a gear's Size by (`sizeBy`: Teeth or Pitch circle), then the
    Gear group: a bevel gear's Profile (`bevelProfile`: Approximate or Exact, unlabeled), Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
-   without Gear pair), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
+   without Gear pair), an internal gear's Mating gear teeth (`internalMateTeeth`: its teeth are shaped for its pinion,
+   likewise), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
    angle), a gear's Thickness, an internal gear's Ring size (`ringSizeBy`: Ring thickness, with Measured from, `ringFrom`: Root, Pitch, or Tip diameter;
    or Outside diameter), a bevel gear's Flat top (`flatTop`), and Root fillet (`addRootFillet`), with its Fillet type (`rootFillet`, or a bevel
    gear's own, `bevelRootFillet`: Full or Router bit), with Router bit, Bit diameter (`isRouterBit`).
@@ -126,17 +131,17 @@ Its own parameters have none. From `core/`:
      Stop distance (`rackStopDistance`).
    - All but Bevel: Helical gear, with Herringbone gear (`doubleHelical`), Helix angle, and Hand (hidden for
      Herringbone gear: a herringbone turned over is the other hand).
-   - The bore (`core/bore.fs`): Bore (Hex, Round, or Spline), a hex's Hex size (`boreHexSize`, with Custom, Width), a
-     round bore's Diameter, or a Spline type; the fit for a standard hex or a spline (`boreHasFit`); and Entrance
-     chamfer.
-   - Gear and Bevel (`isExternalGear`): bore, then Gear pair, with Mate selection (Teeth or Pitch circle, unlabeled; a bevel mate's by
-     its teeth, above) and either Mating gear teeth (a spur mate's), Angle reference, and Angle (and its Opposite
-     direction), or Mate pitch circle.
-   - Then the profile offset, a gear's Add mate connector, a spur pair's Center to center adjustment (`isSpurPair`), and
+   - Gear, Bevel, and Internal: Gear pair, with Mate selection (a spur mate's: Teeth or Pitch circle, unlabeled; a
+     bevel or internal gear's mate is by its teeth, above) and either Mating gear teeth (a spur mate's), Angle
+     reference, and Angle (and its Opposite direction), or Mate pitch circle.
+   - Gear, Bevel, and an internal gear's pinion, with Gear pair (`hasBore`): the bore (`core/bore.fs`): Bore (Hex,
+     Round, or Spline), a hex's Hex size (`boreHexSize`, with Custom, Width), a round bore's Diameter, or a Spline type;
+     the fit for a standard hex or a spline (`boreHasFit`); and Entrance chamfer.
+   - Then the profile offset, a gear's Add mate connector, a spur or internal pair's Center to center adjustment (`isSpurPair`), and
      the hidden `index`.
 2. **Body**: the module and pressure angle (a standard pitch's, see `GEAR_PITCHES`, or Custom's: Module, an inch over
-   the diametral pitch, or the circular pitch over pi), a bevel gear's mate's teeth (`mateTeeth`, from
-   `bevelMateTeeth`), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
+   the diametral pitch, or the circular pitch over pi), a bevel or internal gear's mate's teeth (`mateTeeth`, from
+   `bevelMateTeeth` or `internalMateTeeth`), and the tooth form (`getGearForm`: pitch radius `m z / 2`,
    base radius its cosine of the pressure angle, tip `m` above it and root `1.25 m` below, all offset by the profile
    offset, and the root fillet: a fraction of the full round's radius, `ROOT_FILLET_FRACTIONS`, or the bit's radius;
    none, without Root fillet, `rootFilletSize`).
@@ -149,14 +154,17 @@ Its own parameters have none. From `core/`:
      properties, a profile offset manipulator, mate connector, its bore
      (`cutBores`), and a warning (the pitch circle's, then the mate's, then the bore's reaching the teeth), or its
      pitch diameter as info.
-   - Internal: its teeth, plane, and points as a gear's; its ring's outside (`internalRingRadius`, below), its profile
-     (`sketchInternalGearProfile`, below) and body (`buildGearBody`), the router bit's slots' check (`checkBitSlots`), its properties, a profile offset manipulator (pointing in: its offset grows its teeth inward),
-     mate connector, and the pitch circle's warning, or its pitch and outside diameters as info.
+   - Internal: its teeth, plane, and points as a gear's; its form, for its pinion (`getInternalGearForm`, below), its
+     ring's outside (`internalRingRadius`, below), its profile (`sketchInternalGearProfile`, below) and body
+     (`buildGearBody`), the router bit's slots' check (`checkBitSlots`), its properties, a profile offset manipulator
+     (pointing in: its offset grows its teeth inward), mate connector, and the pitch circle's warning, or its pitch and
+     outside diameters as info. With Gear pair, its pinion, its mate (below), has the bore, and the info its centers'
+     distance.
    - Bevel: its teeth and plane likewise; its shape along its axis (`bevelShape`, below), whose bottom, middle, top,
      and apex are its points; then `buildBevelGear` (below), its properties, a mate connector at its apex, its bore,
      and only a warning, no info.
    - Gear pair: its mate, built the same way (`buildGear`) where `matePlacement` puts it (below), with its own mate
-     connector and bore.
+     connector and bore (an internal gear's ring has none: it has no `hubRadius`).
    - Rack: `cutTeeth`: `cutRack` for a flat face, `cutRoundTeeth` for a round one (below).
 3. **Editing logic** (`robotGearEditLogic`): a circle newly chosen for the location, or Gear pair's Angle reference,
    whose radius is a pitch radius at the gear's pitch (`isWholeTeeth`: a whole number of teeth's, at least 4) moves to
@@ -200,11 +208,34 @@ An internal gear (`getInternalGearForm`, `sketchInternalGearProfile`) is a ring 
 its center. Its gaps are an external gear's teeth, of the same teeth and pitch: their flanks are the same involutes,
 from its base circle, and a gap's half width at radius `r` is a tooth's (`toothHalfAngle`), `90°/z + inv(α) -
 inv(acos(r_b / r))`, less the offset over the base radius (`internalGapHalfAngle`: its profile offset grows its teeth
-into its gaps). Its tips are a module inside its pitch circle, but no lower than its base circle (there's no involute
-below it): with few teeth for its pressure angle (under 34 at 20°, or 63 at 14.5°), its teeth are shorter. Its roots
-are `1.25 m` outside its pitch circle. Its ring's outside is a circle (`internalRingRadius`): Ring thickness out from
-its roots, pitch circle, or tips (Measured from: Root, Pitch, or Tip diameter, as a rack's Face at, without the
-profile offset), or Outside diameter. It must be outside the root circle.
+into its gaps). Its roots are `1.25 m` outside its pitch circle. Its ring's outside is a circle
+(`internalRingRadius`): Ring thickness out from its roots, pitch circle, or tips (Measured from: Root, Pitch, or Tip
+diameter, as a rack's Face at, without the profile offset), or Outside diameter. It must be outside the root circle.
+
+Its teeth are shaped for its pinion (Mating gear teeth, `internalMateTeeth`), whether or not Gear pair makes it
+(`internalMesh`). Their line of action touches both base circles on the same side of the pitch point, the pinion's
+`a sin α` nearer it than the gear's (for `a` the distance between their centers, the pitch radii's difference):
+
+- **Tips** (`internalTipRadius`): a module inside its pitch circle, but no lower than where the line of action touches
+  the pinion's base circle (its interference point), `√(r_b² + (a sin α)²)` from its center. Below it, its tips would
+  reach the pinion below its base circle, where there's no involute, and clip it: a small pinion's undercut root (cut
+  by a standard hob), or the radial flank pinions are often drawn with (as this feature's own are). A module in, a
+  10T pinion's roots were clipped by about `0.04 m` at 20° (`0.11 m` at 14.5°), drawn so, or `0.013 m` (`0.033 m`)
+  hobbed, as simulated (both turned through the mesh, and checked for overlap). No contact starts before the
+  interference point, so stopping there loses none. It's never below the gear's own base circle (where it has no
+  involute), which the interference point is outside.
+- **Roots**: the pinion's tips touch its flanks out to `contactRadius`, `√(r_b² + (a sin α + √(r_a1² - r_b1²))²)`
+  (where they cross the line of action), so its root fillets meet its flanks no lower (`internalRoot`, below). Its
+  full round meets them lower only with a large pinion, at 14.5° (a 36T pinion in a 72T gear, by about `0.02 m`).
+- **Fit** (`internalMeshInterferes`): an error if the pinion has as many teeth as the gear, or more, or with few teeth
+  between them, their tips hit as they turn (the pinion's tips the gear's coming out of mesh: a 10T pinion in a 14T
+  gear, or a 16T one at 14.5°). It's checked without the profile offset: each one's tip corners go into the other's
+  teeth only on a short arc of their own tip circle, where it crosses the other's, so the corner's sampled along it
+  (400 times), each point taken into the other's frame (the gears turned to put it there, the pinion the ratio as far,
+  the same way), and checked against the tooth nearest it. The pinion's flanks are involutes down to its base circle,
+  and radial below it, as a pinion drawn without undercut is (an undercut one has more room). It agrees with the
+  simulation where it was run (10T pinions in 14T to 200T gears, 20T in 26T and 28T, and 30T in 40T, at both pressure
+  angles).
 
 - **Root** (`internalRoot`): Root fillet's types, as a gear's. The flank is an involute, whose normal at a point
   runs to its center of curvature on the base circle, on the gap's side (`internalFlankAt`): a circle tangent to it
@@ -217,6 +248,10 @@ profile offset), or Outside diameter. It must be outside the root circle.
   - **1/3, 1/4** (`internalFillet`): fillets of two thirds or half the full round's radius, tangent to the root circle
     and the flank, found likewise (the fillet's center, its radius along the normal from the flank, reaches the root
     circle less its radius), and the root circle between them. None is a sharp corner on the root circle.
+  - **Where the pinion's tips touch**: a fillet (or the full round) meeting the flank below `contactRadius` would cut
+    into where they mesh, so it's the fillet meeting the flank there instead, if that's smaller (`internalFilletAt`:
+    for flank point `p` there, normal `n`, and root radius `R`, `r = (R² - |p|²) / (2 (p · n + R))`). A router bit's
+    fillets are the bit's, wherever they meet it.
   - **Router bit**: fillets of the bit's radius (less the profile offset), where two fit (it's no bigger than the full
     round); or a slot (`internalSlot`), as a gear's: the bit's path straight out along the gap's middle, its round end
     on the root circle, its sides the bit's radius from the middle, running in to where the gap's as wide as the bit
@@ -311,23 +346,29 @@ profile offset), or Outside diameter. It must be outside the root circle.
 
 ### Gear pairs
 
-With Gear pair, the gear's mate (Mating gear teeth) is made too, meshing with it. A bevel gear without Gear pair is
-the same gear, without its mate:
+With Gear pair, the gear's mate (Mating gear teeth) is made too, meshing with it (an internal gear's, its pinion). A
+bevel or internal gear without Gear pair is the same gear, without its mate:
 
 - **Where** (`matePlacement`): by Teeth, toward the Angle reference from the gear's center (or along the gear's x axis
   without one), turned by the Angle (with its manipulator), as Robot motor turns a motor (`core/mounting.fs`). By
   Pitch circle, at the Mate pitch circle's center (on the gear's plane), with the nearest whole number of teeth to its
   size; it warns if the circle isn't a whole number of teeth's, or isn't the center to center distance from the gear's. A spur or helical mate's center is
-  the gears' pitch radii away, and the center to center adjustment (`gearMesh`), on the gear's plane. A bevel mate shares the gear's apex, its axis the shaft angle from the gear's, its pitch
+  the gears' pitch radii away, and the center to center adjustment (`gearMesh`), on the gear's plane; an internal
+  gear's pinion's, inside it, its pitch radius less the pinion's away (and the adjustment), toward the angle. A bevel mate shares the gear's apex, its axis the shaft angle from the gear's, its pitch
   cone touching the gear's toward the angle; its back is its cone distance times its pitch angle's cosine from the
   apex.
 - **Its teeth** (`gearMatePlane`): where their pitch circles touch, a tooth of one meets a gap of the other. The gear's
   tooth nearest the touching point is the angle to it (less a whole number of teeth) from its first tooth, which is on
   its x axis. Turning
   the gear back by that angle turns the mate forward by it times the ratio, so the mate is turned that far from a gap
-  facing the gear. Bevel gears turn the same way, each about its axis toward its apex.
-- **What it is**: a whole gear, of the opposite hand if helical, with the gear's pitch,
-  thickness (a bevel mate's face width), root fillet, profile offset, and bore (`mateDefinition`). It's named for its
+  facing the gear. Bevel gears turn the same way, each about its axis toward its apex. An internal gear's pinion is
+  between its center and the touching point, so its x axis faces away from the gear's center, and it turns the same
+  way as the gear: back by the angle times the ratio.
+- **What it is**: a whole gear, of the opposite hand if helical (an internal gear's pinion, a spur gear of the same
+  hand), with the gear's pitch, thickness (a bevel mate's face width), root fillet, profile offset, and bore
+  (`mateDefinition`). An internal gear's pinion's involutes reach down to where the gear's tips touch them
+  (`contactRadius`, `internalMesh`'s `mateContactRadius`), as a bevel gear's do: to its base circle, with the gear's
+  tips at its interference point (below). It's named for its
   own teeth. It sits on the gear's plane (a spur mate), so it's placed by the same point as the gear.
 - **Bevel gears**: both pitch cones (`bevelPairCones`) are checked. Over 90°, one would be a crown or internal gear,
   which a pair of bevel gears can't be: the two pitch angles add up to the shaft angle, so a shaft angle over 90°
@@ -458,11 +499,15 @@ around it.
 - Round faces are cut on the outside of a part only: teeth inside a hole (an internal gear's) are an error. Internal
   gears are made whole instead, with their ring.
 - Internal gears are tried in Onshape, but not since a helical one's ring was joined to its teeth's
-  (`buildInternalGearBody`, as its outside was split). Nothing checks a pinion fits one: too few teeth between them
-  (under about 12 at 20°) interfere at the tips, or as the pinion turns in or out of mesh. Their full round can reach a little below where a big pinion's
-  tips touch the flank (a 72T 14.5° gear's, with a 36T pinion's, by about `0.02 m`). They have no bore or Gear pair.
-  Their ring's Measured from says Tip diameter, not a rack's Outside diameter, for their teeth's tips: an internal
-  gear's tips are inside, and Ring size's Outside diameter is its ring's.
+  (`buildInternalGearBody`, as its outside was split), nor since their teeth were shaped for their pinion, nor with
+  Gear pair (their pinion, its placement, bore, and mate connector are untried). Their ring's Measured from says Tip
+  diameter, not a rack's Outside diameter, for their teeth's tips: an internal gear's tips are inside, and Ring size's
+  Outside diameter is its ring's.
+- An internal gear's fit with its pinion (`internalMeshInterferes`) is checked as they turn, not as the pinion's put in
+  sideways (trimming interference, with few teeth between them): they go together along their axes. A router bit's
+  fillets aren't kept below where the pinion's tips touch its flanks, as the other root fillets are.
+- With Gear pair, an internal gear's pinion's bore is the bore's default, a 1/2 in. hex, which is too large for a
+  small pinion (a 12T 20 DP one's roots are about 0.47 in. across): it warns.
 - Root fillets' full round is tangent to the radial lines below the involutes (as the router bit's is), not to the
   involutes themselves, as Onshape's Spur gear's is.
 - Tried in Onshape (from the browser): a bevel pair, its too thin error, a spur gear on its bottom, a flat rack, and
