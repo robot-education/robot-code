@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "core/robotProperties.fs", version : "");
+import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 
 /**
  * Declared parts, for FRCDesignApp's Auto Assembly (see `docs/auto-assembly.md`): a feature names the library part
