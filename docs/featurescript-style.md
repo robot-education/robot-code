@@ -666,6 +666,10 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A `"Set By"` parameter's function exists, takes the definition, and returns the parameter's type; the parameter is
   hidden; and the feature's editing logic declares `isCreating` and sets it from the function first thing (see
   "Hidden parameters set by editing logic").
+- `"Auto Assembly"` and `"Simplification"`, keys of ours in a feature's annotation (see `docs/auto-assembly.md`), are
+  `true` or `false`, only in a feature's annotation, and true exactly when it does what they say: declares parts
+  (`declarePart` is called in its file or a project file it imports) or allows simplification (its precondition
+  declares `allowSimplification`, by `simplificationPredicate`).
 - Top-level constants, enums, and types can't share a name with anything the file or its imports declare.
 - Functions and predicates declared with `function` or `predicate`, std's too (`mapArray(points, norm)`), can only
   be called, not used as values (see "Functions as values").
