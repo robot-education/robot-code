@@ -11,7 +11,7 @@ things built together:
 - **Simplification**: one switch, set per Part Studio or assembly and carried down into what they contain, that makes
   the features which allow it build something lighter.
 
-They meet in the stand-in: the simple body a declaration draws for a big part (a gear, a motor) is what a simplified
+They meet in the Auto Assembly body: the simple body a declaration draws for a big part (a gear, a motor) is what a simplified
 feature builds too.
 
 ## What's there already
@@ -84,7 +84,7 @@ A declaration is an attribute, `frcAutoAssembly`, naming a library Part Studio a
 - **`version`** is the attribute's format. A new optional field leaves it as it is; a field changing meaning bumps
   it, and the app reads every version it has read before (the attribute exception in `AGENTS.md`).
 
-It's set in up to two places, each with its own job: on a host connector, and on a stand-in.
+It's set in up to two places, each with its own job: on a host connector, and on an Auto Assembly body.
 
 ### The host connector: placing it with no mates
 
@@ -94,41 +94,43 @@ into the assembly with that part, so Auto Assembly can place and fasten every sc
 mating anything. It's named by the
 feature's id and a fixed name (`firstEnd`, `secondEnd`), so a mate to it survives the feature being edited.
 
-A gear has no host in its feature, so it has no host connector: its stand-in carries it (below).
+A gear has no host in its feature, so it has no host connector: its Auto Assembly body carries it (below).
 
-### Stand-ins
+### Auto Assembly bodies
 
-Only parts big enough to plan around get one: gears and motors. Simple hardware (end screws, e-clips, retaining rings,
-screws and bolts) gets a host connector alone; Auto Assembly places it, and nothing in the Part Studio stands for it.
+Only parts big enough to plan around get one: gears, motors, bearings and bushings. Simple hardware (end screws,
+e-clips, retaining rings, screws and bolts) gets a host connector alone; Auto Assembly places it, and nothing in the
+Part Studio stands for it.
 
-A feature declaring a gear or motor has a **Stand-in** checkbox, on by default and remembered (Robot motor's is its
-Block motor). A stand-in is a separate, simple solid part for the part's envelope, which carries the declaration too:
+A feature declaring such a part has an **Auto Assembly body** checkbox, on by default and remembered (Robot motor's
+builds its block motor). An Auto Assembly body is a separate, simple solid part for the part's envelope, which carries the declaration too:
 
-| Kind | Stand-in |
+| Kind | Auto Assembly body |
 | --- | --- |
-| Gear | One extrude of one sketch: its pitch circle, with its bore as an inner loop, as thick as the gear. Two meshing gears' stand-ins touch where their teeth would mesh |
+| Gear | One extrude of one sketch: its pitch circle, with its bore as an inner loop, as thick as the gear. Two meshing gears' Auto Assembly bodies touch where their teeth would mesh |
 | Motor, gearbox | FRCDesign's Block Motor, Block MAXPlanetary or Block PlanetaryX, configured for it, or Robot motor's own envelope where those have none |
 
-The gear's stand-in has no involutes, fillets or cuts, so a gearbox of them regenerates fast; it's also what Robot
+The gear's Auto Assembly body has no involutes, fillets or cuts, so a gearbox of them regenerates fast; it's also what Robot
 gear builds when simplified (see [Simplification](#simplification)).
 
-Every stand-in is named as its product, so the Part Studio's parts list reads as the hardware does. It's excluded from
+Every Auto Assembly body is named as its product, so the Part Studio's parts list reads as the hardware does. It's excluded from
 the bill of materials (`PropertyType.EXCLUDE_FROM_BOM`), since the bill counts the real part once it's placed, and all
-stand-ins share one translucent appearance, so none is mistaken for a part to make.
+Auto Assembly bodies share one translucent appearance, so none is mistaken for a part to make.
 
-### A stand-in's mate connectors map to the real part's
+### An Auto Assembly body's mate connectors map to the real part's
 
-A stand-in has its own mate connectors, each named and placed where the library part has one of the same name. So in
-an assembly a stand-in is mated like any part: a person inserts or copies it, fastens it where it goes, and Auto
+An Auto Assembly body has its own mate connectors, each named and placed where the library part has one of the same name. So in
+an assembly an Auto Assembly body is mated like any part: a person inserts or copies it, fastens it where it goes, and Auto
 Assembly later swaps it for the real part on those same mates. A host connector is named and placed as the part's
 connector it takes, so it's fastened to the same way.
 
-| Kind | Connectors (on the stand-in, and on the library part) |
+| Kind | Connectors (on the Auto Assembly body, and on the library part) |
 | --- | --- |
 | Shaft end screw | `seat`: the center of the head's underside, Z from shank to head (the fasteners' convention) |
 | Retaining ring, e-clip | `face`: the center of one flat face, Z into the ring, as a washer's; X toward an e-clip's opening |
 | Gear | `bottom` and `top`: on its axis, on each face, Z out of the gear; X through a tooth |
 | Motor, gearbox | `face`: the center of its mounting face, Z into the motor, X to the right of its face as its drawing shows it (Robot motor's tables' convention) |
+| Bearing, bushing | `mateConnector`: where it seats, as FRCDesign's bearings part set's is (`featurescripts/bearings/`): on its axis, at a flange's underside or a radial bearing's top face, Z out of the hole |
 
 Robot gear's profile centers a tooth on its sketch's X axis, so a library gear whose connectors' X goes through a tooth
 meshes as modeled. The library's own studios name their connectors with Mate connector features of those names; a
@@ -143,27 +145,27 @@ out of the plate, for a motor's `face`.
 Auto Assembly gains declared parts beside holes, run the same way:
 
 1. **Scan.** A second scan beside `hole-scan.fs`, `part-scan.fs`, returns each body with an `frcAutoAssembly`
-   attribute: its part id, whether it's a stand-in or a host connector, its declaration, and each of its connectors'
+   attribute: its part id, whether it's an Auto Assembly body or a host connector, its declaration, and each of its connectors'
    names, coordinate systems and ids as a fasten mate names them (`lastModifyingOperationId`, joined with `.`). It's
    cached by the same immutable keys as the hole scan.
-2. **Pick.** Picking a stand-in, a part with host connectors, or a whole instance takes every declaration in it;
-   picking nothing takes every one in the assembly. A host connector already fastened to, or with a stand-in on it, is
+2. **Pick.** Picking an Auto Assembly body, a part with host connectors, or a whole instance takes every declaration in it;
+   picking nothing takes every one in the assembly. A host connector already fastened to, or with an Auto Assembly body on it, is
    left to that.
 3. **Resolve.** Each declaration's document and element are looked up among the loaded insertables, giving the
    version the library loaded last, and its configuration is parsed as any selection is (`toSelection`). A studio the
    library doesn't have, a configuration it doesn't offer, a connector the library part lacks, or a part that doesn't
    fit its `spec`, gets no part, with why.
-4. **Insert** each part where its stand-in is, or at its host connector, from that version, in the run's one
+4. **Insert** each part where its Auto Assembly body is, or at its host connector, from that version, in the run's one
    `transformedinstances` call.
 5. **Mate.**
-    - In place of a stand-in: each mate naming one of the stand-in's connectors is rewritten to name the real part's
-      connector of the same name, so the part lands where the stand-in was and keeps its mates. Then the stand-in,
+    - In place of an Auto Assembly body: each mate naming one of the Auto Assembly body's connectors is rewritten to name the real part's
+      connector of the same name, so the part lands where the Auto Assembly body was and keeps its mates. Then the Auto Assembly body,
       which nothing references now, is deleted.
     - At a host connector: a fasten mate from it to the part's connector.
 6. **Record** one use per part placed, with a `UseTarget` of its own, so the dashboard can show declared parts beside
    fastened holes.
 
-Swapping back, to a stand-in, is the same in reverse, which simplification uses for assemblies (below).
+Swapping back, to an Auto Assembly body, is the same in reverse, which simplification uses for assemblies (below).
 
 ### Keeping referenced parts stable
 
@@ -193,7 +195,7 @@ generated part set never changes a released option id (`AGENTS.md`).
 The features' product lists are generated, as the fasteners' tables are (see
 [fs-cli.md](fs-cli.md#generating-lookup-tables)): a Python definition reads a snapshot of the library from FRCDesign's
 public API (`/api/library-data` and `/api/configuration/insertable/{id}`, as `fastenerTables.py fetch` does), and
-writes each product's document, element, configuration, name and stand-in dimensions into a `*.gen.fs` table, with no
+writes each product's document, element, configuration, name and Auto Assembly body dimensions into a `*.gen.fs` table, with no
 version. A gear's product also sets its teeth, pitch and bore.
 
 ## Simplification
@@ -224,7 +226,7 @@ What each feature builds when simplified:
 
 | Feature | Simplified |
 | --- | --- |
-| Robot gear | Its pitch-circle disc with its bore, as a stand-in's (a bevel gear: its pitch cone's frustum) |
+| Robot gear | Its pitch-circle disc with its bore, as an Auto Assembly body's (a bevel gear: its pitch cone's frustum) |
 | Robot lighten | Nothing: the part, unpocketed |
 | Robot motor | The cut, and its own envelope in place of FRCDesign's Block Motor, which it then doesn't derive |
 | Later: Robot belt, Robot chain, Robot pulley, Robot sprocket | Their pitch path or pitch circle, without teeth |
@@ -254,8 +256,8 @@ from:
 - In an assembly, **Suppress library hardware**: every FRCDesignLib fastener and other hardware Auto Assembly
   inserted (screws, washers, nuts, end screws, rings) gets its suppression configured by Simplified, as Follow
   simplified does for new ones (below). Hardware inserted by hand isn't touched.
-- In an assembly, **Swap placed parts for stand-ins** and back: the declared parts' real models are often the
-  heaviest left, and a stand-in is lighter still than a simplified Part Studio.
+- In an assembly, **Swap placed parts for Auto Assembly bodies** and back: the declared parts' real models are often the
+  heaviest left, and an Auto Assembly body is lighter still than a simplified Part Studio.
 
 The menu lists what it would change before it changes anything, and each action records its use, as every feature
 does (FRCDesignApp's `AGENTS.md`).
@@ -271,7 +273,7 @@ On, a run:
 1. Adds the assembly's Simplified parameter if it has none, off.
 2. Inserts the hardware as it does now.
 3. Configures each hardware instance it inserted to be suppressed when Simplified is on. Declared parts with a
-   stand-in (gears, motors) aren't hardware: they follow Simplified by their library part's own simplification
+   Auto Assembly body (gears, motors) aren't hardware: they follow Simplified by their library part's own simplification
    (below), not by suppression.
 4. If Simplified is on in the configuration the assembly is showing, the run's finished toast carries an info line:
    "The inserted hardware is suppressed because Simplified is on."
@@ -296,7 +298,7 @@ its pockets and teeth.
 
 ## Robot motor
 
-Unreleased, so it changes freely. It declares the motor or gearbox whose face it cuts, has a stand-in, and allows
+Unreleased, so it changes freely. It declares the motor or gearbox whose face it cuts, has an Auto Assembly body, and allows
 simplification.
 
 **What it declares.** Each FRC entry of `motorTables.py` names its product: the library's motor, by its document and
@@ -315,11 +317,11 @@ table carries it as it carries the face. Where the library has the motor:
 
 **Host connector.** On the part the face sits on (`partBehind`): of the merge scope's parts, the one nearest the plane behind it. At
 the face's center, Z out of the plate (toward the motor), X the face's drawing's right: the motor's `face`. With no
-merge scope (a block motor alone), there's none, and the stand-in carries the declaration.
+merge scope (a block motor alone), there's none, and the Auto Assembly body carries the declaration.
 
-**Stand-in.** Block motor is its stand-in checkbox. FRCDesign's Block Motor already lines up with the face
+**Auto Assembly body.** Its Auto Assembly body is its block motor, and its checkbox replaces Block motor. FRCDesign's Block Motor already lines up with the face
 (`blockAngle`); its connector on the plane becomes `face`, carrying the declaration, and the part is excluded from the
-bill of materials and colored as stand-ins are. Gearboxes have no block motor yet: Block MAXPlanetary and Block
+bill of materials and colored as Auto Assembly bodies are. Gearboxes have no block motor yet: Block MAXPlanetary and Block
 PlanetaryX could be theirs. The CIM, Mini CIM and RS-775 have no block model in FRCDesignLib; envelopes of our own, as
 the Minion's, would give them one.
 
@@ -343,11 +345,10 @@ shape and from the same `core/` predicates:
 
 | Group | Parameters |
 | --- | --- |
-| (top) | **Product**: the bearing or bushing, from a generated table of the library's, by type and size: Flanged Radial Bearing, Radial Bearing, X-Contact Bearing, Needle Roller Bearing for Robot bearing; Flanged Bushing for Robot bushing |
-| Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
-| Bore | Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`), and Merge scope (`holeMergeScopePredicate`) |
+| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Type, Bore, Size, Dimensions, Seal and Vendor, skipping a level with one option (`robotBearingTable`); or **Bushing**: FRCDesignLib's Flanged Bushing, by size and vendor (`bushingTable`). Then Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`) |
+| Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
 | Retention (Robot bearing) | Below |
-| Other options | Stand-in |
+| Other options | Auto Assembly body |
 
 What they do:
 
@@ -360,14 +361,15 @@ What they do:
    flange sits on the face; the bore is its body's diameter, not its flange's. The part the plane is on, of the merge
    scope's, is the host.
 4. **Declaration**: a host connector on the host at the bore's center, on the plane, Z out of the bore, X the plane's
-   (so the angle reference turns it): the product's `face` connector, on the face of its flange (or of the bearing,
-   unflanged) that sits on the plate. Flanged Radial Bearing already has a connector (`supportsFasten`); its place
-   and name follow this.
-5. **Stand-in**: a ring at the product's outside diameter and width, its hole at its inner diameter (a hex or square
-   bore at its nominal size): one extrude.
+   (so the angle reference turns it): the bearing set's `mateConnector`. A bearing's product is its set's studio, with
+   its record's configuration; until the set is released, the studio has no document, and the feature declares
+   nothing and says so.
+5. **Auto Assembly body**: a ring at the part's outside diameter, its hole at its bore's corners (the set's
+   `boreRadius`; a bushing's at its nominal size), into the bore, and a flanged bearing's flange on the face, at the
+   set's flange sizes: one extrude each.
 6. **Retention** (Robot bearing): below.
 
-`"Auto Assembly" : true` on both. Neither allows simplification: their stand-ins are already as simple as they get.
+`"Auto Assembly" : true` on both. Neither allows simplification: their Auto Assembly bodies are already as simple as they get.
 
 ### Retention (Robot bearing)
 
@@ -402,7 +404,8 @@ Auto Assembly options:
 
 The same, with Flanged Bushing's products (but its hex-outside one), and no Retention group: `featurescripts/bushing/`.
 
-The stand-ins have no flange: the library's sizes name the outside diameter, width and bore, not a flange's.
+A bushing's Auto Assembly body has no flange: FRCDesignLib's sizes name its outside diameter, width and bore, not a
+flange's. Bushings move to a part set of their own, as the bearings set says, once there is one.
 
 ### What changes for documents
 
@@ -461,7 +464,7 @@ Each of these is unverified, and the design leans on it:
 6. A Derived feature's configuration can be set to an expression of the Part Studio's own variable (`#Simplified`).
 7. The API can set an assembly's configured instances: an instance's configuration per the assembly's configuration.
 8. The API can add a configuration input to an assembly, and configure an instance's suppression by it.
-9. A stand-in with Exclude from BOM is left out of an assembly's bill of materials.
+9. An Auto Assembly body with Exclude from BOM is left out of an assembly's bill of materials.
 10. A library gear studio's mate connectors stay put across its configurations.
 11. A Part Studio configuration variable named `Simplified` and an assembly checkbox input named `Simplified` can be
     passed from one to the other when an assembly configures its instances.

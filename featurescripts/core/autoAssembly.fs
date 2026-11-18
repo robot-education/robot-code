@@ -5,7 +5,7 @@ import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 /**
  * Declared parts, for FRCDesignApp's Auto Assembly (see `docs/auto-assembly.md`): a feature names the library part
  * that goes where it cut something, on a mate connector carrying an attribute (`AUTO_ASSEMBLY_ATTRIBUTE`). A host
- * connector is on the part the hardware attaches to; a stand-in is a simple body for a big part, with connectors of its
+ * connector is on the part the hardware attaches to; an Auto Assembly body is a simple body for a big part, with connectors of its
  * own, named and placed as the library part's are. A feature declaring parts says `"Auto Assembly" : true` in its
  * annotation, which `fs check` requires.
  */
@@ -45,7 +45,7 @@ export type Product typecheck canBeProduct;
  * @field elementId {string} : The Part Studio or assembly's tab.
  * @field configuration {map} : Each configuration parameter's id to its option's id (or a quantity's value, as a
  *          string); empty for the defaults.
- * @field name {string} : The part's name, for its stand-in and for messages when it can't be placed.
+ * @field name {string} : The part's name, for its Auto Assembly body and for messages when it can't be placed.
  */
 export predicate canBeProduct(value)
 {
@@ -57,7 +57,7 @@ export predicate canBeProduct(value)
 }
 
 /**
- * The attribute a declaration's connectors and stand-in carry.
+ * The attribute a declaration's connectors and Auto Assembly body carry.
  * @param spec : What the feature cut for the part, by kind, for FRCDesignApp to check the product fits: lengths as
  *          lengths.
  */
@@ -79,7 +79,7 @@ export function autoAssemblyDeclaration(kind is AutoAssemblyKind, product is Pro
  * @param id : Stable and named for what it is (`id + "face"`), so a mate to the connector survives the feature being
  *          edited.
  * @param definition {{
- *      @field owner {Query} : The part it's on: the host, or a stand-in.
+ *      @field owner {Query} : The part it's on: the host, or an Auto Assembly body.
  *      @field coordSystem {CoordSystem} : Where the part's connector goes, by its kind's convention.
  *      @field connector {string} : The library part's connector it takes, by name (`face`, `seat`, `bottom`).
  *      @field declaration {map} : From `autoAssemblyDeclaration`.
@@ -96,37 +96,44 @@ export function declarePart(context is Context, id is Id, definition is map)
 }
 
 /**
- * Stand-in: a simple body where a big part goes, which Auto Assembly swaps for it.
+ * Auto Assembly body: a simple body where a big part goes, which Auto Assembly swaps for it.
  */
-export predicate standInPredicate(definition is map)
+export predicate autoAssemblyBodyPredicate(definition is map)
 {
-    annotation { "Name" : "Stand-in", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+    annotation { "Name" : "Auto Assembly body", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                 "Description" : "Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part." }
-    definition.standIn is boolean;
+    definition.autoAssemblyBody is boolean;
 }
 
 /**
- * Makes a body a stand-in: named as its product, left out of the bill of materials, translucent, carrying its
- * declaration, and with a connector of its own for each of the library part's.
+ * Makes a body an Auto Assembly body: named as its product, left out of the bill of materials, translucent, carrying its
+ * declaration, and with a connector of its own for each of the library part's. Without a declaration (a part not yet
+ * in the library), it's only named and colored.
  * @param definition {{
- *      @field standIn {Query} : The body.
+ *      @field body {Query} : The body.
  *      @field connectors {map} : Each connector's name to where it goes.
- *      @field declaration {map} : From `autoAssemblyDeclaration`.
+ *      @field declaration {map} : @optional From `autoAssemblyDeclaration`.
+ *      @field name {string} : @requiredif {`declaration` isn't given.} Its name.
  * }}
  */
-export function makeStandIn(context is Context, id is Id, definition is map)
+export function makeAutoAssemblyBody(context is Context, id is Id, definition is map)
 {
-    setProperty(context, { "entities" : definition.standIn, "propertyType" : PropertyType.NAME, "value" : definition.declaration.name });
-    setProperty(context, { "entities" : definition.standIn, "propertyType" : PropertyType.EXCLUDE_FROM_BOM, "value" : true });
-    setProperty(context, { "entities" : definition.standIn, "propertyType" : PropertyType.APPEARANCE, "value" : STAND_IN_BLUE });
-    setAttribute(context, { "entities" : definition.standIn, "name" : AUTO_ASSEMBLY_ATTRIBUTE, "attribute" : definition.declaration });
+    const declaration = definition.declaration;
+    setProperty(context, { "entities" : definition.body, "propertyType" : PropertyType.NAME, "value" : declaration == undefined ? definition.name : declaration.name });
+    setProperty(context, { "entities" : definition.body, "propertyType" : PropertyType.EXCLUDE_FROM_BOM, "value" : true });
+    setProperty(context, { "entities" : definition.body, "propertyType" : PropertyType.APPEARANCE, "value" : AUTO_ASSEMBLY_BLUE });
+    if (declaration == undefined)
+    {
+        return;
+    }
+    setAttribute(context, { "entities" : definition.body, "name" : AUTO_ASSEMBLY_ATTRIBUTE, "attribute" : declaration });
     for (var name, coordSystem in definition.connectors)
     {
         declarePart(context, id + name, {
-                    "owner" : definition.standIn,
+                    "owner" : definition.body,
                     "coordSystem" : coordSystem,
                     "connector" : name,
-                    "declaration" : definition.declaration
+                    "declaration" : declaration
                 });
     }
 }

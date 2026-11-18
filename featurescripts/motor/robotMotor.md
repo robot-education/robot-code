@@ -6,14 +6,14 @@ instances), and one for its pilot. For motors with a block model, it can also br
 Motor, derived from its document, or for motors it doesn't have (the Minion and Yellow Jackets), an envelope of our
 own; either way one part with a mate connector on its face. Each FRC motor and gearbox is declared for FRCDesignApp's
 Auto Assembly as the library's own (see `docs/auto-assembly.md`): on the part it's mounted to, and on its block motor,
-which is its stand-in. In a simplified Part Studio, it leaves out the block motor where there's a part to cut.
+which is its Auto Assembly body. In a simplified Part Studio, it leaves out the block motor where there's a part to cut.
 
 | File | What it is |
 | --- | --- |
 | `robotMotor.fs` | The feature: its dialog, the cut, the block motor, and its manipulators and editing logic |
 | `motorTables.py` | The motors' and gearboxes' faces and envelopes, with their sources, and the library part each FRC one declares; generates `motorTables.gen.fs` |
 | `vendor/frcdesign-motors.json` | FRCDesignLib's motors and gearboxes the entries declare, from FRCDesign's public API (`motorTables.py fetch`) |
-| `../core/autoAssembly.fs`, `../core/simplify.fs` | The declaration and stand-in, and Allow simplification |
+| `../core/autoAssembly.fs`, `../core/simplify.fs` | The declaration and Auto Assembly body, and Allow simplification |
 | `vendor/` | REV's and The Thrifty Bot's drawings the data's from (CTRE's and goBILDA's models are linked from `motorTables.py`) |
 | FRCDesign's Block Motor | A configurable Part Studio in FRCDesign's FRC library (document `5e3874e07384706ec3840340`, version `5657eb187a0b8ed8fb95125a`), imported as `BlockMotor` |
 | `../core/location.fs`, `../core/mounting.fs` | The sketch point, and its orientation (flip, secondary axis, angle reference, angle) |
@@ -31,10 +31,10 @@ Unreleased.
 | --- | --- |
 | Robot motor | feature name |
 | Cut the mounting holes of a motor or gearbox, and model a block motor. `<CREDIT>` | feature description |
-| `<library part's name>`: the FRCDesignLib part it declares (Kraken X60 Brushless Motor, NEO Brushless Motor, ...) | a declared block motor's part name (a stand-in's) |
+| `<library part's name>`: the FRCDesignLib part it declares (Kraken X60 Brushless Motor, NEO Brushless Motor, ...) | a declared block motor's part name (an Auto Assembly body's) |
 | `<motor's name>`: Yellow Jackets' as goBILDA names them (5203 Series Yellow Jacket (13.7:1, 435 RPM)) | an undeclared (FTC) block motor's part name |
 
-A declared block motor is a stand-in: Stand-in blue, half transparent (`STAND_IN_BLUE`), and excluded from the bill of
+A declared block motor is an Auto Assembly body: Auto Assembly blue, half transparent (`AUTO_ASSEMBLY_BLUE`), and excluded from the bill of
 materials. An undeclared one keeps FRCDesign's Block Motor's appearance, or ours, General black (`BLACK` in
 `core/robotProperties.fs`). None sets a material: they're envelopes, so their masses would be wrong.
 
@@ -42,12 +42,12 @@ materials. An undeclared one keeps FRCDesign's Block Motor's appearance, or ours
 
 | Parameter | Description |
 | --- | --- |
-| Block motor | Bring in a block model of the motor: its body's envelope, its pilot, and its shaft. |
+| Auto Assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s): here, the block motor |
 | Allow simplification | Build less while the Part Studio's Simplified configuration is on. (`core/simplify.fs`'s) |
 | Fit, Bore fit, and their clearances | `core/fit.fs`'s |
 
 Has block model is hidden: editing logic sets it (its "Set By" function, `motorHasBlockModel`), whether the chosen
-motor has a block model, and Block motor only shows when it does (conditions can't read lookup tables). Editing logic
+motor has a block model, and Auto Assembly body only shows when it does (conditions can't read lookup tables). Editing logic
 also sets the shown Merge scope and Flip primary axis (see How it works).
 
 ### Errors, warnings, and info
@@ -60,11 +60,11 @@ also sets the shown Merge scope and Flip primary axis (see How it works).
 | The angle reference must be a point, circle, or line. | error | a guard: the filter only allows those | `angleReference` |
 | `core/startOffset.fs`'s errors | error | Starting offset's reference entity is missing, or isn't parallel to the sketch point's plane | `startOffsetEntity` |
 | The `<part name>` has `<n>` holes, so holes to skip past `<n>` are ignored. | info | Skip holes has an index past the face's last hole | |
-| There's no block model of the `<part name>`. | error | Block motor is checked, but the motor has no block model: Has block model is stale, as the motor was changed some way other than in the dialog (like a configuration) | `blockMotor` |
-| std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope, without Block motor (a block motor alone cuts nothing) | `scope` |
+| There's no block model of the `<part name>`. | error | Auto Assembly body is checked, but the motor has no block model: Has block model is stale, as the motor was changed some way other than in the dialog (like a configuration) | `autoAssemblyBody` |
+| std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope, without Auto Assembly body (a block motor alone cuts nothing) | `scope` |
 | The parts to cut aren't behind the sketch point. Flip the primary axis. | error | no part of the merge scope is behind the sketch point (against the motor's axis) | `oppositeDirection`, `scope`, the merge scope |
 | Failed to cut the mounting holes. | error | subtracting the holes from the merge scope fails | `scope`, the holes |
-| Failed to bring in FRCDesign's Block Motor. | error | instantiating it fails (like a document that can't be read) | `blockMotor` |
+| Failed to bring in FRCDesign's Block Motor. | error | instantiating it fails (like a document that can't be read) | `autoAssemblyBody` |
 
 ## How it works
 
@@ -87,7 +87,7 @@ also sets the shown Merge scope and Flip primary axis (see How it works).
       face, so its x axis is the drawing's left. The angle manipulator, half again
       farther out than the farthest hole. With Skip holes, a toggle points manipulator on each hole, with the skipped ones selected, and
       info if an index is past the last hole.
-   4. The block motor is built with Block motor (shown and checked), unless the Part Studio is simplified
+   4. The block motor is built with Auto Assembly body (shown and checked), unless the Part Studio is simplified
       (`isSimplified`) and there's a merge scope to carry the declaration. An error if the motor has no block model;
       then with an empty merge scope, an error unless there's a block motor.
       An FRC face's declaration (`autoAssemblyDeclaration`): a motor or gearbox, the face's `product`, and its screw and
@@ -104,8 +104,8 @@ also sets the shown Merge scope and Flip primary axis (see How it works).
       board. Its face is on its Top plane with its shaft up, so it's placed with its z axis against the plane's normal
       and its x axis the drawing's right, then turned the table's `blockAngle` (-90° for the Krakens, whose bumps it
       has at 0°, where their missing hole is at 270°). Or for motors it doesn't have, our own: cylinders for the body
-      (in front of the plane), pilot, and shaft (behind it), unioned. Declared, it's made the stand-in
-      (`makeStandIn`: named for the library part, excluded from the bill of materials, translucent, with its own
+      (in front of the plane), pilot, and shaft (behind it), unioned. Declared, it's made the Auto Assembly body
+      (`makeAutoAssemblyBody`: named for the library part, excluded from the bill of materials, translucent, with its own
       `face` connector carrying the declaration); otherwise it's named for the motor, colored, and given a mate
       connector on the plane.
    7. Sketches are deleted.
@@ -157,12 +157,12 @@ boolean changes nothing, so they're still there); and around instantiating FRCDe
 - Simplified, a declared motor's block motor is left out rather than built as an envelope of our own: the Krakens',
   Falcons', NEOs' and Pulsar's envelopes aren't measured yet (from Block Motor's sketches, through Onshape's features
   endpoint).
-- The gearboxes have no block model, so no stand-in: Block MAXPlanetary and Block PlanetaryX (in FRCDesign's Block
+- The gearboxes have no block model, so no Auto Assembly body: Block MAXPlanetary and Block PlanetaryX (in FRCDesign's Block
   Models) could be theirs.
 - The library's motors have no `face` connector yet, so Auto Assembly can't fasten them until FRCDesignLib adds them.
 - FRCDesign's Block Motor is imported at the version its FRC library uses; when FRCDesign updates it, the import's
   version needs updating by hand. Its pinion, spacer, and Powerpole board options aren't offered.
-- The CIM, Mini CIM, and RS-775 have no block models (FRCDesign's Block Motor doesn't have them), so Block motor doesn't
+- The CIM, Mini CIM, and RS-775 have no block models (FRCDesign's Block Motor doesn't have them), so Auto Assembly body doesn't
   show for them.
 - Has block model is set by editing logic, so goes stale when the motor changes another way (a configuration); the
   body then reports it rather than building the wrong thing.

@@ -1,0 +1,420 @@
+{
+ "source": "https://app.frcdesign.org/api/configuration/insertable/{id}?v=235 (frc-design-lib)",
+ "parts": [
+  {
+   "name": "Flanged Bushing",
+   "documentId": "836cd26e60025118646fa104",
+   "elementId": "cc56166393300da5561c023f",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "List_24h7uw0br82pR5",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Generic"
+      },
+      {
+       "id": "West_Coast_Products",
+       "name": "West Coast Products"
+      },
+      {
+       "id": "REV_Robotics",
+       "name": "REV Robotics"
+      },
+      {
+       "id": "The_Thrifty_Bot",
+       "name": "The Thrifty Bot"
+      },
+      {
+       "id": "VEX_Robotics",
+       "name": "VEX Robotics"
+      }
+     ]
+    },
+    {
+     "id": "List_6NyGa5gyitSbIX",
+     "name": "Dimensions",
+     "type": "enum",
+     "default": "_1_2__Rounded_Hex_ID_x__75__OD",
+     "options": [
+      {
+       "id": "_1_2__Rounded_Hex_ID_x__75__OD",
+       "name": "1/2\" Rounded Hex ID x 0.750\" OD x 0.313\" WD (Bronze)"
+      },
+      {
+       "id": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD__Bronze_",
+       "name": "1/2\" Rounded Hex ID x 0.750\" OD x 0.313\" WD (Nylon)"
+      },
+      {
+       "id": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD",
+       "name": "1/2\" Rounded Hex ID x 0.750\" OD x 0.333\" WD (Bronze)"
+      },
+      {
+       "id": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_375__WD__Bronze_",
+       "name": "1/2\" Rounded Hex ID x 0.750\" OD x 0.375\" WD (Nylon)"
+      },
+      {
+       "id": "_3_8__Rounded_Hex_ID_x_0_625__OD",
+       "name": "3/8\" Rounded Hex ID x 0.625\" OD x 0.313\" WD"
+      },
+      {
+       "id": "Copy_of_3_8__Rounded_Hex_ID_x_0_625__OD_x_0_313__WD",
+       "name": "3/8\" Rounded Hex ID x 0.625\" OD x 0.375\" WD"
+      },
+      {
+       "id": "Default",
+       "name": "0.250\" ID x 0.500\" OD x 0.313\" WD"
+      },
+      {
+       "id": "_375__ID_x__5__Hex_OD",
+       "name": "0.375\" ID x 1/2\" Hex OD x 0.313\" WD"
+      },
+      {
+       "id": "_375__ID_x_0_625__OD",
+       "name": "0.375\" ID x 0.625\" OD x 0.313\" WD"
+      },
+      {
+       "id": "_5__ID_x__75__OD",
+       "name": "0.500\" ID x 0.750\" OD x 0.313\" WD"
+      },
+      {
+       "id": "_75__ID_x__875__OD",
+       "name": "0.75\" ID x 0.875\" OD x 0.313\" WD"
+      },
+      {
+       "id": "_0_75__ID_x_1__OD_x_0_563__WD__1_125__OD_Step_",
+       "name": "0.75\" ID x 1\" OD x 0.563\" WD (1.125\" OD Step)"
+      },
+      {
+       "id": "Copy_of_0_75__ID_x_0_875__OD_x_0_313__WD",
+       "name": "0.75\" ID x 1.125\" OD x 0.333\" WD"
+      },
+      {
+       "id": "Copy_of_0_75__ID_x_1_125__OD_x_0_313__WD",
+       "name": "0.875\" ID x 1.125\" OD x 0.333\" WD"
+      },
+      {
+       "id": "_1__ID_x_1_125__OD",
+       "name": "1\" ID x 1.125\" OD x 0.333\" WD (1.225\" OD Flange)"
+      },
+      {
+       "id": "Copy_of_1__ID_x_1_125__OD_x_0_313__WD",
+       "name": "1\" ID x 1.125\" OD x 0.313\" WD (1.25\" OD Flange)"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "values": {},
+     "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD__Bronze_"
+     },
+     "name": "13.75mm ID Flanged Nylon Bushing (0.75\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD"
+     },
+     "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.333\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_375__WD__Bronze_"
+     },
+     "name": "13.75mm ID Flanged Nylon Bushing (0.75\" OD x 0.375\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_3_8__Rounded_Hex_ID_x_0_625__OD"
+     },
+     "name": "10.25mm ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_3_8__Rounded_Hex_ID_x_0_625__OD_x_0_313__WD"
+     },
+     "name": "10.25mm ID Flanged Bronze Bushing (0.625\" OD, 0.333\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Default"
+     },
+     "name": "0.25\" ID Flanged Bronze Bushing (0.5\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_375__ID_x__5__Hex_OD"
+     },
+     "name": "0.375\" ID Flanged Bronze Bushing (1/2\" Hex OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_375__ID_x_0_625__OD"
+     },
+     "name": "0.375\" ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_5__ID_x__75__OD"
+     },
+     "name": "0.5\" ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_75__ID_x__875__OD"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (0.875\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_0_75__ID_x_1__OD_x_0_563__WD__1_125__OD_Step_"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (1\" OD, 1.125\" OD Step, 0.563\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_0_75__ID_x_0_875__OD_x_0_313__WD"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_0_75__ID_x_1_125__OD_x_0_313__WD"
+     },
+     "name": "0.875\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "_1__ID_x_1_125__OD"
+     },
+     "name": "1\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "Default",
+      "List_6NyGa5gyitSbIX": "Copy_of_1__ID_x_1_125__OD_x_0_313__WD"
+     },
+     "name": "1\" ID Flanged Bronze Bushing (1.125\" OD, 0.313\" WD)"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_1_2__Rounded_Hex_ID_x__75__OD"
+     },
+     "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)",
+     "partNumber": "WCP-0999"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_3_8__Rounded_Hex_ID_x_0_625__OD"
+     },
+     "name": "10.25mm ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)",
+     "partNumber": "WCP-0997"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "Default"
+     },
+     "name": "0.25\" ID Flanged Bronze Bushing (0.5\" OD, 0.313\" WD)",
+     "partNumber": "WCP-0995"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_375__ID_x__5__Hex_OD"
+     },
+     "name": "0.375\" ID Flanged Bronze Bushing (1/2\" Hex OD, 0.313\" WD)",
+     "partNumber": "WCP-0567"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_375__ID_x_0_625__OD"
+     },
+     "name": "0.375\" ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)",
+     "partNumber": "WCP-0996"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_5__ID_x__75__OD"
+     },
+     "name": "0.5\" ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)",
+     "partNumber": "WCP-0998"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "_75__ID_x__875__OD"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (0.875\" OD, 0.313\" WD)",
+     "partNumber": "WCP-1000"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "West_Coast_Products",
+      "List_6NyGa5gyitSbIX": "Copy_of_1__ID_x_1_125__OD_x_0_313__WD"
+     },
+     "name": "1\" ID Flanged Bronze Bushing (1.125\" OD, 0.313\" WD)",
+     "partNumber": "WCP-1004"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "REV_Robotics",
+      "List_6NyGa5gyitSbIX": "_0_75__ID_x_1__OD_x_0_563__WD__1_125__OD_Step_"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (1\" OD, 1.125\" OD Step, 0.563\" WD)",
+     "partNumber": "REV-21-2396"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD"
+     },
+     "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.333\" WD)",
+     "partNumber": "TTB-0267"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_375__WD__Bronze_"
+     },
+     "name": "13.75mm ID Flanged Nylon Bushing (0.75\" OD x 0.375\" WD)",
+     "partNumber": "TTB-0004"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "Copy_of_3_8__Rounded_Hex_ID_x_0_625__OD_x_0_313__WD"
+     },
+     "name": "10.25mm ID Flanged Bronze Bushing (0.625\" OD, 0.333\" WD)",
+     "partNumber": "TTB-0266"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "Copy_of_0_75__ID_x_0_875__OD_x_0_313__WD"
+     },
+     "name": "0.75\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)",
+     "partNumber": "TTB-0268"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "Copy_of_0_75__ID_x_1_125__OD_x_0_313__WD"
+     },
+     "name": "0.875\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)",
+     "partNumber": "TTB-0269"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "The_Thrifty_Bot",
+      "List_6NyGa5gyitSbIX": "_1__ID_x_1_125__OD"
+     },
+     "name": "1\" ID Flanged Bronze Bushing (1.125\" OD, 0.333\" WD)",
+     "partNumber": "TTB-0270"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "VEX_Robotics",
+      "List_6NyGa5gyitSbIX": "_1_2__Rounded_Hex_ID_x__75__OD"
+     },
+     "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)",
+     "partNumber": "217-7348"
+    },
+    {
+     "values": {
+      "List_24h7uw0br82pR5": "VEX_Robotics",
+      "List_6NyGa5gyitSbIX": "Copy_of_1_2__Rounded_Hex_ID_x_0_750__OD_x_0_313__WD__Bronze_"
+     },
+     "name": "13.75mm ID Flanged Nylon Bushing (0.75\" OD, 0.313\" WD)",
+     "partNumber": "217-7347"
+    }
+   ]
+  },
+  {
+   "name": "Bearing Retention Hat (WCP)",
+   "documentId": "871d0cad06b1c23db69c5d1e",
+   "elementId": "c5041a53e6746dbc5de1296e",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "List_33chXAse2hzXm2",
+     "name": "Configuration",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "0.875\" Bore, 1.25\" C-C"
+      },
+      {
+       "id": "_0_875__Bore__2__C_C",
+       "name": "0.875\" Bore, 2\" C-C"
+      },
+      {
+       "id": "_1_125__Bore__1_5__C_C",
+       "name": "1.125\" Bore, 1.5\" C-C"
+      },
+      {
+       "id": "_1_125__Bore__2__C_C",
+       "name": "1.125\" Bore, 2\" C-C"
+      }
+     ]
+    }
+   ],
+   "records": [
+    {
+     "values": {},
+     "name": "0.875\" OD Bearing Retention Plate (1.25\" C-C)",
+     "partNumber": "WCP-0487"
+    },
+    {
+     "values": {
+      "List_33chXAse2hzXm2": "_0_875__Bore__2__C_C"
+     },
+     "name": "0.875\" OD Bearing Retention Plate (2\" C-C)",
+     "partNumber": "WCP-0327"
+    },
+    {
+     "values": {
+      "List_33chXAse2hzXm2": "_1_125__Bore__1_5__C_C"
+     },
+     "name": "1.125\" OD Bearing Retention Plate (1.5\" C-C)",
+     "partNumber": "WCP-0488"
+    },
+    {
+     "values": {
+      "List_33chXAse2hzXm2": "_1_125__Bore__2__C_C"
+     },
+     "name": "1.125\" OD Bearing Retention Plate (2\" C-C)",
+     "partNumber": "WCP-0328"
+    }
+   ]
+  }
+ ]
+}

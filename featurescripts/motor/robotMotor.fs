@@ -44,7 +44,7 @@ const HOLE_INDEX_BOUNDS = { (unitless) : [1, 1, 1e5] } as IntegerBoundSpec;
 /**
  * Cuts a motor's or gearbox's mounting face into parts (its screws' holes, and a hole for its pilot), and builds a block
  * model of a motor: its envelope, pilot, and shaft. An FRC motor or gearbox is declared for Auto Assembly: on the part
- * it's mounted to, and on its block motor, the block motor's stand-in (see `docs/auto-assembly.md`).
+ * it's mounted to, and on its block motor, the block motor's Auto Assembly body (see `docs/auto-assembly.md`).
  */
 annotation { "Feature Type Name" : "Robot motor",
         "Feature Type Description" : "Cut the mounting holes of a motor or gearbox, and model a block motor." ~ CREDIT,
@@ -144,9 +144,7 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         if (showBlockMotor(definition))
         {
-            annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "Bring in a block model of the motor: its body's envelope, its pilot, and its shaft." }
-            definition.blockMotor is boolean;
+            autoAssemblyBodyPredicate(definition);
         }
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
@@ -178,11 +176,11 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         const hasScope = !isQueryEmpty(context, definition.scope);
         // Simplified, a block motor is left out where a part to cut carries the declaration; alone, it's all there is
-        const buildBlock = showBlockMotor(definition) && definition.blockMotor && !(hasScope && isSimplified(context, definition));
+        const buildBlock = showBlockMotor(definition) && definition.autoAssemblyBody && !(hasScope && isSimplified(context, definition));
         if (buildBlock && !hasBlockModel(face))
         {
             // Has block model is stale: the motor was changed some way other than in the dialog
-            throw regenError("There's no block model of the " ~ face.partName ~ ".", ["blockMotor"]);
+            throw regenError("There's no block model of the " ~ face.partName ~ ".", ["autoAssemblyBody"]);
         }
 
         const declaration = face.product == undefined ? undefined :
@@ -458,7 +456,7 @@ export function faceConnector(plane is Plane) returns CoordSystem
 /**
  * Builds a block model of a motor on `plane`, its body behind the face (along the plane's normal), and its pilot and
  * shaft in front, as one part, with a mate connector on its face: FRCDesign's Block Motor, or for motors it doesn't
- * have, a model of our own. Declared, it's the motor's stand-in; otherwise it's named for the motor.
+ * have, a model of our own. Declared, it's the motor's Auto Assembly body; otherwise it's named for the motor.
  */
 function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane, declaration)
 {
@@ -492,8 +490,8 @@ function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane 
     const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)->qNthElement(0);
     if (declaration != undefined)
     {
-        makeStandIn(context, id + "standIn", {
-                    "standIn" : motor,
+        makeAutoAssemblyBody(context, id + "autoAssemblyBody", {
+                    "body" : motor,
                     "connectors" : { "face" : faceConnector(plane) },
                     "declaration" : declaration
                 });
@@ -540,7 +538,7 @@ function deriveBlockMotor(context is Context, id is Id, face is MotorFace, plane
     }
     catch
     {
-        throw regenError("Failed to bring in FRCDesign's Block Motor.", ["blockMotor"]);
+        throw regenError("Failed to bring in FRCDesign's Block Motor.", ["autoAssemblyBody"]);
     }
 }
 

@@ -3,10 +3,10 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 export import(path : "core/bearing.fs", version : "");
-import(path : "released/bearing/bearingTables.gen.fs", version : "");
+import(path : "released/bearing/robotBearingTables.gen.fs", version : "");
 
 /**
- * Cuts a bore for a bushing, and declares it for Auto Assembly, with a stand-in: Robot bearing's placement, without its
+ * Cuts a bore for a bushing, and declares it for Auto Assembly, with an Auto Assembly body: Robot bearing's placement, without its
  * retention.
  */
 annotation { "Feature Type Name" : "Robot bushing",
@@ -19,22 +19,22 @@ annotation { "Feature Type Name" : "Robot bushing",
 export const robotBushing = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.bushing is LookupTablePath;
+        annotation { "Group Name" : "Bushing", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.bushing is LookupTablePath;
+
+            boreFitPredicate(definition);
+        }
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
             bearingPositionPredicate(definition, "bushing");
         }
 
-        annotation { "Group Name" : "Bore", "Collapsed By Default" : false }
-        {
-            bearingBorePredicate(definition);
-        }
-
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
         {
-            standInPredicate(definition);
+            autoAssemblyBodyPredicate(definition);
         }
     }
     {

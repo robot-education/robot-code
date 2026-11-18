@@ -1,32 +1,33 @@
 # Robot bearing
 
 Cuts a bore for a bearing from FRCDesign's library at a sketch point, and declares the bearing for FRCDesignApp's Auto
-Assembly (see `docs/auto-assembly.md`), with a stand-in; with Retention, holds it in with a hat (COTS, standard, or
+Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body; with Retention, holds it in with a hat (COTS, standard, or
 custom) or with two or three screws whose heads overlap it. Formerly Robot bearing hat: its constant is still
 `robotBearingHat`, which documents store.
 
 | File | What it is |
 | --- | --- |
 | `robotBearing.fs` | The feature: its dialog, the retention (hat or screws), the hat, and the screws it declares |
-| `../../core/bearing.fs` | The placement Robot bushing shares: Position and Bore, the bore, the declaration, and the stand-in |
-| `bearingTables.py` | FRCDesignLib's bearings and bushings, WCP's hats, and the fasteners' Screw studio, from `vendor/frcdesign-bearings.json` (`bearingTables.py fetch`); generates `bearingTables.gen.fs` |
+| `../../core/bearing.fs` | The placement Robot bushing shares: Position and Bore, the bore, the declaration, and the Auto Assembly body |
+| `robotBearingTables.py` | The bearings part set's FRC bearings (from `../../bearings/bearingTables.py`), FRCDesignLib's bushings and WCP's hats (from `vendor/frcdesign-bushings.json`, `robotBearingTables.py fetch`), and the fasteners' Screw studio; generates `robotBearingTables.gen.fs` |
+| `../../bearings/bearings.fs`, `bearingTables.gen.fs` | FRCDesign's bearings part set: the bearings' sizes, flanges and bores (`BEARINGS`, `BEARING_BORES`, `boreRadius`) |
 | `bearingHatTables.py` | The hats' hole tables; generates `bearingHatTables.gen.fs` |
-| `../../core/autoAssembly.fs` | Declarations and stand-ins |
+| `../../core/autoAssembly.fs` | Declarations and Auto Assembly bodies |
 
 ## Changelog
 
 Since Robot bearing hat's last release:
 
-- Renamed Robot bearing, and rebuilt around the bearing: it cuts the bore at a sketch point (Position: location,
-  orientation, angle reference and angle, starting offset; Bore: Bore fit and Merge scope), as Robot motor cuts its
-  face, rather than taking a bore's edge. Documents' Robot bearing hats lose their bearing edge, and show the location's
+- Renamed Robot bearing, and rebuilt around the bearing: it cuts the bore at a sketch point (Bearing: the bearing and
+  Bore fit; Position: location, Merge scope, orientation, angle reference and angle, starting offset), as Robot motor
+  cuts its face, rather than taking a bore's edge. Its bearings are FRCDesign's bearings part set's. Documents' Robot bearing hats lose their bearing edge, and show the location's
   error until a location is picked.
 - The hat is an option: Retention, a checkbox driving its group, with Retention type Hat (the old feature's hats) or
   Screws (two or three screws over the bearing). Hat type is a dropdown in the group, not a horizontal enum at the top.
 - A standard or COTS hat's size is its Hat centers; its bore is the bearing's. A custom hat's bore is the bearing's too
   (no Bore table).
 - The bearing, a COTS hat, and the screws in a standard or custom hat or a screw retention are declared for Auto
-  Assembly; a Stand-in (Other options) shows the bearing.
+  Assembly; a Auto Assembly body (Other options) shows the bearing.
 
 ## Strings
 
@@ -34,7 +35,7 @@ Since Robot bearing hat's last release:
 | --- | --- |
 | Robot bearing | feature name |
 | Cut a bore for a bearing, and retain it with a hat or screws. `<CREDIT>` | feature description |
-| `<bearing's library name>` | the stand-in's part name |
+| `<bearing's library name>` | the Auto Assembly body's part name |
 | Bearing Hat `<n>` | a standard or custom hat's part name |
 
 ### Descriptions and hidden parameters
@@ -43,7 +44,7 @@ Since Robot bearing hat's last release:
 | --- | --- |
 | Declare screws | Declare a screw in each hole, for FRCDesign's Auto Assembly to insert. |
 | Automatic length | Let Auto Assembly choose each screw's length from what its hole goes through. |
-| Stand-in | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
+| Auto Assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
 
 Has clearance is hidden: editing logic sets it (its "Set By" function, `hasTappedHoles`), whether the holes are tapped,
 which shows Tap drill diameter. Editing logic also sets Hole diameter and Tap drill diameter from the hole table when
@@ -54,6 +55,7 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 | Message | Kind | When | Highlights | Closest std error |
 | --- | --- | --- | --- | --- |
 | Choose a different bearing. | error | the saved Bearing path isn't a whole table entry | `bearing` | none |
+| FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly. | info | the bearings part set isn't released, so its studio has no document | | none |
 | `core/location.fs`'s, `core/startOffset.fs`'s and `core/mounting.fs`'s errors | error | the location, starting offset, or angle reference | (theirs) | (theirs) |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope | `scope` | (std's) |
 | The parts to cut aren't behind the sketch point. Flip the primary axis. | error | none of the merge scope is behind the plane | `oppositeDirection`, `scope`, the merge scope | none |
@@ -71,14 +73,17 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 1. **Editing logic** (`robotBearingHatEditLogic`): sets Has clearance; when the hole table's path changes, Hole
    diameter and Tap drill diameter from it; then `mountingEditLogic`.
 2. **Body**:
-   1. The bearing (`bearingTable`: Type, Size, and Vendor where the library has several), as a `BearingPart`.
+   1. The bearing (`libraryBearing`): its `robotBearingTable` entry's enums, looked up in the bearings set's `BEARINGS`
+      for its outside diameter, width and flange, with its hole at its bore's corners (`boreRadius`), as a
+      `BearingPart`.
    2. The plane (`bearingPlane`): the location's, offset, turned to the angle reference, flipped, and turned by Angle,
       with the offset's and angle's manipulators. Its normal points out of the face the bearing sits on.
    3. `placeBearing`: an error for an empty merge scope or one not behind the plane; the part the bearing sits in
       (`partBehind`); the bore, the outside diameter plus Bore fit's clearance, cut through the merge scope behind the
-      plane in one boolean; the `face` connector on that part (`bearingConnector`: the bore's center, z out of the
-      bore, x the plane's), carrying the bearing's declaration; and with Stand-in, a ring at its outside and inner
-      diameters, as wide as it, into the bore (`makeStandIn`).
+      plane in one boolean; the `mateConnector` connector on that part (`bearingConnector`: the bore's center, z out
+      of the bore, x the plane's, where the bearings set seats its bearings), carrying the bearing's declaration, or the
+      info above before the set is released; and with Auto Assembly body, a ring at its outside and inner diameters
+      into the bore, and its flange on the face (`buildBearingBody`, `makeAutoAssemblyBody`).
    4. With Retention, Hole diameter's info if it's overridden, then:
       - **Hat** (`retainWithHat`): its mounting locations (Custom hat's selections, or Hat centers apart on the plane's
         x axis). A COTS hat is declared on the bearing's part (`wcpHat`: WCP's hat for the bearing's outside diameter
@@ -104,11 +109,10 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 
 ## Issues found
 
-- None of the geometry has run in Onshape: the bore, the stand-in, the screws' places, and the hats on the new plane
+- None of the geometry has run in Onshape: the bore, the Auto Assembly body, the screws' places, and the hats on the new plane
   (whose normal points away from the parts, as the old bearing edge's did) are reasoned out.
 - A COTS hat's screws aren't declared: WCP's hat's thickness isn't in the library's data, so where they seat isn't
   known; Auto Assembly's hole fastening can fasten them.
-- The stand-in has no flange: the library's sizes don't give one.
 - The screws a clearance hole declares need a nut, which isn't declared; Auto Assembly's planner adds nuts to holes
   it fastens through.
 - Only #10 holes: the hole tables are #10's, as the hat's were.

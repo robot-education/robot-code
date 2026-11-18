@@ -7,9 +7,11 @@ import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
 export import(path : "core/bearing.fs", version : "");
 export import(path : "cd2c6499801ec51a7947274e", version : "6a0eab11cdac6776966381cd");
-export import(path : "released/bearing/bearingTables.gen.fs", version : "");
+export import(path : "released/bearing/robotBearingTables.gen.fs", version : "");
+// FRCDesign's bearings part set: its bearings' sizes and bores
+import(path : "bearings/bearings.fs", version : "");
 // The fasteners' enums: the screws a retention declares
-export import(path : "86033ffc9510cee8dd457b7f", version : "");
+export import(path : "fasteners/fastenerTables.gen.fs", version : "");
 
 export enum RetentionType
 {
@@ -124,17 +126,17 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
         annotation { "Name" : "Has clearance", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "hasTappedHoles" }
         definition.hasClearance is boolean;
 
-        annotation { "Name" : "Bearing", "Lookup Table" : bearingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.bearing is LookupTablePath;
+        annotation { "Group Name" : "Bearing", "Collapsed By Default" : false }
+        {
+            annotation { "Name" : "Bearing", "Lookup Table" : robotBearingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.bearing is LookupTablePath;
+
+            boreFitPredicate(definition);
+        }
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
             bearingPositionPredicate(definition, "bearing");
-        }
-
-        annotation { "Group Name" : "Bore", "Collapsed By Default" : false }
-        {
-            bearingBorePredicate(definition);
         }
 
         annotation { "Name" : "Retention", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -231,33 +233,55 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
         {
-            standInPredicate(definition);
+            autoAssemblyBodyPredicate(definition);
         }
     }
     {
-        const part = getLookupTable(bearingTable, definition.bearing);
-        if (!canBeBearingPart(part))
-        {
-            throw regenError("Choose a different bearing.", ["bearing"]);
-        }
-        const plane = bearingPlane(context, id, definition, part as BearingPart);
-        const host = placeBearing(context, id + "place", definition, plane, part as BearingPart, AutoAssemblyKind.BEARING);
+        const part = libraryBearing(definition);
+        const plane = bearingPlane(context, id, definition, part);
+        const host = placeBearing(context, id + "place", definition, plane, part, AutoAssemblyKind.BEARING);
 
         if (definition.retention)
         {
             verifyHoleDiameter(context, id, definition);
             if (definition.retentionType == RetentionType.HAT)
             {
-                retainWithHat(context, id, definition, plane, part as BearingPart, host);
+                retainWithHat(context, id, definition, plane, part, host);
             }
             else
             {
-                retainWithScrews(context, id, definition, plane, part as BearingPart, host);
+                retainWithScrews(context, id, definition, plane, part, host);
             }
         }
 
         cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     });
+
+/**
+ * The bearing chosen, as FRCDesign's bearings part set makes it: its sizes and flange from the set's `BEARINGS`, and its
+ * body's hole at its bore's corners (`boreRadius`).
+ */
+function libraryBearing(definition is map) returns BearingPart
+{
+    const entry = getLookupTable(robotBearingTable, definition.bearing);
+    if (entry.product == undefined)
+    {
+        throw regenError("Choose a different bearing.", ["bearing"]);
+    }
+    const made = BEARINGS[entry.vendor][entry.bearingType][entry.bore][entry.size][entry.dimensions][entry.seal];
+    var part = {
+        "outerDiameter" : made.outerDiameter,
+        "width" : made.width,
+        "innerDiameter" : 2 * boreRadius(BEARING_BORES[entry.bore][entry.size]),
+        "product" : entry.product
+    };
+    if (entry.bearingType != BearingType.RADIAL)
+    {
+        part.flangeDiameter = made.flangeDiameter;
+        part.flangeThickness = made.flangeThickness;
+    }
+    return part as BearingPart;
+}
 
 function retainWithHat(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, host is Query)
 {

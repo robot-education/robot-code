@@ -14,7 +14,7 @@ export import(path : "core/autoAssembly.fs", version : "");
 
 /**
  * Placing a bearing or bushing, for Robot bearing and Robot bushing: a bore cut at a location for it, and it declared
- * there for Auto Assembly (see `docs/auto-assembly.md`), with a stand-in.
+ * there for Auto Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body.
  */
 
 /**
@@ -24,8 +24,10 @@ export type BearingPart typecheck canBeBearingPart;
 
 /**
  * @field outerDiameter {ValueWithUnits} : What the bore is cut to (a flanged part's body, not its flange).
- * @field width {ValueWithUnits} : How far it goes into the bore.
- * @field innerDiameter {ValueWithUnits} : Its stand-in's hole: its inner diameter, or a hex's or square's nominal size.
+ * @field width {ValueWithUnits} : Its whole width, a flange's included.
+ * @field flangeDiameter {ValueWithUnits} : @optional A flanged part's flange, which sits on the face, outside the bore,
+ * @field flangeThickness {ValueWithUnits} : @requiredif {`flangeDiameter` is given.} this thick.
+ * @field innerDiameter {ValueWithUnits} : Its Auto Assembly body's hole: its inner diameter, or a hex's or square's nominal size.
  * @field product {map} : The library's part (`Product`).
  */
 export predicate canBeBearingPart(value)
@@ -34,15 +36,20 @@ export predicate canBeBearingPart(value)
     isLength(value.outerDiameter);
     isLength(value.width);
     isLength(value.innerDiameter);
+    value.flangeDiameter == undefined || isLength(value.flangeDiameter);
+    value.flangeDiameter == undefined || isLength(value.flangeThickness);
     canBeProduct(value.product);
 }
 
 /**
- * Where it goes: the location, and its orientation, angle, and starting offset, as Robot motor's.
+ * Where it goes: the location, the parts it's cut into, and its orientation, angle, and starting offset, as Robot
+ * motor's.
  */
 export predicate bearingPositionPredicate(definition is map, name is string)
 {
     locationPredicate(definition, name);
+
+    holeMergeScopePredicate(definition);
 
     axisOrientationPredicate(definition);
 
@@ -51,16 +58,6 @@ export predicate bearingPositionPredicate(definition is map, name is string)
     angleOffsetPredicate(definition);
 
     startOffsetPredicate(definition);
-}
-
-/**
- * The bore: its fit, and the parts it's cut through.
- */
-export predicate bearingBorePredicate(definition is map)
-{
-    boreFitPredicate(definition);
-
-    holeMergeScopePredicate(definition);
 }
 
 /**
@@ -79,8 +76,8 @@ export function bearingPlane(context is Context, id is Id, definition is map, pa
 }
 
 /**
- * The `face` connector of a bearing's or bushing's convention: the bore's center, on the face it sits on, its z axis
- * out of the bore, and its x axis the plane's.
+ * Where a bearing or bushing seats, as FRCDesign's bearings part set's `mateConnector` is: the bore's center, on the
+ * face it sits on (a flange's underside), its z axis out of the bore, and its x axis the plane's.
  */
 export function bearingConnector(plane is Plane) returns CoordSystem
 {
@@ -89,7 +86,7 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 
 /**
  * Cuts the bore, through the merge scope behind `plane`, at the part's outside diameter plus Bore fit's clearance;
- * declares the part on the part it's in; and with Stand-in, builds its stand-in. Returns the part the bore is in.
+ * declares the part on the part it's in; and with Auto Assembly body, builds its Auto Assembly body. Returns the part the bore is in.
  */
 export function placeBearing(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, kind is AutoAssemblyKind) returns Query
 {
@@ -132,47 +129,74 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
         throw regenError("Failed to cut the bore.", ["scope"], tool);
     }
 
-    const declaration = autoAssemblyDeclaration(kind, part.product as Product, {
+    // A part set's part has no document until its set is released
+    const declaration = part.product.documentId == "" ? undefined : autoAssemblyDeclaration(kind, part.product as Product, {
                 "outerDiameter" : part.outerDiameter,
                 "width" : part.width
             });
-    declarePart(context, id + "face", {
-                "owner" : host,
-                "coordSystem" : bearingConnector(plane),
-                "connector" : "face",
-                "declaration" : declaration
-            });
-
-    if (definition.standIn)
+    if (declaration == undefined)
     {
-        buildBearingStandIn(context, id + "standIn", plane, part, declaration);
+        reportFeatureInfo(context, id, "FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly.");
+    }
+    else
+    {
+        declarePart(context, id + "mateConnector", {
+                    "owner" : host,
+                    "coordSystem" : bearingConnector(plane),
+                    "connector" : "mateConnector",
+                    "declaration" : declaration
+                });
+    }
+
+    if (definition.autoAssemblyBody)
+    {
+        buildBearingBody(context, id + "autoAssemblyBody", plane, part, declaration);
     }
     cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
     return host;
 }
 
 /**
- * A ring at the part's outside and inner diameters, as wide as it, from `plane` into the bore.
+ * A ring at the part's outside and inner diameters into the bore from `plane`, and a flanged part's flange on it: one
+ * extrude each, unioned.
  */
-function buildBearingStandIn(context is Context, id is Id, plane is Plane, part is BearingPart, declaration is map)
+function buildBearingBody(context is Context, id is Id, plane is Plane, part is BearingPart, declaration)
 {
-    const sketchId = id + "sketch";
-    const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : plane });
-    skCircle(sketch, "outer", { "center" : vector(0, 0) * meter, "radius" : part.outerDiameter / 2 });
-    skCircle(sketch, "inner", { "center" : vector(0, 0) * meter, "radius" : part.innerDiameter / 2 });
+    const flanged = part.flangeDiameter != undefined;
+    extrudeRing(context, id + "body", plane, part.outerDiameter, part.innerDiameter, -plane.normal,
+        flanged ? part.width - part.flangeThickness : part.width);
+    if (flanged)
+    {
+        extrudeRing(context, id + "flange", plane, part.flangeDiameter, part.innerDiameter, plane.normal, part.flangeThickness);
+        opBoolean(context, id + "union", {
+                    "tools" : qUnion([qCreatedBy(id + "body", EntityType.BODY), qCreatedBy(id + "flange", EntityType.BODY)])->qBodyType(BodyType.SOLID),
+                    "operationType" : BooleanOperationType.UNION
+                });
+    }
+    makeAutoAssemblyBody(context, id + "declare", {
+                "body" : qCreatedBy(id + "body", EntityType.BODY)->qBodyType(BodyType.SOLID),
+                "connectors" : { "mateConnector" : bearingConnector(plane) },
+                "declaration" : declaration,
+                "name" : part.product.name
+            });
+    cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
+}
+
+/**
+ * A ring from `plane`, `depth` along `direction`.
+ */
+function extrudeRing(context is Context, id is Id, plane is Plane, outerDiameter is ValueWithUnits, innerDiameter is ValueWithUnits, direction is Vector, depth is ValueWithUnits)
+{
+    const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
+    skCircle(sketch, "outer", { "center" : vector(0, 0) * meter, "radius" : outerDiameter / 2 });
+    skCircle(sketch, "inner", { "center" : vector(0, 0) * meter, "radius" : innerDiameter / 2 });
     skSolve(sketch);
     opExtrude(context, id + "extrude", {
-                "entities" : qSketchRegion(sketchId, true),
-                "direction" : -plane.normal,
+                "entities" : qSketchRegion(id + "sketch", true),
+                "direction" : direction,
                 "endBound" : BoundingType.BLIND,
-                "endDepth" : part.width
+                "endDepth" : depth
             });
-    makeStandIn(context, id + "declare", {
-                "standIn" : qCreatedBy(id + "extrude", EntityType.BODY),
-                "connectors" : { "face" : bearingConnector(plane) },
-                "declaration" : declaration
-            });
-    cleanup(context, id + "deleteSketch", qCreatedBy(sketchId, EntityType.BODY));
 }
 
 /**

@@ -99,7 +99,7 @@ def product(parts: dict[str, dict], name: str, options: dict[str, str] | None = 
     option's name, both as the library names them) set, and the rest at their defaults.
 
     Args:
-        label: Its name for stand-ins and messages; the part's own name by default.
+        label: Its name for Auto Assembly bodies and messages; the part's own name by default.
     """
     if name not in parts:
         raise LibraryError(f"The snapshot has no {name}; add it to the definition's fetch, and fetch again.")

@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "released/bearing/robotBearing.fs", version : "");
+import(path : "bearings/bearingTables.gen.fs", version : "");
 import(path : "testing.fs", version : "");
 
 // Every option's values, through every level
@@ -14,15 +15,24 @@ function leaves(level is map) returns array
     return concatenateArrays(found);
 }
 
-export function testEveryBearingAndBushingIsAPart()
+export function testEveryBearingIsOneTheBearingSetMakes()
 {
-    for (var table in [bearingTable, bushingTable])
+    for (var entry in leaves(robotBearingTable))
     {
-        for (var part in leaves(table))
-        {
-            expectTrue(canBeBearingPart(part), part.product.name ~ " isn't a bearing part");
-            expectTrue(part.innerDiameter < part.outerDiameter, part.product.name ~ "'s stand-in has no wall");
-        }
+        const made = BEARINGS[entry.vendor][entry.bearingType][entry.bore][entry.size][entry.dimensions][entry.seal];
+        expectTrue(made != undefined, entry.product.name ~ " isn't one the bearings set makes");
+        expectTrue(canBeProduct(entry.product), entry.product.name ~ " has no product");
+        // Its studio's configuration names the set's inputs
+        expectEqual(entry.product.configuration.vendor, toString(entry.vendor));
+    }
+}
+
+export function testEveryBushingIsAPart()
+{
+    for (var part in leaves(bushingTable))
+    {
+        expectTrue(canBeBearingPart(part), part.product.name ~ " isn't a bushing part");
+        expectTrue(part.innerDiameter < part.outerDiameter, part.product.name ~ "'s body has no wall");
     }
 }
 
