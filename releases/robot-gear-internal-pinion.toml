@@ -1,4 +1,0 @@
-script = "robotGear"
-bump = "minor"
-description = "Shapes internal gears for their pinion, adds internal gear pairs and mating gear bores, and makes bevel gears always exact"
-publish = true
