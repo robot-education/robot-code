@@ -73,38 +73,13 @@
         },
         {
           "values": {
-            "vendor": "REV",
-            "type": "FLANGED"
+            "vendor": "REV"
           },
           "name": "8 mm Round Flanged Bearing (12 mm OD x 3.5 mm)",
           "vendor": "REV",
           "partNumber": "REV-49-1559-PK10",
           "url": "https://www.revrobotics.com/rev-49-1559-pk10/",
           "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "REV",
-            "type": "BUSHING",
-            "dimensions": "MM_9_X_5"
-          },
-          "name": "5 mm Hex Flanged Bushing (9 mm OD x 5 mm)",
-          "vendor": "REV",
-          "partNumber": "REV-41-1326",
-          "url": "https://www.revrobotics.com/Through-Bore-Bearings/",
-          "material": "Acetal"
-        },
-        {
-          "values": {
-            "vendor": "REV",
-            "type": "BUSHING",
-            "dimensions": "MM_9_X_11"
-          },
-          "name": "5 mm Hex Flanged Bushing (9 mm OD x 11 mm)",
-          "vendor": "REV",
-          "partNumber": "REV-41-1329",
-          "url": "https://www.revrobotics.com/Through-Bore-Bearings/",
-          "material": "Acetal"
         },
         {
           "values": {
@@ -1233,34 +1208,6 @@
       "seal": "SHIELDED",
       "partNumber": "REV-49-1559-PK10",
       "url": "https://www.revrobotics.com/rev-49-1559-pk10/"
-    },
-    {
-      "vendor": "REV",
-      "type": "BUSHING",
-      "bore": "HEX",
-      "size": "MM_5",
-      "boreSize": 0.005,
-      "dimensions": "MM_9_X_5",
-      "outerDiameter": 0.009,
-      "width": 0.005,
-      "flangeDiameter": 0.013,
-      "seal": "NONE",
-      "partNumber": "REV-41-1326",
-      "url": "https://www.revrobotics.com/Through-Bore-Bearings/"
-    },
-    {
-      "vendor": "REV",
-      "type": "BUSHING",
-      "bore": "HEX",
-      "size": "MM_5",
-      "boreSize": 0.005,
-      "dimensions": "MM_9_X_11",
-      "outerDiameter": 0.009,
-      "width": 0.011,
-      "flangeDiameter": 0.013,
-      "seal": "NONE",
-      "partNumber": "REV-41-1329",
-      "url": "https://www.revrobotics.com/Through-Bore-Bearings/"
     },
     {
       "vendor": "MCMASTER",

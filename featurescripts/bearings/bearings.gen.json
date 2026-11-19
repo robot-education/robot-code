@@ -116,18 +116,6 @@
             "type": "FLANGED",
             "bore": "ROUND",
             "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_219"
-          },
-          "name": "3/8 in Round Flanged Bearing (0.875 in OD x 0.219 in, Open)",
-          "partNumber": "FR6",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
             "dimensions": "OD_0_875_X_0_281",
             "seal": "SHIELDED"
           },
@@ -146,17 +134,6 @@
           },
           "name": "3/8 in Round Flanged Bearing (0.875 in OD x 0.281 in, Sealed)",
           "partNumber": "FR62RS",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_1_X_0_281"
-          },
-          "name": "3/8 in Round Flanged Bearing (1 in OD x 0.281 in)",
           "material": "Steel"
         },
         {
@@ -222,87 +199,10 @@
             "type": "FLANGED",
             "bore": "ROUND",
             "size": "MM_5",
-            "dimensions": "MM_8_X_2"
-          },
-          "name": "5 mm Round Flanged Bearing (8 mm OD x 2 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_9_X_2_5"
-          },
-          "name": "5 mm Round Flanged Bearing (9 mm OD x 2.5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_9_X_3"
-          },
-          "name": "5 mm Round Flanged Bearing (9 mm OD x 3 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_10_X_3"
-          },
-          "name": "5 mm Round Flanged Bearing (10 mm OD x 3 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_10_X_4"
-          },
-          "name": "5 mm Round Flanged Bearing (10 mm OD x 4 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_11_X_3"
-          },
-          "name": "5 mm Round Flanged Bearing (11 mm OD x 3 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
             "dimensions": "MM_11_X_4"
           },
           "name": "5 mm Round Flanged Bearing (11 mm OD x 4 mm)",
           "partNumber": "MF115ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_11_X_5"
-          },
-          "name": "5 mm Round Flanged Bearing (11 mm OD x 5 mm)",
           "material": "Steel"
         },
         {
@@ -322,220 +222,6 @@
             "vendor": "GENERIC",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_14_X_5",
-            "seal": "SHIELDED"
-          },
-          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_14_X_5",
-            "seal": "OPEN"
-          },
-          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_16_X_5",
-            "seal": "SHIELDED"
-          },
-          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm)",
-          "partNumber": "F625ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_16_X_5",
-            "seal": "OPEN"
-          },
-          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_19_X_6",
-            "seal": "SHIELDED"
-          },
-          "name": "5 mm Round Flanged Bearing (19 mm OD x 6 mm)",
-          "partNumber": "F1950ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_19_X_6",
-            "seal": "OPEN"
-          },
-          "name": "5 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_10_X_2_5"
-          },
-          "name": "6 mm Round Flanged Bearing (10 mm OD x 2.5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_10_X_3"
-          },
-          "name": "6 mm Round Flanged Bearing (10 mm OD x 3 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_12_X_4"
-          },
-          "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
-          "partNumber": "F126ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_13_X_3_5"
-          },
-          "name": "6 mm Round Flanged Bearing (13 mm OD x 3.5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_13_X_5"
-          },
-          "name": "6 mm Round Flanged Bearing (13 mm OD x 5 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_15_X_5",
-            "seal": "SHIELDED"
-          },
-          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_15_X_5",
-            "seal": "OPEN"
-          },
-          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_17_X_6",
-            "seal": "SHIELDED"
-          },
-          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm)",
-          "partNumber": "F606ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_17_X_6",
-            "seal": "OPEN"
-          },
-          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_19_X_6",
-            "seal": "SHIELDED"
-          },
-          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_19_X_6",
-            "seal": "OPEN"
-          },
-          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_14_X_4"
-          },
-          "name": "8 mm Round Flanged Bearing (14 mm OD x 4 mm)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
             "size": "MM_8",
             "dimensions": "MM_14_X_5"
           },
@@ -548,138 +234,10 @@
             "type": "FLANGED",
             "bore": "ROUND",
             "size": "MM_8",
-            "dimensions": "MM_16_X_4"
-          },
-          "name": "8 mm Round Flanged Bearing (16 mm OD x 4 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
             "dimensions": "MM_16_X_5"
           },
           "name": "8 mm Round Flanged Bearing (16 mm OD x 5 mm)",
           "partNumber": "W688AZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_16_X_6_3"
-          },
-          "name": "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)",
-          "partNumber": "F688Z",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_19_X_6",
-            "seal": "SHIELDED"
-          },
-          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm)",
-          "partNumber": "F698ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_19_X_6",
-            "seal": "OPEN"
-          },
-          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_22_X_7",
-            "seal": "SHIELDED"
-          },
-          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm)",
-          "partNumber": "F608ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_22_X_7",
-            "seal": "OPEN"
-          },
-          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm, Open)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "OD_0_875_X_0_281"
-          },
-          "name": "8 mm Round Flanged Bearing (0.875 in OD x 0.281 in)",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_9"
-          },
-          "name": "9 mm Round Flanged Bearing (17 mm OD x 5 mm)",
-          "partNumber": "F689ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_12"
-          },
-          "name": "12 mm Round Flanged Bearing (24 mm OD x 6 mm)",
-          "partNumber": "F6901ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_15"
-          },
-          "name": "15 mm Round Flanged Bearing (21 mm OD x 4 mm)",
-          "partNumber": "F6702ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_30"
-          },
-          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
-          "partNumber": "F6806ZZ",
           "material": "Steel"
         },
         {
@@ -748,19 +306,6 @@
             "type": "RADIAL",
             "bore": "ROUND",
             "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_25"
-          },
-          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)",
-          "partNumber": "R8",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
             "dimensions": "OD_1_125_X_0_313",
             "seal": "SHIELDED"
           },
@@ -780,32 +325,6 @@
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in, Sealed)",
           "partNumber": "R82RS",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_375_X_0_438"
-          },
-          "name": "1/2 in Round Radial Bearing (1.375 in OD x 0.438 in)",
-          "partNumber": "1621ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_219"
-          },
-          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)",
-          "partNumber": "R6",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -855,21 +374,7 @@
             "vendor": "GENERIC",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_156"
-          },
-          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)",
-          "partNumber": "R3",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_196"
+            "size": "IN_3_16"
           },
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
           "partNumber": "R3ZZ",
@@ -959,211 +464,10 @@
             "vendor": "GENERIC",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "IN_5_8"
-          },
-          "name": "5/8 in Round Radial Bearing (1.375 in OD x 0.438 in)",
-          "partNumber": "1623ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_8_X_2_5"
-          },
-          "name": "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_9_X_3"
-          },
-          "name": "5 mm Round Radial Bearing (9 mm OD x 3 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_10_X_4"
-          },
-          "name": "5 mm Round Radial Bearing (10 mm OD x 4 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_11_X_4"
-          },
-          "name": "5 mm Round Radial Bearing (11 mm OD x 4 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_13_X_4"
+            "size": "MM_5"
           },
           "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
           "partNumber": "695ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_14_X_5"
-          },
-          "name": "5 mm Round Radial Bearing (14 mm OD x 5 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_16_X_5"
-          },
-          "name": "5 mm Round Radial Bearing (16 mm OD x 5 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_19_X_6",
-            "seal": "SHIELDED"
-          },
-          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm)",
-          "partNumber": "635ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_5",
-            "dimensions": "MM_19_X_6",
-            "seal": "OPEN"
-          },
-          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_12_X_4"
-          },
-          "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
-          "partNumber": "126ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_6",
-            "dimensions": "MM_17_X_6"
-          },
-          "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
-          "partNumber": "606ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_7",
-            "dimensions": "MM_14_X_5"
-          },
-          "name": "7 mm Round Radial Bearing (14 mm OD x 5 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_7",
-            "dimensions": "MM_19_X_6"
-          },
-          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_7",
-            "dimensions": "MM_22_X_7",
-            "seal": "SHIELDED"
-          },
-          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_7",
-            "dimensions": "MM_22_X_7",
-            "seal": "SEALED"
-          },
-          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_7",
-            "dimensions": "MM_22_X_7",
-            "seal": "OPEN"
-          },
-          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1177,19 +481,6 @@
           },
           "name": "8 mm Round Radial Bearing (16 mm OD x 5 mm)",
           "partNumber": "688ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_19_X_6"
-          },
-          "name": "8 mm Round Radial Bearing (19 mm OD x 6 mm)",
-          "partNumber": "R1980ZZ",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1225,174 +516,10 @@
             "vendor": "GENERIC",
             "type": "RADIAL",
             "bore": "ROUND",
-            "size": "MM_10"
-          },
-          "name": "10 mm Round Radial Bearing (26 mm OD x 8 mm)",
-          "partNumber": "6000ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_12",
-            "dimensions": "MM_21_X_5"
-          },
-          "name": "12 mm Round Radial Bearing (21 mm OD x 5 mm)",
-          "partNumber": "6801ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_12",
-            "dimensions": "MM_28_X_8"
-          },
-          "name": "12 mm Round Radial Bearing (28 mm OD x 8 mm)",
-          "partNumber": "6001ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_15",
-            "dimensions": "MM_21_X_4"
-          },
-          "name": "15 mm Round Radial Bearing (21 mm OD x 4 mm)",
-          "partNumber": "6702ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_15",
-            "dimensions": "MM_24_X_5"
-          },
-          "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
-          "partNumber": "6802ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_15",
-            "dimensions": "MM_28_X_7"
-          },
-          "name": "15 mm Round Radial Bearing (28 mm OD x 7 mm)",
-          "partNumber": "6902ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_17",
-            "dimensions": "MM_23_X_4"
-          },
-          "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
-          "partNumber": "6703ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_17",
-            "dimensions": "MM_26_X_5"
-          },
-          "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
-          "partNumber": "6803ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_25",
-            "seal": "SHIELDED"
-          },
-          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm)",
-          "partNumber": "6805ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_25",
-            "seal": "OPEN"
-          },
-          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm, Open)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_30",
-            "seal": "SHIELDED"
-          },
-          "name": "30 mm Round Radial Bearing (42 mm OD x 7 mm)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_30",
-            "seal": "OPEN"
-          },
-          "name": "30 mm Round Radial Bearing (42 mm OD x 7 mm, Open)",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
             "size": "MM_35"
           },
           "name": "35 mm Round Radial Bearing (47 mm OD x 7 mm)",
           "partNumber": "6807ZZ",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "GENERIC",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_80"
-          },
-          "name": "80 mm Round Radial Bearing (100 mm OD x 10 mm, Sealed)",
-          "partNumber": "68162RS",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1510,20 +637,6 @@
             "type": "FLANGED",
             "bore": "ROUND",
             "size": "IN_3_8",
-            "dimensions": "OD_1_X_0_281"
-          },
-          "name": "3/8 in Round Flanged Bearing (1 in OD x 0.281 in)",
-          "vendor": "WCP",
-          "partNumber": "WCP-2060",
-          "url": "https://wcproducts.com/products/wcp-2060",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "IN_3_8",
             "dimensions": "OD_1_125_X_0_313"
           },
           "name": "3/8 in Round Flanged Bearing (1.125 in OD x 0.313 in)",
@@ -1565,53 +678,12 @@
             "vendor": "WCP",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_16_X_5"
+            "size": "MM_8"
           },
           "name": "8 mm Round Flanged Bearing (16 mm OD x 5 mm)",
           "vendor": "WCP",
           "partNumber": "WCP-1508",
           "url": "https://wcproducts.com/products/wcp-1508",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "OD_0_875_X_0_281"
-          },
-          "name": "8 mm Round Flanged Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "WCP",
-          "partNumber": "WCP-2054",
-          "url": "https://wcproducts.com/products/wcp-2054",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_12"
-          },
-          "name": "12 mm Round Flanged Bearing (24 mm OD x 6 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-1734",
-          "url": "https://wcproducts.com/products/wcp-1734",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_30"
-          },
-          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0299",
-          "url": "https://wcproducts.com/products/wcp-0299",
           "material": "Steel"
         },
         {
@@ -1734,114 +806,6 @@
           "vendor": "WCP",
           "partNumber": "WCP-0212",
           "url": "https://wcproducts.com/products/wcp-0212",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_6"
-          },
-          "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0498",
-          "url": "https://wcproducts.com/products/wcp-0498",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_12"
-          },
-          "name": "12 mm Round Radial Bearing (21 mm OD x 5 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-1756",
-          "url": "https://wcproducts.com/products/wcp-1756",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_15",
-            "dimensions": "MM_24_X_5"
-          },
-          "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0078",
-          "url": "https://wcproducts.com/products/wcp-0078",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_15",
-            "dimensions": "MM_28_X_7"
-          },
-          "name": "15 mm Round Radial Bearing (28 mm OD x 7 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0840",
-          "url": "https://wcproducts.com/products/wcp-0840",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_17",
-            "dimensions": "MM_23_X_4"
-          },
-          "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-1660",
-          "url": "https://wcproducts.com/products/wcp-1660",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_17",
-            "dimensions": "MM_26_X_5"
-          },
-          "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0841",
-          "url": "https://wcproducts.com/products/wcp-0841",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_25"
-          },
-          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0027",
-          "url": "https://wcproducts.com/products/wcp-0027",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "WCP",
-            "type": "RADIAL",
-            "size": "MM_80"
-          },
-          "name": "80 mm Round Radial Bearing (100 mm OD x 10 mm, Sealed)",
-          "vendor": "WCP",
-          "partNumber": "WCP-0036",
-          "url": "https://wcproducts.com/products/wcp-0036",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -1989,60 +953,6 @@
         {
           "values": {
             "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_6"
-          },
-          "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-3377",
-          "url": "https://andymark.com/am-3377",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_19_X_6"
-          },
-          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-0931",
-          "url": "https://andymark.com/am-0931",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_8",
-            "dimensions": "MM_22_X_7"
-          },
-          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4457",
-          "url": "https://andymark.com/am-4457",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "FLANGED",
-            "bore": "ROUND",
-            "size": "MM_15"
-          },
-          "name": "15 mm Round Flanged Bearing (21 mm OD x 4 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-5536",
-          "url": "https://andymark.com/am-5536",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
             "type": "RADIAL",
             "bore": "HEX",
             "size": "IN_1_2"
@@ -2165,20 +1075,6 @@
           "vendor": "AndyMark",
           "partNumber": "am-4724",
           "url": "https://andymark.com/am-4724",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "ANDYMARK",
-            "type": "RADIAL",
-            "bore": "ROUND",
-            "size": "MM_6"
-          },
-          "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
-          "vendor": "AndyMark",
-          "partNumber": "am-4454",
-          "url": "https://andymark.com/am-4454",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -2341,19 +1237,6 @@
             "vendor": "THRIFTYBOT",
             "type": "FLANGED",
             "bore": "ROUND",
-            "size": "MM_8"
-          },
-          "name": "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)",
-          "vendor": "ThriftyBot",
-          "partNumber": "TTB-0006",
-          "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0006",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "THRIFTYBOT",
-            "type": "FLANGED",
-            "bore": "ROUND",
             "size": "MM_35"
           },
           "name": "35 mm Round Flanged Bearing (47 mm OD x 7 mm, Sealed)",
@@ -2493,17 +1376,6 @@
         {
           "values": {
             "vendor": "SDS",
-            "type": "FLANGED"
-          },
-          "name": "9 mm Round Flanged Bearing (17 mm OD x 5 mm)",
-          "vendor": "SDS",
-          "partNumber": "F689ZZ",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "SDS",
-            "type": "RADIAL",
             "size": "IN_1_2"
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
@@ -2515,7 +1387,6 @@
         {
           "values": {
             "vendor": "SDS",
-            "type": "RADIAL",
             "size": "IN_3_8"
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
@@ -2527,7 +1398,6 @@
         {
           "values": {
             "vendor": "SDS",
-            "type": "RADIAL",
             "size": "IN_1_4",
             "dimensions": "OD_0_5_X_0_188"
           },
@@ -2540,7 +1410,6 @@
         {
           "values": {
             "vendor": "SDS",
-            "type": "RADIAL",
             "size": "IN_1_4",
             "dimensions": "OD_0_75_X_0_281"
           },
@@ -2553,7 +1422,6 @@
         {
           "values": {
             "vendor": "SDS",
-            "type": "RADIAL",
             "size": "MM_8"
           },
           "name": "8 mm Round Radial Bearing (16 mm OD x 5 mm)",
@@ -2564,9 +1432,1226 @@
         },
         {
           "values": {
-            "vendor": "SDS",
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K571",
+          "url": "https://www.mcmaster.com/57155K571/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_13_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (13 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K575",
+          "url": "https://www.mcmaster.com/57155K575/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "FLANGED",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 5 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "57155K825",
+          "url": "https://www.mcmaster.com/57155K825/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
             "type": "RADIAL",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K291",
+          "url": "https://www.mcmaster.com/60355K291/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K283",
+          "url": "https://www.mcmaster.com/60355K283/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K232",
+          "url": "https://www.mcmaster.com/60355K232/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "IN_1_4",
+            "dimensions": "OD_0_625_X_0_196",
+            "seal": "SHIELDED"
+          },
+          "name": "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K246",
+          "url": "https://www.mcmaster.com/60355K246/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "IN_1_4",
+            "dimensions": "OD_0_625_X_0_196",
+            "seal": "OPEN"
+          },
+          "name": "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K151",
+          "url": "https://www.mcmaster.com/60355K151/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "IN_1_4",
+            "dimensions": "OD_0_75_X_0_281"
+          },
+          "name": "1/4 in Round Radial Bearing (0.75 in OD x 0.281 in)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "60355K271",
+          "url": "https://www.mcmaster.com/60355K271/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_5"
+          },
+          "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "7804K108",
+          "url": "https://www.mcmaster.com/7804K108/",
+          "material": "Stainless Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_8",
+            "seal": "SHIELDED"
+          },
+          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6661K12",
+          "url": "https://www.mcmaster.com/6661K12/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_8",
+            "seal": "OPEN"
+          },
+          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "5972K91",
+          "url": "https://www.mcmaster.com/5972K91/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RADIAL",
+            "size": "MM_35"
+          },
+          "name": "35 mm Round Radial Bearing (47 mm OD x 7 mm)",
+          "vendor": "McMaster-Carr",
+          "partNumber": "6656K216",
+          "url": "https://www.mcmaster.com/6656K216/",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        }
+      ]
+    },
+    "specialtyBearing": {
+      "feature": "libraryBearing",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "bottomMateConnector": "bottomMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "IN_3_8",
+            "dimensions": "OD_0_875_X_0_219"
+          },
+          "name": "3/8 in Round Flanged Bearing (0.875 in OD x 0.219 in, Open)",
+          "partNumber": "FR6",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "IN_3_8",
+            "dimensions": "OD_1_X_0_281"
+          },
+          "name": "3/8 in Round Flanged Bearing (1 in OD x 0.281 in)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_8_X_2"
+          },
+          "name": "5 mm Round Flanged Bearing (8 mm OD x 2 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_2_5"
+          },
+          "name": "5 mm Round Flanged Bearing (9 mm OD x 2.5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (9 mm OD x 3 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (10 mm OD x 3 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "5 mm Round Flanged Bearing (10 mm OD x 4 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_3"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 3 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_5"
+          },
+          "name": "5 mm Round Flanged Bearing (11 mm OD x 5 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Flanged Bearing (14 mm OD x 5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm)",
+          "partNumber": "F625ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Flanged Bearing (16 mm OD x 5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "partNumber": "F1950ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_10_X_2_5"
+          },
+          "name": "6 mm Round Flanged Bearing (10 mm OD x 2.5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_10_X_3"
+          },
+          "name": "6 mm Round Flanged Bearing (10 mm OD x 3 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_12_X_4"
+          },
+          "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
+          "partNumber": "F126ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_13_X_3_5"
+          },
+          "name": "6 mm Round Flanged Bearing (13 mm OD x 3.5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_13_X_5"
+          },
+          "name": "6 mm Round Flanged Bearing (13 mm OD x 5 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_15_X_5",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_15_X_5",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (15 mm OD x 5 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_17_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm)",
+          "partNumber": "F606ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_17_X_6",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (17 mm OD x 6 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_6",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "6 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_14_X_4"
+          },
+          "name": "8 mm Round Flanged Bearing (14 mm OD x 4 mm)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_16_X_4"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 4 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_16_X_6_3"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)",
+          "partNumber": "F688Z",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "partNumber": "F698ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_22_X_7",
+            "seal": "SHIELDED"
+          },
+          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm)",
+          "partNumber": "F608ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_22_X_7",
+            "seal": "OPEN"
+          },
+          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm, Open)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "OD_0_875_X_0_281"
+          },
+          "name": "8 mm Round Flanged Bearing (0.875 in OD x 0.281 in)",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_9"
+          },
+          "name": "9 mm Round Flanged Bearing (17 mm OD x 5 mm)",
+          "partNumber": "F689ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_12"
+          },
+          "name": "12 mm Round Flanged Bearing (24 mm OD x 6 mm)",
+          "partNumber": "F6901ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
             "size": "MM_15"
+          },
+          "name": "15 mm Round Flanged Bearing (21 mm OD x 4 mm)",
+          "partNumber": "F6702ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "FLANGED",
+            "size": "MM_30"
+          },
+          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
+          "partNumber": "F6806ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "IN_1_2",
+            "dimensions": "OD_1_125_X_0_25"
+          },
+          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)",
+          "partNumber": "R8",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "IN_1_2",
+            "dimensions": "OD_1_375_X_0_438"
+          },
+          "name": "1/2 in Round Radial Bearing (1.375 in OD x 0.438 in)",
+          "partNumber": "1621ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)",
+          "partNumber": "R6",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)",
+          "partNumber": "R3",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "IN_5_8"
+          },
+          "name": "5/8 in Round Radial Bearing (1.375 in OD x 0.438 in)",
+          "partNumber": "1623ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_8_X_2_5"
+          },
+          "name": "5 mm Round Radial Bearing (8 mm OD x 2.5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_9_X_3"
+          },
+          "name": "5 mm Round Radial Bearing (9 mm OD x 3 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_10_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (10 mm OD x 4 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_11_X_4"
+          },
+          "name": "5 mm Round Radial Bearing (11 mm OD x 4 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_16_X_5"
+          },
+          "name": "5 mm Round Radial Bearing (16 mm OD x 5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "SHIELDED"
+          },
+          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "partNumber": "635ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_5",
+            "dimensions": "MM_19_X_6",
+            "seal": "OPEN"
+          },
+          "name": "5 mm Round Radial Bearing (19 mm OD x 6 mm, Open)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_6",
+            "dimensions": "MM_12_X_4"
+          },
+          "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
+          "partNumber": "126ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_6",
+            "dimensions": "MM_17_X_6"
+          },
+          "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
+          "partNumber": "606ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_14_X_5"
+          },
+          "name": "7 mm Round Radial Bearing (14 mm OD x 5 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_19_X_6"
+          },
+          "name": "7 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SHIELDED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "SEALED"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Sealed)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_7",
+            "dimensions": "MM_22_X_7",
+            "seal": "OPEN"
+          },
+          "name": "7 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Radial Bearing (19 mm OD x 6 mm)",
+          "partNumber": "R1980ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_10"
+          },
+          "name": "10 mm Round Radial Bearing (26 mm OD x 8 mm)",
+          "partNumber": "6000ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_12",
+            "dimensions": "MM_21_X_5"
+          },
+          "name": "12 mm Round Radial Bearing (21 mm OD x 5 mm)",
+          "partNumber": "6801ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_12",
+            "dimensions": "MM_28_X_8"
+          },
+          "name": "12 mm Round Radial Bearing (28 mm OD x 8 mm)",
+          "partNumber": "6001ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_15",
+            "dimensions": "MM_21_X_4"
+          },
+          "name": "15 mm Round Radial Bearing (21 mm OD x 4 mm)",
+          "partNumber": "6702ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_15",
+            "dimensions": "MM_24_X_5"
+          },
+          "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
+          "partNumber": "6802ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_15",
+            "dimensions": "MM_28_X_7"
+          },
+          "name": "15 mm Round Radial Bearing (28 mm OD x 7 mm)",
+          "partNumber": "6902ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_17",
+            "dimensions": "MM_23_X_4"
+          },
+          "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
+          "partNumber": "6703ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_17",
+            "dimensions": "MM_26_X_5"
+          },
+          "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
+          "partNumber": "6803ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_25",
+            "seal": "SHIELDED"
+          },
+          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm)",
+          "partNumber": "6805ZZ",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_25",
+            "seal": "OPEN"
+          },
+          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm, Open)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_30",
+            "seal": "SHIELDED"
+          },
+          "name": "30 mm Round Radial Bearing (42 mm OD x 7 mm)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_30",
+            "seal": "OPEN"
+          },
+          "name": "30 mm Round Radial Bearing (42 mm OD x 7 mm, Open)",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RADIAL",
+            "size": "MM_80"
+          },
+          "name": "80 mm Round Radial Bearing (100 mm OD x 10 mm, Sealed)",
+          "partNumber": "68162RS",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "FLANGED",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Round Flanged Bearing (1 in OD x 0.281 in)",
+          "vendor": "WCP",
+          "partNumber": "WCP-2060",
+          "url": "https://wcproducts.com/products/wcp-2060",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "FLANGED",
+            "size": "MM_8"
+          },
+          "name": "8 mm Round Flanged Bearing (0.875 in OD x 0.281 in)",
+          "vendor": "WCP",
+          "partNumber": "WCP-2054",
+          "url": "https://wcproducts.com/products/wcp-2054",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "FLANGED",
+            "size": "MM_12"
+          },
+          "name": "12 mm Round Flanged Bearing (24 mm OD x 6 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-1734",
+          "url": "https://wcproducts.com/products/wcp-1734",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "FLANGED",
+            "size": "MM_30"
+          },
+          "name": "30 mm Round Flanged Bearing (42 mm OD x 7 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0299",
+          "url": "https://wcproducts.com/products/wcp-0299",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_6"
+          },
+          "name": "6 mm Round Radial Bearing (12 mm OD x 4 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0498",
+          "url": "https://wcproducts.com/products/wcp-0498",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_12"
+          },
+          "name": "12 mm Round Radial Bearing (21 mm OD x 5 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-1756",
+          "url": "https://wcproducts.com/products/wcp-1756",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_15",
+            "dimensions": "MM_24_X_5"
+          },
+          "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0078",
+          "url": "https://wcproducts.com/products/wcp-0078",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_15",
+            "dimensions": "MM_28_X_7"
+          },
+          "name": "15 mm Round Radial Bearing (28 mm OD x 7 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0840",
+          "url": "https://wcproducts.com/products/wcp-0840",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_17",
+            "dimensions": "MM_23_X_4"
+          },
+          "name": "17 mm Round Radial Bearing (23 mm OD x 4 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-1660",
+          "url": "https://wcproducts.com/products/wcp-1660",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_17",
+            "dimensions": "MM_26_X_5"
+          },
+          "name": "17 mm Round Radial Bearing (26 mm OD x 5 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0841",
+          "url": "https://wcproducts.com/products/wcp-0841",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_25"
+          },
+          "name": "25 mm Round Radial Bearing (37 mm OD x 7 mm)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0027",
+          "url": "https://wcproducts.com/products/wcp-0027",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RADIAL",
+            "size": "MM_80"
+          },
+          "name": "80 mm Round Radial Bearing (100 mm OD x 10 mm, Sealed)",
+          "vendor": "WCP",
+          "partNumber": "WCP-0036",
+          "url": "https://wcproducts.com/products/wcp-0036",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "type": "FLANGED",
+            "size": "MM_6"
+          },
+          "name": "6 mm Round Flanged Bearing (12 mm OD x 4 mm)",
+          "vendor": "AndyMark",
+          "partNumber": "am-3377",
+          "url": "https://andymark.com/am-3377",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_19_X_6"
+          },
+          "name": "8 mm Round Flanged Bearing (19 mm OD x 6 mm)",
+          "vendor": "AndyMark",
+          "partNumber": "am-0931",
+          "url": "https://andymark.com/am-0931",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "type": "FLANGED",
+            "size": "MM_8",
+            "dimensions": "MM_22_X_7"
+          },
+          "name": "8 mm Round Flanged Bearing (22 mm OD x 7 mm)",
+          "vendor": "AndyMark",
+          "partNumber": "am-4457",
+          "url": "https://andymark.com/am-4457",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "type": "FLANGED",
+            "size": "MM_15"
+          },
+          "name": "15 mm Round Flanged Bearing (21 mm OD x 4 mm)",
+          "vendor": "AndyMark",
+          "partNumber": "am-5536",
+          "url": "https://andymark.com/am-5536",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "type": "RADIAL"
+          },
+          "name": "6 mm Round Radial Bearing (17 mm OD x 6 mm)",
+          "vendor": "AndyMark",
+          "partNumber": "am-4454",
+          "url": "https://andymark.com/am-4454",
+          "material": "Steel",
+          "topMateConnector": "mateConnector"
+        },
+        {
+          "values": {
+            "vendor": "THRIFTYBOT"
+          },
+          "name": "8 mm Round Flanged Bearing (16 mm OD x 6.3 mm)",
+          "vendor": "ThriftyBot",
+          "partNumber": "TTB-0006",
+          "url": "https://www.thethriftybot.com/search?type=product&q=TTB-0006",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "SDS",
+            "type": "FLANGED"
+          },
+          "name": "9 mm Round Flanged Bearing (17 mm OD x 5 mm)",
+          "vendor": "SDS",
+          "partNumber": "F689ZZ",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "SDS",
+            "type": "RADIAL"
           },
           "name": "15 mm Round Radial Bearing (24 mm OD x 5 mm)",
           "vendor": "SDS",
@@ -2657,38 +2742,12 @@
             "vendor": "MCMASTER",
             "type": "FLANGED",
             "size": "MM_5",
-            "dimensions": "MM_11_X_4"
-          },
-          "name": "5 mm Round Flanged Bearing (11 mm OD x 4 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "57155K571",
-          "url": "https://www.mcmaster.com/57155K571/",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "FLANGED",
-            "size": "MM_5",
             "dimensions": "MM_11_X_5"
           },
           "name": "5 mm Round Flanged Bearing (11 mm OD x 5 mm)",
           "vendor": "McMaster-Carr",
           "partNumber": "57155K573",
           "url": "https://www.mcmaster.com/57155K573/",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "FLANGED",
-            "size": "MM_5",
-            "dimensions": "MM_13_X_4"
-          },
-          "name": "5 mm Round Flanged Bearing (13 mm OD x 4 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "57155K575",
-          "url": "https://www.mcmaster.com/57155K575/",
           "material": "Steel"
         },
         {
@@ -2927,19 +2986,6 @@
             "vendor": "MCMASTER",
             "type": "FLANGED",
             "size": "MM_8",
-            "dimensions": "MM_16_X_5"
-          },
-          "name": "8 mm Round Flanged Bearing (16 mm OD x 5 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "57155K825",
-          "url": "https://www.mcmaster.com/57155K825/",
-          "material": "Steel"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "FLANGED",
-            "size": "MM_8",
             "dimensions": "MM_19_X_6",
             "seal": "SHIELDED"
           },
@@ -3007,8 +3053,7 @@
           "values": {
             "vendor": "MCMASTER",
             "type": "RADIAL",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_25"
+            "size": "IN_1_2"
           },
           "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.25 in, Open)",
           "vendor": "McMaster-Carr",
@@ -3021,22 +3066,7 @@
           "values": {
             "vendor": "MCMASTER",
             "type": "RADIAL",
-            "size": "IN_1_2",
-            "dimensions": "OD_1_125_X_0_313"
-          },
-          "name": "1/2 in Round Radial Bearing (1.125 in OD x 0.313 in)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K291",
-          "url": "https://www.mcmaster.com/60355K291/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_219"
+            "size": "IN_3_8"
           },
           "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.219 in, Open)",
           "vendor": "McMaster-Carr",
@@ -3049,85 +3079,12 @@
           "values": {
             "vendor": "MCMASTER",
             "type": "RADIAL",
-            "size": "IN_3_8",
-            "dimensions": "OD_0_875_X_0_281"
-          },
-          "name": "3/8 in Round Radial Bearing (0.875 in OD x 0.281 in)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K283",
-          "url": "https://www.mcmaster.com/60355K283/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_156"
+            "size": "IN_3_16"
           },
           "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.156 in, Open)",
           "vendor": "McMaster-Carr",
           "partNumber": "60355K132",
           "url": "https://www.mcmaster.com/60355K132/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_3_16",
-            "dimensions": "OD_0_5_X_0_196"
-          },
-          "name": "3/16 in Round Radial Bearing (0.5 in OD x 0.196 in)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K232",
-          "url": "https://www.mcmaster.com/60355K232/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_1_4",
-            "dimensions": "OD_0_625_X_0_196",
-            "seal": "SHIELDED"
-          },
-          "name": "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K246",
-          "url": "https://www.mcmaster.com/60355K246/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_1_4",
-            "dimensions": "OD_0_625_X_0_196",
-            "seal": "OPEN"
-          },
-          "name": "1/4 in Round Radial Bearing (0.625 in OD x 0.196 in, Open)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K151",
-          "url": "https://www.mcmaster.com/60355K151/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "IN_1_4",
-            "dimensions": "OD_0_75_X_0_281"
-          },
-          "name": "1/4 in Round Radial Bearing (0.75 in OD x 0.281 in)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "60355K271",
-          "url": "https://www.mcmaster.com/60355K271/",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         },
@@ -3184,20 +3141,6 @@
           "vendor": "McMaster-Carr",
           "partNumber": "7804K107",
           "url": "https://www.mcmaster.com/7804K107/",
-          "material": "Stainless Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "MM_5",
-            "dimensions": "MM_13_X_4"
-          },
-          "name": "5 mm Round Radial Bearing (13 mm OD x 4 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "7804K108",
-          "url": "https://www.mcmaster.com/7804K108/",
           "material": "Stainless Steel",
           "topMateConnector": "mateConnector"
         },
@@ -3330,34 +3273,6 @@
           "partNumber": "6153K114",
           "url": "https://www.mcmaster.com/6153K114/",
           "material": "Stainless Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "MM_8",
-            "seal": "SHIELDED"
-          },
-          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "6661K12",
-          "url": "https://www.mcmaster.com/6661K12/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "MM_8",
-            "seal": "OPEN"
-          },
-          "name": "8 mm Round Radial Bearing (22 mm OD x 7 mm, Open)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "5972K91",
-          "url": "https://www.mcmaster.com/5972K91/",
-          "material": "Steel",
           "topMateConnector": "mateConnector"
         },
         {
@@ -3524,19 +3439,6 @@
           "vendor": "McMaster-Carr",
           "partNumber": "5972K217",
           "url": "https://www.mcmaster.com/5972K217/",
-          "material": "Steel",
-          "topMateConnector": "mateConnector"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "type": "RADIAL",
-            "size": "MM_35"
-          },
-          "name": "35 mm Round Radial Bearing (47 mm OD x 7 mm)",
-          "vendor": "McMaster-Carr",
-          "partNumber": "6656K216",
-          "url": "https://www.mcmaster.com/6656K216/",
           "material": "Steel",
           "topMateConnector": "mateConnector"
         }

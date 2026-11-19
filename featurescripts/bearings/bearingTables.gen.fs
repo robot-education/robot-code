@@ -31,9 +31,7 @@ export enum BearingType
     annotation { "Name" : "Flanged" }
     FLANGED,
     annotation { "Name" : "Radial" }
-    RADIAL,
-    annotation { "Name" : "Bushing" }
-    BUSHING
+    RADIAL
 }
 
 export enum BearingBore
@@ -136,10 +134,6 @@ export enum BearingDimensions
     MM_9_X_2_5,
     annotation { "Name" : "9 mm OD x 3 mm" }
     MM_9_X_3,
-    annotation { "Name" : "9 mm OD x 5 mm" }
-    MM_9_X_5,
-    annotation { "Name" : "9 mm OD x 11 mm" }
-    MM_9_X_11,
     annotation { "Name" : "10 mm OD x 2.5 mm" }
     MM_10_X_2_5,
     annotation { "Name" : "10 mm OD x 3 mm" }
@@ -223,17 +217,14 @@ export enum BearingSeal
     annotation { "Name" : "Sealed" }
     SEALED,
     annotation { "Name" : "Open" }
-    OPEN,
-    annotation { "Name" : "None" }
-    NONE
+    OPEN
 }
 
 /** Each bore's shape: a round bore's `diameter`, or a hex's `acrossFlats`, with its corners rounded to `diameter` where they are. */
 export const BEARING_BORES = {
     BearingBore.HEX : {
         BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch },
-        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch },
-        BearingSize.MM_5 : { "acrossFlats" : 5 * millimeter }
+        BearingSize.IN_3_8 : { "acrossFlats" : 0.375 * inch }
     },
     BearingBore.ROUNDED_HEX : {
         BearingSize.IN_1_2 : { "acrossFlats" : 0.5 * inch, "diameter" : 13.75 * millimeter },
@@ -980,18 +971,6 @@ export const BEARINGS = {
                 BearingSize.MM_35 : {
                     BearingDimensions.MM_47_X_7 : {
                         BearingSeal.SHIELDED : { "outerDiameter" : 47 * millimeter, "width" : 7 * millimeter, "name" : "35 mm Round Radial Bearing (47 mm OD x 7 mm)", "vendor" : "REV", "partNumber" : "REV-29-3296", "url" : "https://www.revrobotics.com/search.php?search_query=REV-29-3296&section=product", "material" : STEEL, "appearance" : STEEL_GRAY }
-                    }
-                }
-            }
-        },
-        BearingType.BUSHING : {
-            BearingBore.HEX : {
-                BearingSize.MM_5 : {
-                    BearingDimensions.MM_9_X_5 : {
-                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 5 * millimeter, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Bushing (9 mm OD x 5 mm)", "vendor" : "REV", "partNumber" : "REV-41-1326", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
-                    },
-                    BearingDimensions.MM_9_X_11 : {
-                        BearingSeal.NONE : { "outerDiameter" : 9 * millimeter, "width" : 11 * millimeter, "flangeDiameter" : 13 * millimeter, "flangeThickness" : 2 * millimeter, "name" : "5 mm Hex Flanged Bushing (9 mm OD x 11 mm)", "vendor" : "REV", "partNumber" : "REV-41-1329", "url" : "https://www.revrobotics.com/Through-Bore-Bearings/", "material" : ACETAL, "appearance" : BLACK }
                     }
                 }
             }

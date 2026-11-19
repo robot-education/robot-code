@@ -4,7 +4,8 @@ and its file's `fs check` problems.
 
 The dialog is drawn by the page's script (see `fs_cli.live_dialog`): its precondition's conditions are compiled to
 JavaScript, and each parameter is rendered ahead of time for each of its values, so the script draws any combination of
-choices as `fs ui --set` would, as they're made. `dialog_page.js` makes its controls work, as it does in VS Code's
+choices as `fs ui --set` would, as they're made. A part set's feature is used through its Part Studios' configurations,
+so its page shows each studio's configuration panel in its place (see `fs_cli.configurations`). `dialog_page.js` makes its controls work, as it does in VS Code's
 feature panel, which shows the same sections (`audit_sections`, through the language server's `featurescript/audit`).
 """
 
@@ -109,19 +110,27 @@ def audit_sections(writeup: str | None, problems: list[tuple[int, int, str]], ta
 
 
 def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[tuple[int, int, str]],
-               theme: str, tables: list[Table] | None = None, artifact: bool = False) -> str:
+               theme: str, tables: list[Table] | None = None, artifact: bool = False,
+               configurations: list[tuple[str, str, str]] | None = None) -> str:
     """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
     `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), and `audit_sections`.
 
     With `artifact`, it's a claude.ai Artifact's page, to publish (and comment on): without the document around it
     (`<!doctype>`, `<html>`, `<head>`, and `<body>`, which publishing adds), so the viewer's theme, not `theme` (which
-    only the dialog, Onshape's, takes), sets its colors."""
-    dialog = (
-        shell.replace("\0", "")
-        .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
-        .replace("</body>", f"<script>{script}\n{_safe(DIALOG_PAGE_SCRIPT)}\n{_DIALOG_SCRIPT}</script></body>", 1)
-        .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
-    )
+    only the dialog, Onshape's, takes), sets its colors.
+
+    With `configurations` (each a Part Studio's label, and its panel's `shell` and `script`, see
+    `fs_cli.configurations.configuration_script`), the page shows those panels in the dialog's place."""
+    if configurations:
+        frames = "".join(
+            f"<h3>{html.escape(label)}</h3>" + _frame(label, frame_shell, frame_script) for label, frame_shell, frame_script in configurations
+        )
+        dialog_section = (
+            "<h2>Configurations</h2>\n<p class=\"limit\">Its Part Studios' configurations, as <code>fs parts</code> writes them to Onshape: "
+            "choose options to see what each shows. Setting an input back to its default unsets it.</p>\n" + frames
+        )
+    else:
+        dialog_section = "<h2>Dialog</h2>\n" + _DIALOG_HELP + _frame("Dialog", shell, script)
     sections = audit_sections(writeup, problems, tables or [])
     head = _PAGE_HEAD.format(
         title=html.escape(title),
@@ -132,7 +141,7 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
     body = _PAGE_BODY.format(
         title=html.escape(title),
         source=html.escape(source),
-        dialog=html.escape(dialog, quote=True),
+        dialog=dialog_section,
         problems=sections["problems"],
         writeup=sections["writeup"],
         tables=sections["tables"],
@@ -140,6 +149,24 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
     if artifact:
         return head + body
     return _DOCUMENT_START.format(theme=theme) + head + "</head>\n<body>\n" + body + "</body>\n</html>\n"
+
+
+def _frame(label: str, shell: str, script: str) -> str:
+    """A dialog, in a frame of its own (its styles are Onshape's), drawn by `script` in `shell`."""
+    page = (
+        shell.replace("\0", "")
+        .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
+        .replace("</body>", f"<script>{script}\n{_safe(DIALOG_PAGE_SCRIPT)}\n{_DIALOG_SCRIPT}</script></body>", 1)
+        .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
+    )
+    return f'<iframe class="dialog-frame" title="{html.escape(label)}" srcdoc="{html.escape(page, quote=True)}"></iframe>\n'
+
+
+_DIALOG_HELP = (
+    '<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels, or type values, to see what each choice '
+    "shows: any combination works. Setting a parameter back to its default (unchecking it, say) unsets it. Hover a "
+    "parameter for its description, default, and UI hints.</p>\n"
+)
 
 
 def _safe(script: str) -> str:
@@ -247,6 +274,7 @@ nav a {{ color: var(--accent); text-decoration: none; }}
 section {{ margin-bottom: 32px; }}
 section > h2 {{ font-size: 16px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }}
 iframe {{ width: 100%; max-width: 420px; height: 600px; border: 1px solid var(--line); border-radius: 6px; display: block; }}
+#dialog h3 {{ font-size: 14px; margin: 16px 0 6px; }}
 {section_style}
 </style>
 """
@@ -256,10 +284,7 @@ _PAGE_BODY = """<main>
 <p class="source">{source}</p>
 <nav><a href="#dialog">Dialog</a><a href="#tables">Lookup tables</a><a href="#writeup">Writeup</a><a href="#problems">Problems</a></nav>
 <section id="dialog">
-<h2>Dialog</h2>
-<p class="limit">Click dropdowns, checkboxes, tabs, and lookup table levels, or type values, to see what each choice shows: any combination works. Setting a parameter back to its default (unchecking it, say) unsets it. Hover a parameter for its description, default, and UI hints.</p>
-<iframe id="dialog-frame" title="Dialog" srcdoc="{dialog}"></iframe>
-</section>
+{dialog}</section>
 <section id="tables">
 <h2>Lookup tables</h2>
 {tables}
@@ -283,9 +308,9 @@ if (tableFilter) {{
     }}
   }});
 }}
-const frame = document.getElementById("dialog-frame");
 window.addEventListener("message", (event) => {{
-  if (event.source === frame.contentWindow && event.data && event.data.fsAuditHeight) {{
+  const frame = [...document.querySelectorAll(".dialog-frame")].find((each) => each.contentWindow === event.source);
+  if (frame && event.data && event.data.fsAuditHeight) {{
     frame.style.height = Math.max(200, event.data.fsAuditHeight) + "px";
   }}
 }});
