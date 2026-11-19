@@ -37,8 +37,8 @@ whole table entry.
 
 ## How it works
 
-Robot bearing's steps 2, 3 and 5 (see `../released/bearing/robotBearing.md`), in its groups (Bushing: the bushing and
-Bore fit; Position):
+Robot bearing's steps 2, 3 and 5 (see `../released/bearing/robotBearing.md`), in its groups (Bushing; Position). It has no
+Bore fit: a COTS bushing is pressed in, so its bore is its outside diameter.
 
 1. The bushing (`libraryBushing`): its `bushingTable` entry (Bore, Size, Material, Dimensions, and Vendor, skipping a
    level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, and flange,

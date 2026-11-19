@@ -345,7 +345,7 @@ shape and from the same `core/` predicates:
 
 | Group | Parameters |
 | --- | --- |
-| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Type, Bore, Size, Dimensions, Seal and Vendor, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Bore, Size, Material, Dimensions and Vendor, the same way (`bushingTable`). Then Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`) |
+| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Type, Bore, Size, Dimensions, Seal and Vendor, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Bore, Size, Material, Dimensions and Vendor, the same way (`bushingTable`). Robot bearing's then has Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`); Robot bushing's has none, as a COTS bushing is pressed in |
 | Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
 | Retention (Robot bearing) | Below |
 | Other options | Auto Assembly body |
@@ -356,7 +356,8 @@ What they do:
    the location, and Flip primary axis so the bore goes into them, unless they've been set.
 2. **The plane**: the location's, offset, turned to the angle reference and Angle, and flipped; its normal points out
    of the face the bearing sits on.
-3. **The bore**: a circle at the product's outside diameter plus Bore fit's clearance, extruded through the merge
+3. **The bore**: a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at its outside
+   diameter), extruded through the merge
    scope behind the plane and subtracted from it, in one boolean, as Robot motor's pilot is. A flanged product's
    flange sits on the face; the bore is its body's diameter, not its flange's. The part the plane is on, of the merge
    scope's, is the host.
@@ -406,7 +407,8 @@ The same, with the bushings part set's bushings, and no Retention group: `featur
 
 The bushings part set (`featurescripts/bushings/`, `libraryBushing`, in a Bushing Part Studio) is built as the bearings'
 is, from FRCDesignLib's Flanged Bushing records, with flanges from The Thrifty Bot's STEP files and FRCDesignLib's
-models of WCP's. It asks Bore, Size, Material, Dimensions, then Vendor, so the bore and size always show. It offers
+models of WCP's. It asks Vendor, Bore, Size, Material, then Dimensions, as the bearings' does; every vendor
+makes both bores and several sizes, so the bore and size always show. It offers
 WCP's and ThriftyBot's, and Generic's of the same: VEX no longer sells bushings, and REV sells one.
 
 ### What changes for documents

@@ -85,10 +85,10 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 }
 
 /**
- * Cuts the bore, through the merge scope behind `plane`, at the part's outside diameter plus Bore fit's clearance;
+ * Cuts the bore, through the merge scope behind `plane`, at the part's outside diameter plus `clearance` (Robot bearing's Bore fit; none for a pressed-in bushing);
  * declares the part on the part it's in; and with Auto Assembly body, builds its Auto Assembly body. Returns the part the bore is in.
  */
-export function placeBearing(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, kind is AutoAssemblyKind) returns Query
+export function placeBearing(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, clearance is ValueWithUnits, kind is AutoAssemblyKind) returns Query
 {
     if (isQueryEmpty(context, definition.scope))
     {
@@ -105,7 +105,7 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
 
     const sketchId = id + "boreSketch";
     const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : plane });
-    const boreDiameter = part.outerDiameter + boreFitClearance(definition, part.outerDiameter);
+    const boreDiameter = part.outerDiameter + clearance;
     skCircle(sketch, "bore", { "center" : vector(0, 0) * meter, "radius" : boreDiameter / 2 });
     skSolve(sketch);
     opExtrude(context, id + "boreTool", {

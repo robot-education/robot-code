@@ -26,8 +26,6 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
         {
             annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.bushing is LookupTablePath;
-
-            boreFitPredicate(definition);
         }
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
@@ -43,7 +41,8 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
     {
         const part = libraryBushing(definition);
         const plane = bearingPlane(context, id, definition, part);
-        placeBearing(context, id + "place", definition, plane, part, AutoAssemblyKind.BUSHING);
+        // A COTS bushing is pressed in: its bore is its outside diameter
+        placeBearing(context, id + "place", definition, plane, part, 0 * meter, AutoAssemblyKind.BUSHING);
     });
 
 /**
@@ -57,7 +56,7 @@ function libraryBushing(definition is map) returns BearingPart
     {
         throw regenError("Choose a different bushing.", ["bushing"]);
     }
-    const made = BUSHINGS[entry.bore][entry.size][entry.material][entry.dimensions][entry.vendor];
+    const made = BUSHINGS[entry.vendor][entry.bore][entry.size][entry.material][entry.dimensions];
     var part = {
         "outerDiameter" : made.outerDiameter,
         "width" : made.width,

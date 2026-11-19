@@ -41,7 +41,7 @@ export function testEveryRobotBushingIsOneTheSetMakes()
 {
     for (var entry in leaves(bushingTable))
     {
-        expectTrue(BUSHINGS[entry.bore][entry.size][entry.material][entry.dimensions][entry.vendor] != undefined, entry.product.name);
+        expectTrue(BUSHINGS[entry.vendor][entry.bore][entry.size][entry.material][entry.dimensions] != undefined, entry.product.name);
         expectEqual(entry.product.configuration.vendor, toString(entry.vendor));
     }
 }

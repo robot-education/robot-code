@@ -239,7 +239,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
     {
         const part = libraryBearing(definition);
         const plane = bearingPlane(context, id, definition, part);
-        const host = placeBearing(context, id + "place", definition, plane, part, AutoAssemblyKind.BEARING);
+        const host = placeBearing(context, id + "place", definition, plane, part, boreFitClearance(definition, part.outerDiameter), AutoAssemblyKind.BEARING);
 
         if (definition.retention)
         {

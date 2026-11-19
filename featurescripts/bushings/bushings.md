@@ -24,10 +24,10 @@ The description ends with the credit.
 
 | Message | When | Highlights | Closest std error |
 | --- | --- | --- | --- |
-| No bushing with this bore comes in this size, change the size. (error) | None of this bore is made in this size | Size | none |
-| No bushing of this size comes in this material, change the material. (error) | None of this bore and size is made in this material | Material | none |
-| No bushing of this size and material comes in these dimensions, change the dimensions. (error) | None of this bore, size, and material is made in these dimensions | Dimensions | none |
-| Selected vendor does not make this bushing, change the vendor. (error) | The vendor makes none of these | Vendor | none |
+| Selected vendor does not make this bushing with this bore, change the bore. (error) | The vendor makes none with this bore | Bore | none |
+| Selected vendor does not make this bushing in this size, change the size. (error) | The vendor makes none of this bore in this size | Size | none |
+| Selected vendor does not make this bushing in this material, change the material. (error) | The vendor makes none of this bore and size in this material | Material | none |
+| Selected vendor does not make this bushing, change the dimensions. (error) | The vendor makes none of these dimensions in this bore, size, and material | Dimensions | none |
 
 The configuration only offers what's made, so these show only in the feature's own dialog.
 
@@ -41,12 +41,12 @@ and its part number where the vendor has one; Generic has neither.
 
 ## How it works
 
-The configuration asks what the bushing is, then who makes it: Bore (Rounded hex or Round), Size (1/2 in and 3/8 in,
-then the rest from smallest), Material (Bronze or Nylon), Dimensions (outer diameter by width), and Vendor, each laid
-out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios") as the bearings' are: an input shows only where
-more than one of its options is made with the choices before it. The bearings ask Vendor first; a bushing's vendors
-each make few, so asked first, Vendor would hide every input after it for a vendor making one. Asked last, it shows for
-every bushing, after its bore and size. The dialog is a flat list of the same enums, with no conditions.
+The configuration asks Vendor, then Bore (Rounded hex or Round), Size (1/2 in and 3/8 in, then the rest from
+smallest), Material (Bronze or Nylon), and Dimensions (outer diameter by width), each laid out by `LookupTable` (see
+docs/fs-cli.md's "Configured Part Studios") as the bearings' are: an input shows only where more than one of its
+options is made with the choices before it. Every vendor makes both bores and several sizes of each, so Bore and Size
+show for every bushing; Material shows for 1/2 in rounded hex, and Dimensions where a size comes in more than one. The
+dialog is a flat list of the same enums, with no conditions.
 
 What's made comes from FRCDesign's records, by each record's Dimensions option, which names its bore, outer diameter,
 width, and any flange or material (`parse`), and a record's name says nylon where its option doesn't. A bushing
