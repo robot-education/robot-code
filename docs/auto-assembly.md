@@ -406,8 +406,9 @@ The same, with the bushings part set's bushings, and no Retention group: `featur
 step under its flange (REV's) gets a counterbore for it, and its Auto Assembly body has the step.
 
 The bushings part set (`featurescripts/bushings/`, `libraryBushing`, in a Bushing Part Studio) is built as the bearings'
-is, from FRCDesignLib's Flanged Bushing records, with flanges from The Thrifty Bot's and REV's STEP files. WCP's and
-VEX's bushings wait for their flanges to be measured.
+is, from FRCDesignLib's Flanged Bushing records, with flanges from The Thrifty Bot's and REV's STEP files and
+FRCDesignLib's models of WCP's. It asks Bore, Size, Material, Dimensions, then Vendor, so the bore and size always show.
+VEX's aren't offered: VEX no longer sells bushings.
 
 ### What changes for documents
 

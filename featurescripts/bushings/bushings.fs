@@ -26,38 +26,38 @@ annotation { "Feature Type Name" : "Bushing",
 export const libraryBushing = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.vendor is BushingVendor;
-
-        annotation { "Name" : "Material", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.material is BushingMaterial;
-
         annotation { "Name" : "Bore", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.bore is BushingBore;
 
         annotation { "Name" : "Size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.size is BushingSize;
 
+        annotation { "Name" : "Material", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.material is BushingMaterial;
+
         annotation { "Name" : "Dimensions", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.dimensions is BushingDimensions;
+
+        annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.vendor is BushingVendor;
     }
     {
-        const choices = resolveChoices(BUSHINGS, definition, ["vendor", "material", "bore", "size", "dimensions"]);
-        if (choices.unmade == "material")
-        {
-            throw regenError("Selected vendor does not make this bushing in this material, change the material.", ["material"]);
-        }
-        if (choices.unmade == "bore")
-        {
-            throw regenError("Selected vendor does not make this bushing with this bore, change the bore.", ["bore"]);
-        }
+        const choices = resolveChoices(BUSHINGS, definition, ["bore", "size", "material", "dimensions", "vendor"]);
         if (choices.unmade == "size")
         {
-            throw regenError("Selected vendor does not make this bushing in this size, change the size.", ["size"]);
+            throw regenError("No bushing with this bore comes in this size, change the size.", ["size"]);
+        }
+        if (choices.unmade == "material")
+        {
+            throw regenError("No bushing of this size comes in this material, change the material.", ["material"]);
+        }
+        if (choices.unmade == "dimensions")
+        {
+            throw regenError("No bushing of this size and material comes in these dimensions, change the dimensions.", ["dimensions"]);
         }
         if (choices.unmade != undefined)
         {
-            throw regenError("Selected vendor does not make this bushing, change the dimensions.", ["dimensions"]);
+            throw regenError("Selected vendor does not make this bushing, change the vendor.", ["vendor"]);
         }
         definition = choices.definition;
         const bushing = choices.made;

@@ -10,76 +10,229 @@
       "records": [
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
             "bore": "ROUNDED_HEX",
-            "size": "IN_1_2"
+            "size": "IN_1_2",
+            "material": "BRONZE",
+            "dimensions": "OD_0_75_X_0_313",
+            "vendor": "GENERIC"
+          },
+          "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2",
+            "material": "BRONZE",
+            "dimensions": "OD_0_75_X_0_333",
+            "vendor": "GENERIC"
           },
           "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "NYLON"
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2",
+            "material": "NYLON",
+            "vendor": "GENERIC"
           },
           "name": "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)",
           "material": "Nylon 6/6"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
             "bore": "ROUNDED_HEX",
-            "size": "IN_3_8"
+            "size": "IN_3_8",
+            "dimensions": "OD_0_625_X_0_313",
+            "vendor": "GENERIC"
+          },
+          "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUNDED_HEX",
+            "size": "IN_3_8",
+            "dimensions": "OD_0_625_X_0_375",
+            "vendor": "GENERIC"
           },
           "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
+            "bore": "ROUND",
+            "size": "IN_1_4",
+            "vendor": "GENERIC"
+          },
+          "name": "1/4 in Round Flanged Bronze Bushing (0.5 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_3_8",
+            "vendor": "GENERIC"
+          },
+          "name": "3/8 in Round Flanged Bronze Bushing (0.625 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_1_2",
+            "vendor": "GENERIC"
+          },
+          "name": "1/2 in Round Flanged Bronze Bushing (0.75 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
             "bore": "ROUND",
             "size": "IN_3_4",
-            "dimensions": "OD_1_X_0_563_STEP"
+            "dimensions": "OD_0_875_X_0_313",
+            "vendor": "GENERIC"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_3_4",
+            "dimensions": "OD_1_X_0_563_STEP",
+            "vendor": "GENERIC"
           },
           "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
             "bore": "ROUND",
             "size": "IN_3_4",
-            "dimensions": "OD_1_125_X_0_333"
+            "dimensions": "OD_1_125_X_0_333",
+            "vendor": "GENERIC"
           },
           "name": "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
             "bore": "ROUND",
-            "size": "IN_7_8"
+            "size": "IN_7_8",
+            "vendor": "GENERIC"
           },
           "name": "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
-            "vendor": "GENERIC",
-            "material": "BRONZE",
             "bore": "ROUND",
-            "size": "IN_1"
+            "size": "IN_1",
+            "dimensions": "OD_1_125_X_0_333",
+            "vendor": "GENERIC"
           },
           "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "material": "Bronze - SAE 841"
         },
         {
           "values": {
+            "bore": "ROUND",
+            "size": "IN_1",
+            "dimensions": "OD_1_125_X_0_313",
+            "vendor": "GENERIC"
+          },
+          "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.313 in)",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2",
+            "material": "BRONZE",
+            "dimensions": "OD_0_75_X_0_313",
+            "vendor": "WCP"
+          },
+          "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0999",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUNDED_HEX",
+            "size": "IN_3_8",
+            "dimensions": "OD_0_625_X_0_313",
+            "vendor": "WCP"
+          },
+          "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0997",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_1_4",
+            "vendor": "WCP"
+          },
+          "name": "1/4 in Round Flanged Bronze Bushing (0.5 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0995",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_3_8",
+            "vendor": "WCP"
+          },
+          "name": "3/8 in Round Flanged Bronze Bushing (0.625 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0996",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_1_2",
+            "vendor": "WCP"
+          },
+          "name": "1/2 in Round Flanged Bronze Bushing (0.75 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0998",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_3_4",
+            "dimensions": "OD_0_875_X_0_313",
+            "vendor": "WCP"
+          },
+          "name": "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-1000",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_1",
+            "dimensions": "OD_1_125_X_0_313",
+            "vendor": "WCP"
+          },
+          "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.313 in)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-1004",
+          "material": "Bronze - SAE 841"
+        },
+        {
+          "values": {
+            "bore": "ROUND",
+            "size": "IN_3_4",
+            "dimensions": "OD_1_X_0_563_STEP",
             "vendor": "REV"
           },
           "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
@@ -89,10 +242,11 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "BRONZE",
             "bore": "ROUNDED_HEX",
-            "size": "IN_1_2"
+            "size": "IN_1_2",
+            "material": "BRONZE",
+            "dimensions": "OD_0_75_X_0_333",
+            "vendor": "THRIFTYBOT"
           },
           "name": "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)",
           "vendor": "The Thrifty Bot",
@@ -101,8 +255,10 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "NYLON"
+            "bore": "ROUNDED_HEX",
+            "size": "IN_1_2",
+            "material": "NYLON",
+            "vendor": "THRIFTYBOT"
           },
           "name": "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)",
           "vendor": "The Thrifty Bot",
@@ -111,10 +267,10 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "BRONZE",
             "bore": "ROUNDED_HEX",
-            "size": "IN_3_8"
+            "size": "IN_3_8",
+            "dimensions": "OD_0_625_X_0_375",
+            "vendor": "THRIFTYBOT"
           },
           "name": "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)",
           "vendor": "The Thrifty Bot",
@@ -123,10 +279,10 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "BRONZE",
             "bore": "ROUND",
-            "size": "IN_3_4"
+            "size": "IN_3_4",
+            "dimensions": "OD_1_125_X_0_333",
+            "vendor": "THRIFTYBOT"
           },
           "name": "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "vendor": "The Thrifty Bot",
@@ -135,10 +291,9 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "BRONZE",
             "bore": "ROUND",
-            "size": "IN_7_8"
+            "size": "IN_7_8",
+            "vendor": "THRIFTYBOT"
           },
           "name": "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "vendor": "The Thrifty Bot",
@@ -147,10 +302,10 @@
         },
         {
           "values": {
-            "vendor": "THRIFTYBOT",
-            "material": "BRONZE",
             "bore": "ROUND",
-            "size": "IN_1"
+            "size": "IN_1",
+            "dimensions": "OD_1_125_X_0_333",
+            "vendor": "THRIFTYBOT"
           },
           "name": "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)",
           "vendor": "The Thrifty Bot",
@@ -166,15 +321,30 @@
       "name": "Generic"
     },
     {
-      "id": "REV",
-      "name": "REV"
+      "id": "WCP",
+      "name": "WCP"
     },
     {
       "id": "THRIFTYBOT",
       "name": "ThriftyBot"
+    },
+    {
+      "id": "REV",
+      "name": "REV"
     }
   ],
   "bushings": [
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_313",
+      "outerDiameter": 0.01905,
+      "width": 0.0079502,
+      "flangeDiameter": 0.022225
+    },
     {
       "vendor": "GENERIC",
       "material": "BRONZE",
@@ -203,10 +373,65 @@
       "bore": "ROUNDED_HEX",
       "size": "IN_3_8",
       "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_313",
+      "outerDiameter": 0.015875,
+      "width": 0.0079502,
+      "flangeDiameter": 0.01905
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
       "dimensions": "OD_0_625_X_0_375",
       "outerDiameter": 0.015875,
       "width": 0.009525,
       "flangeDiameter": 0.01905
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1_4",
+      "boreSize": 0.00635,
+      "dimensions": "OD_0_5_X_0_313",
+      "outerDiameter": 0.0127,
+      "width": 0.0079502,
+      "flangeDiameter": 0.015875
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_313",
+      "outerDiameter": 0.015875,
+      "width": 0.0079502,
+      "flangeDiameter": 0.01905
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_313",
+      "outerDiameter": 0.01905,
+      "width": 0.0079502,
+      "flangeDiameter": 0.022225
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_0_875_X_0_313",
+      "outerDiameter": 0.022225,
+      "width": 0.0079502,
+      "flangeDiameter": 0.0254
     },
     {
       "vendor": "GENERIC",
@@ -251,6 +476,101 @@
       "outerDiameter": 0.028575,
       "width": 0.0084582,
       "flangeDiameter": 0.031115
+    },
+    {
+      "vendor": "GENERIC",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1",
+      "boreSize": 0.0254,
+      "dimensions": "OD_1_125_X_0_313",
+      "outerDiameter": 0.028575,
+      "width": 0.0079502,
+      "flangeDiameter": 0.03175
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_313",
+      "outerDiameter": 0.01905,
+      "width": 0.0079502,
+      "flangeDiameter": 0.022225,
+      "partNumber": "WCP-0999"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUNDED_HEX",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_313",
+      "outerDiameter": 0.015875,
+      "width": 0.0079502,
+      "flangeDiameter": 0.01905,
+      "partNumber": "WCP-0997"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1_4",
+      "boreSize": 0.00635,
+      "dimensions": "OD_0_5_X_0_313",
+      "outerDiameter": 0.0127,
+      "width": 0.0079502,
+      "flangeDiameter": 0.015875,
+      "partNumber": "WCP-0995"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_8",
+      "boreSize": 0.009525,
+      "dimensions": "OD_0_625_X_0_313",
+      "outerDiameter": 0.015875,
+      "width": 0.0079502,
+      "flangeDiameter": 0.01905,
+      "partNumber": "WCP-0996"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1_2",
+      "boreSize": 0.0127,
+      "dimensions": "OD_0_75_X_0_313",
+      "outerDiameter": 0.01905,
+      "width": 0.0079502,
+      "flangeDiameter": 0.022225,
+      "partNumber": "WCP-0998"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_3_4",
+      "boreSize": 0.01905,
+      "dimensions": "OD_0_875_X_0_313",
+      "outerDiameter": 0.022225,
+      "width": 0.0079502,
+      "flangeDiameter": 0.0254,
+      "partNumber": "WCP-1000"
+    },
+    {
+      "vendor": "WCP",
+      "material": "BRONZE",
+      "bore": "ROUND",
+      "size": "IN_1",
+      "boreSize": 0.0254,
+      "dimensions": "OD_1_125_X_0_313",
+      "outerDiameter": 0.028575,
+      "width": 0.0079502,
+      "flangeDiameter": 0.03175,
+      "partNumber": "WCP-1004"
     },
     {
       "vendor": "REV",

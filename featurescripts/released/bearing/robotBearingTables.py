@@ -96,7 +96,7 @@ def bearing_node() -> Node:
 def bushing_node() -> Node:
     """The bushings set's bushings, by bore, size, material, dimensions, and vendor."""
     columns = BUSHING_SET["COLUMNS"]
-    defaults = dict(zip(columns, ("GENERIC", "BRONZE", "ROUNDED_HEX", "IN_1_2", "OD_0_75_X_0_333")))
+    defaults = {"bore": "ROUNDED_HEX", "size": "IN_1_2", "material": "BRONZE", "dimensions": "OD_0_75_X_0_313", "vendor": "GENERIC"}
     return part_set_node(
         BUSHING_SET["RECORDS"], BUSHING_SET["LOCATIONS"], columns, BUSHING_SET["_ENUMS"],
         ["bore", "size", "material", "dimensions", "vendor"], defaults,

@@ -1,11 +1,12 @@
 """FRCDesign's library bushings, generated for FRCDesignApp: flanged bushings, from FRCDesign's hand-made Flanged Bushing
 (its records in `vendor/frcdesign-bushings.json`, which `uv run python featurescripts/bushings/bushingTables.py fetch`
-refreshes), with each flange and step as its vendor's STEP file or store gives it (`FLANGES`, sources in `vendor/`).
+refreshes), with each flange and step as its vendor's STEP file, store, or FRCDesign's own model of it gives it
+(`FLANGES`, sources in `vendor/`). VEX's aren't offered: VEX no longer sells bushings.
 
-A bushing whose flange no source gives isn't offered: WCP's and VEX's, which publish no models, and Generic's of their
-sizes. Generic offers every bushing a vendor does. The studio asks Vendor, Material, Bore, Size, and Dimensions (outer
-diameter by width), each shown only where more than one is made with the choices before it, as the bearings' does
-(`featurescripts/bearings/`).
+Generic offers every bushing a vendor does. The studio asks what the bushing is, then who makes it: Bore, Size,
+Material, Dimensions (outer diameter by width), and Vendor, each shown only where more than one is made with the
+choices before it (`LookupTable`), as the bearings' are. Asked last, Vendor shows for every bushing, and the bore and
+size always show before it.
 """
 
 from __future__ import annotations
@@ -31,9 +32,15 @@ if __name__ == "__main__" and sys.argv[1:] == ["fetch"]:
 
 INCH = 0.0254
 
-BushingVendor = Enum("BushingVendor", ["GENERIC", "REV", "THRIFTYBOT"], {"GENERIC": "Generic", "REV": "REV", "THRIFTYBOT": "ThriftyBot"})
-_VENDORS = {"Generic": "GENERIC", "REV Robotics": "REV", "The Thrifty Bot": "THRIFTYBOT"}
-_VENDOR_NAMES = {"REV": "REV Robotics", "THRIFTYBOT": "The Thrifty Bot"}
+BushingVendor = Enum(
+    "BushingVendor",
+    ["GENERIC", "WCP", "THRIFTYBOT", "REV"],
+    {"GENERIC": "Generic", "WCP": "WCP", "THRIFTYBOT": "ThriftyBot", "REV": "REV"},
+)
+_VENDORS = {"Generic": "GENERIC", "West Coast Products": "WCP", "REV Robotics": "REV", "The Thrifty Bot": "THRIFTYBOT"}
+_VENDOR_NAMES = {"WCP": "West Coast Products", "REV": "REV Robotics", "THRIFTYBOT": "The Thrifty Bot"}
+# VEX no longer sells bushings, so its records are left out
+DISCONTINUED_VENDORS = {"VEX Robotics"}
 
 BushingMaterial = Enum("BushingMaterial", ["BRONZE", "NYLON"], {"BRONZE": "Bronze", "NYLON": "Nylon"})
 _MATERIALS = {"BRONZE": ("BRONZE", "BRASS_YELLOW"), "NYLON": ("NYLON", "BLACK")}
@@ -80,6 +87,14 @@ FLANGES = {
     ("BRONZE", "ROUND", "IN_1", 1.125, 0.333): Flange(1.225, 0.083),
     # REV-21-2396.STEP: a 1.125 in step 0.125 in tall under its flange
     ("BRONZE", "ROUND", "IN_3_4", 1.0, 0.563): Flange(1.225, 0.0625, 1.125, 0.125),
+    # wcp-bushings.json: FRCDesign's models of WCP's, each 0.3125 in wide with a 0.0625 in flange
+    ("BRONZE", "ROUNDED_HEX", "IN_1_2", 0.75, 0.313): Flange(0.875, 0.0625),
+    ("BRONZE", "ROUNDED_HEX", "IN_3_8", 0.625, 0.313): Flange(0.75, 0.0625),
+    ("BRONZE", "ROUND", "IN_1_4", 0.5, 0.313): Flange(0.625, 0.0625),
+    ("BRONZE", "ROUND", "IN_3_8", 0.625, 0.313): Flange(0.75, 0.0625),
+    ("BRONZE", "ROUND", "IN_1_2", 0.75, 0.313): Flange(0.875, 0.0625),
+    ("BRONZE", "ROUND", "IN_3_4", 0.875, 0.313): Flange(1.0, 0.0625),
+    ("BRONZE", "ROUND", "IN_1", 1.125, 0.313): Flange(1.25, 0.0625),
 }
 
 
@@ -135,12 +150,14 @@ class Stock:
 
 
 def _catalog() -> tuple[dict[Key, tuple[Bushing, Stock]], list[str]]:
-    """Every bushing FRCDesign's records name whose flange is known, by (vendor, material, bore, size, dimensions); and
+    """Every bushing FRCDesign's records name whose flange is known, by (bore, size, material, dimensions, vendor); and
     the records left out for want of one."""
     part = library.load(SNAPSHOT)[LIBRARY_PART]
     found: dict[Key, tuple[Bushing, Stock]] = {}
     unmeasured = []
     for record in library.records(part):
+        if record["options"]["Vendor"] in DISCONTINUED_VENDORS:
+            continue
         vendor = _VENDORS.get(record["options"]["Vendor"])
         parsed = parse(record["options"]["Dimensions"], record["name"])
         if parsed is None:
@@ -150,7 +167,7 @@ def _catalog() -> tuple[dict[Key, tuple[Bushing, Stock]], list[str]]:
             unmeasured.append(f"{record['options']['Vendor']}: {record['options']['Dimensions']}")
             continue
         bushing = Bushing(*parsed, flange)
-        found[(vendor, bushing.material, bushing.bore, bushing.size, bushing.dimensions)] = (bushing, Stock(record["partNumber"]))
+        found[(bushing.bore, bushing.size, bushing.material, bushing.dimensions, vendor)] = (bushing, Stock(record["partNumber"]))
     return found, unmeasured
 
 
@@ -158,7 +175,7 @@ BUSHINGS, UNMEASURED = _catalog()
 # The sizes offered, 1/2 in and 3/8 in first, as the bearings' are
 BushingSize = Enum(
     "BushingSize",
-    [id for id in SIZES if any(key[3] == id for key in BUSHINGS)],
+    [id for id in SIZES if any(key[1] == id for key in BUSHINGS)],
     {id: name for id, (name, _) in SIZES.items()},
 )
 _DIMENSION_VALUES = sorted({(b.outer_diameter, b.width, b.flange) for b, _ in BUSHINGS.values()}, key=lambda d: (d[0], d[1]))
@@ -196,7 +213,7 @@ class Record:
         }
 
 
-COLUMNS = ("vendor", "material", "bore", "size", "dimensions")
+COLUMNS = ("bore", "size", "material", "dimensions", "vendor")
 _ENUMS = {
     "vendor": ("Vendor", BushingVendor, "vendor"),
     "material": ("Material", BushingMaterial, "material"),
@@ -205,9 +222,9 @@ _ENUMS = {
     "dimensions": ("Dimensions", BushingDimensions, "dimensions"),
 }
 SEAT_MATE_CONNECTOR = "mateConnector"
-# The most used: FRCDesign's 1/2 in rounded hex bronze bushing, whose one size Dimensions (shown only for the 3/4 in
-# round bushings, which come in two) resolves to
-DEFAULTS = ("GENERIC", "BRONZE", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_333")
+# The most used: FRCDesign's 1/2 in rounded hex bronze bushing, WCP's; Dimensions shows where a size comes in more than
+# one, and its default is one of those
+DEFAULTS = ("ROUNDED_HEX", "IN_1_2", "BRONZE", "OD_0_75_X_0_313", "GENERIC")
 
 TABLE = LookupTable(COLUMNS, list(BUSHINGS))
 
@@ -232,7 +249,7 @@ STUDIOS = {
 }
 RECORDS = {
     "bushing": {
-        key: Record(TABLE.shown(key), bushing_name(bushing), key[0], stock, bushing) for key, (bushing, stock) in BUSHINGS.items()
+        key: Record(TABLE.shown(key), bushing_name(bushing), key[4], stock, bushing) for key, (bushing, stock) in BUSHINGS.items()
     }
 }
 
@@ -262,7 +279,7 @@ def _nested(table: dict[tuple, str], enums: list[Enum], indent: int = 0) -> str:
 def _bushing_fields(key: Key, bushing: Bushing, stock: Stock) -> str:
     flange = bushing.flange
     material, appearance = _MATERIALS[bushing.material]
-    vendor = _VENDOR_NAMES.get(key[0])
+    vendor = _VENDOR_NAMES.get(key[4])
     fields = {
         "outerDiameter": inch(bushing.outer_diameter),
         "width": inch(bushing.width),
@@ -301,10 +318,10 @@ CONTENTS = [
         + ";"
     ),
     Code(
-        "/** What each vendor makes, by vendor, material, bore, size, and dimensions: each bushing's sizes, its flange"
-        " (and step), and its properties. */\nexport const BUSHINGS = "
+        "/** What's made, by bore, size, material, dimensions, and vendor: each bushing's sizes, its flange (and step),"
+        " and its properties. */\nexport const BUSHINGS = "
         + _nested({key: _bushing_fields(key, *value) for key, value in BUSHINGS.items()},
-                  [BushingVendor, BushingMaterial, BushingBore, BushingSize, BushingDimensions])
+                  [BushingBore, BushingSize, BushingMaterial, BushingDimensions, BushingVendor])
         + ";"
     ),
 ]
@@ -339,7 +356,7 @@ def manifest() -> dict:
                 "flangeDiameter": round(bushing.flange.diameter * INCH, 9),
                 **({"partNumber": stock.part_number} if stock.part_number else {}),
             }
-            for (vendor, material, bore, size, dimensions), (bushing, stock) in BUSHINGS.items()
+            for (bore, size, material, dimensions, vendor), (bushing, stock) in BUSHINGS.items()
         ],
     }
 

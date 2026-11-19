@@ -57,7 +57,7 @@ function libraryBushing(definition is map) returns BearingPart
     {
         throw regenError("Choose a different bushing.", ["bushing"]);
     }
-    const made = BUSHINGS[entry.vendor][entry.material][entry.bore][entry.size][entry.dimensions];
+    const made = BUSHINGS[entry.bore][entry.size][entry.material][entry.dimensions][entry.vendor];
     var part = {
         "outerDiameter" : made.outerDiameter,
         "width" : made.width,

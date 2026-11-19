@@ -7,7 +7,8 @@ sets every parameter, in place of FRCDesign's hand-made Flanged Bushing. Files: 
 `bushingTables.py` (the catalog, read from FRCDesign's Flanged Bushing in `vendor/frcdesign-bushings.json` and refreshed
 by `uv run python featurescripts/bushings/bushingTables.py fetch`: the enums and data in `bushingTables.gen.fs`, the Part
 Studio's configuration, and FRCDesign's manifest `bushings.gen.json`). `vendor/` holds the vendors' STEP files and
-drawing (The Thrifty Bot's and REV's) the flanges are measured from.
+drawing (The Thrifty Bot's and REV's), and WCP's bushings as FRCDesign models them (`wcp-bushings.json`), which the
+flanges are measured from.
 
 Unreleased. It's a part set (`[tool.fs.parts.bushings]`, see docs/parts.md), released into the FRCDesignLib document
 the fasteners and bearings are, its Part Studio, Bushing, built from its definition's `STUDIOS`, never by hand. Robot
@@ -23,10 +24,10 @@ The description ends with the credit.
 
 | Message | When | Highlights | Closest std error |
 | --- | --- | --- | --- |
-| Selected vendor does not make this bushing in this material, change the material. (error) | The vendor makes none in this material | Material | none |
-| Selected vendor does not make this bushing with this bore, change the bore. (error) | The vendor makes none of this material with this bore | Bore | none |
-| Selected vendor does not make this bushing in this size, change the size. (error) | The vendor makes none of this material and bore in this size | Size | none |
-| Selected vendor does not make this bushing, change the dimensions. (error) | The vendor makes none of these dimensions in this material, bore, and size | Dimensions | none |
+| No bushing with this bore comes in this size, change the size. (error) | None of this bore is made in this size | Size | none |
+| No bushing of this size comes in this material, change the material. (error) | None of this bore and size is made in this material | Material | none |
+| No bushing of this size and material comes in these dimensions, change the dimensions. (error) | None of this bore, size, and material is made in these dimensions | Dimensions | none |
+| Selected vendor does not make this bushing, change the vendor. (error) | The vendor makes none of these | Vendor | none |
 
 The configuration only offers what's made, so these show only in the feature's own dialog.
 
@@ -40,11 +41,12 @@ and its part number where the vendor has one; Generic has neither.
 
 ## How it works
 
-The configuration asks Vendor, then Material (Bronze or Nylon), Bore (Rounded hex or Round), Size (1/2 in and 3/8 in,
-then the rest from smallest), and Dimensions (outer diameter by width), each laid out by `LookupTable` (see
-docs/fs-cli.md's "Configured Part Studios") as the bearings' are: an input shows only where the vendor makes more than
-one of its options with the choices before it, so Dimensions shows only for the 3/4 in round bushings, which come both
-plain and stepped. The dialog is a flat list of the same enums, with no conditions.
+The configuration asks what the bushing is, then who makes it: Bore (Rounded hex or Round), Size (1/2 in and 3/8 in,
+then the rest from smallest), Material (Bronze or Nylon), Dimensions (outer diameter by width), and Vendor, each laid
+out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios") as the bearings' are: an input shows only where
+more than one of its options is made with the choices before it. The bearings ask Vendor first; a bushing's vendors
+each make few, so asked first, Vendor would hide every input after it (REV makes one bushing). Asked last, it shows for
+every bushing, after its bore and size. The dialog is a flat list of the same enums, with no conditions.
 
 What's made comes from FRCDesign's records, by each record's Dimensions option, which names its bore, outer diameter,
 width, and any step, flange, or material (`parse`), and a record's name says nylon where its option doesn't. A bushing
@@ -58,9 +60,11 @@ is offered only where a vendor's model or listing gives its flange (`FLANGES`):
 | 3/4, 7/8, and 1 in round, 1.125 in OD x 0.333 in, bronze | 1.225 in, 0.083 in thick | `TTB-0268.stp`, `TTB-0269.stp`, `TTB-0270.stp` |
 | 3/4 in round, 1 in OD x 0.563 in, bronze | 1.225 in, 0.0625 in thick, over a 1.125 in step 0.125 in tall | `REV-21-2396.STEP` |
 
-Generic makes every bushing a vendor does, as the bearings' does. WCP's and VEX's bushings, and Generic's of their
-sizes, aren't offered: neither publishes a model or its flanges (`UNMEASURED`). The 3/8 in ID bushing with a 1/2 in hex
-outside isn't either: its bore would be a hex.
+| 1/2 in and 3/8 in rounded hex, 1/4, 3/8, 1/2, 3/4, and 1 in round, 0.313 in wide, bronze | 0.0625 in thick: 0.875, 0.75, 0.625, 0.75, 0.875, 1, and 1.25 in | `wcp-bushings.json`: FRCDesignLib's models of WCP-0999, 0997, 0995, 0996, 0998, 1000, and 1004, measured in Onshape |
+
+Generic makes every bushing a vendor does, as the bearings' does. VEX's aren't offered (`DISCONTINUED_VENDORS`): VEX
+no longer sells bushings, and Generic's 1/2 in rounded hex nylon bushing 0.313 in wide, which only VEX sold, isn't either
+(`UNMEASURED`). The 3/8 in ID bushing with a 1/2 in hex outside (WCP-0567) isn't offered: its bore would be a hex.
 
 `libraryBushing`:
 
@@ -82,9 +86,6 @@ There are no `try`s.
 ## Issues found
 
 - Not yet tried in Onshape: none of it has regenerated there, and no connector has been fastened to.
-- WCP's eight bushings and VEX's two, the library's most common sizes among them (WCP-0999, 1/2 in rounded hex 0.313 in
-  wide), aren't offered until their flanges are measured: from FRCDesignLib's own models of them (Onshape calls), or
-  from the vendors.
 - FRCDesign names ThriftyBot's 3/8 in rounded hex bushing 0.333 in wide in its record, and 0.375 in in its option;
   TTB-0266's model is 0.375 in, as built.
 - TTB-0268 to TTB-0270 measure 1.124 in OD in their models; they're built 1.125 in, as FRCDesign and ThriftyBot list them.

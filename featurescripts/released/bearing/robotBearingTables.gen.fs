@@ -1250,29 +1250,57 @@ export const bushingTable = {
                         "displayName" : "Material",
                         "entries" : {
                             "Bronze" : {
-                                "name" : "vendor",
-                                "displayName" : "Vendor",
+                                "name" : "dimensions",
+                                "displayName" : "Dimensions",
                                 "entries" : {
-                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_1_2" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
-                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_1_2" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
+                                    "0.75 in OD x 0.313 in" : {
+                                        "name" : "vendor",
+                                        "displayName" : "Vendor",
+                                        "entries" : {
+                                            "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "BRONZE", "dimensions" : "OD_0_75_X_0_313", "vendor" : "GENERIC" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                                            "WCP" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "BRONZE", "dimensions" : "OD_0_75_X_0_313", "vendor" : "WCP" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.WCP },
+                                        },
+                                    },
+                                    "0.75 in OD x 0.333 in" : {
+                                        "name" : "vendor",
+                                        "displayName" : "Vendor",
+                                        "entries" : {
+                                            "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "BRONZE", "dimensions" : "OD_0_75_X_0_333", "vendor" : "GENERIC" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                                            "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "BRONZE", "dimensions" : "OD_0_75_X_0_333", "vendor" : "THRIFTYBOT" }, "name" : "1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
+                                        },
+                                    },
                                 },
                             },
                             "Nylon" : {
                                 "name" : "vendor",
                                 "displayName" : "Vendor",
                                 "entries" : {
-                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "NYLON" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
-                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "NYLON" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
+                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "NYLON", "vendor" : "GENERIC" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_75_X_0_375, "material" : BushingMaterial.NYLON, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_1_2", "material" : "NYLON", "vendor" : "THRIFTYBOT" }, "name" : "1/2 in Rounded Hex Flanged Nylon Bushing (0.75 in OD x 0.375 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.THRIFTYBOT },
                                 },
                             },
                         },
                     },
                     "3/8 in" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
+                        "name" : "dimensions",
+                        "displayName" : "Dimensions",
                         "entries" : {
-                            "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_3_8" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.GENERIC },
-                            "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUNDED_HEX", "size" : "IN_3_8" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.THRIFTYBOT },
+                            "0.625 in OD x 0.313 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_3_8", "dimensions" : "OD_0_625_X_0_313", "vendor" : "GENERIC" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.GENERIC },
+                                    "WCP" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_3_8", "dimensions" : "OD_0_625_X_0_313", "vendor" : "WCP" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.WCP },
+                                },
+                            },
+                            "0.625 in OD x 0.375 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_3_8", "dimensions" : "OD_0_625_X_0_375", "vendor" : "GENERIC" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUNDED_HEX, "dimensions" : BushingDimensions.OD_0_625_X_0_375, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUNDED_HEX", "size" : "IN_3_8", "dimensions" : "OD_0_625_X_0_375", "vendor" : "THRIFTYBOT" }, "name" : "3/8 in Rounded Hex Flanged Bronze Bushing (0.625 in OD x 0.375 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.THRIFTYBOT },
+                                },
+                            },
                         },
                     },
                 },
@@ -1281,24 +1309,56 @@ export const bushingTable = {
                 "name" : "size",
                 "displayName" : "Size",
                 "entries" : {
+                    "1/2 in" : {
+                        "name" : "vendor",
+                        "displayName" : "Vendor",
+                        "entries" : {
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_75_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1_2", "vendor" : "GENERIC" }, "name" : "1/2 in Round Flanged Bronze Bushing (0.75 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.GENERIC },
+                            "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_75_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1_2", "vendor" : "WCP" }, "name" : "1/2 in Round Flanged Bronze Bushing (0.75 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_2, "vendor" : BushingVendor.WCP },
+                        },
+                    },
+                    "3/8 in" : {
+                        "name" : "vendor",
+                        "displayName" : "Vendor",
+                        "entries" : {
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_625_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_8", "vendor" : "GENERIC" }, "name" : "3/8 in Round Flanged Bronze Bushing (0.625 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.GENERIC },
+                            "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_625_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_8", "vendor" : "WCP" }, "name" : "3/8 in Round Flanged Bronze Bushing (0.625 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_8, "vendor" : BushingVendor.WCP },
+                        },
+                    },
+                    "1/4 in" : {
+                        "name" : "vendor",
+                        "displayName" : "Vendor",
+                        "entries" : {
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_5_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1_4", "vendor" : "GENERIC" }, "name" : "1/4 in Round Flanged Bronze Bushing (0.5 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_4, "vendor" : BushingVendor.GENERIC },
+                            "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_5_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1_4", "vendor" : "WCP" }, "name" : "1/4 in Round Flanged Bronze Bushing (0.5 in OD x 0.313 in)" }, "size" : BushingSize.IN_1_4, "vendor" : BushingVendor.WCP },
+                        },
+                    },
                     "3/4 in" : {
                         "name" : "dimensions",
                         "displayName" : "Dimensions",
                         "entries" : {
+                            "0.875 in OD x 0.313 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_875_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_0_875_X_0_313", "vendor" : "GENERIC" }, "name" : "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
+                                    "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_875_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_0_875_X_0_313", "vendor" : "WCP" }, "name" : "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.WCP },
+                                },
+                            },
                             "1 in OD x 0.563 in (1.125 in step)" : {
                                 "name" : "vendor",
                                 "displayName" : "Vendor",
                                 "entries" : {
-                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
-                                    "REV" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "REV" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.REV },
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP", "vendor" : "GENERIC" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
+                                    "REV" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP", "vendor" : "REV" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.REV },
                                 },
                             },
                             "1.125 in OD x 0.333 in" : {
                                 "name" : "vendor",
                                 "displayName" : "Vendor",
                                 "entries" : {
-                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_125_X_0_333" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
-                                    "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_3_4" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.THRIFTYBOT },
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_125_X_0_333", "vendor" : "GENERIC" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_125_X_0_333", "vendor" : "THRIFTYBOT" }, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.THRIFTYBOT },
                                 },
                             },
                         },
@@ -1307,16 +1367,30 @@ export const bushingTable = {
                         "name" : "vendor",
                         "displayName" : "Vendor",
                         "entries" : {
-                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_7_8" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.GENERIC },
-                            "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_7_8" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.THRIFTYBOT },
+                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_7_8", "vendor" : "GENERIC" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.GENERIC },
+                            "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_7_8", "vendor" : "THRIFTYBOT" }, "name" : "7/8 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_7_8, "vendor" : BushingVendor.THRIFTYBOT },
                         },
                     },
                     "1 in" : {
-                        "name" : "vendor",
-                        "displayName" : "Vendor",
+                        "name" : "dimensions",
+                        "displayName" : "Dimensions",
                         "entries" : {
-                            "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "GENERIC", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_1" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.GENERIC },
-                            "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "vendor" : "THRIFTYBOT", "material" : "BRONZE", "bore" : "ROUND", "size" : "IN_1" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.THRIFTYBOT },
+                            "1.125 in OD x 0.313 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1", "dimensions" : "OD_1_125_X_0_313", "vendor" : "GENERIC" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.313 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.GENERIC },
+                                    "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1", "dimensions" : "OD_1_125_X_0_313", "vendor" : "WCP" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.313 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.WCP },
+                                },
+                            },
+                            "1.125 in OD x 0.333 in" : {
+                                "name" : "vendor",
+                                "displayName" : "Vendor",
+                                "entries" : {
+                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1", "dimensions" : "OD_1_125_X_0_333", "vendor" : "GENERIC" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.GENERIC },
+                                    "ThriftyBot" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_125_X_0_333, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_1", "dimensions" : "OD_1_125_X_0_333", "vendor" : "THRIFTYBOT" }, "name" : "1 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)" }, "size" : BushingSize.IN_1, "vendor" : BushingVendor.THRIFTYBOT },
+                                },
+                            },
                         },
                     },
                 },

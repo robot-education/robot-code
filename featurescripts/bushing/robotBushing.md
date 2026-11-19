@@ -50,4 +50,4 @@ Bore fit; Position):
 ## Issues found
 
 - None of the geometry has run in Onshape.
-- Only the bushings the set offers: WCP's and VEX's wait for their flanges (see `../bushings/bushings.md`).
+- Only the bushings the set offers (see `../bushings/bushings.md`).
