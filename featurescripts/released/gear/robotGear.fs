@@ -218,6 +218,9 @@ const RACK_STOP_DISTANCE_BOUNDS = { (meter) : [-500, 0.0254, 500], (inch) : 1, (
 const HELIX_ANGLE_BOUNDS = { (degree) : [5, 15, 45] } as AngleBoundSpec;
 const SHAFT_ANGLE_BOUNDS = { (degree) : [10, 90, 170] } as AngleBoundSpec;
 
+// What shapes a gear's teeth, for an error building them
+const GEAR_TEETH_PARAMETERS = ["teeth", "rootFillet", "bitDiameter", "profileOffsetDistance", "helixAngle"];
+
 const RACK_END_MANIPULATOR = "rackEnd";
 const RACK_STOP_MANIPULATOR = "rackStop";
 
@@ -242,11 +245,20 @@ predicate isGear(definition is map)
 }
 
 /**
- * What has a bore: a spur or bevel gear (and its mate), or an internal gear's pinion, made with it (with Gear pair).
+ * A spur or bevel gear, which has a bore: not a rack or an internal gear (whose pinion has its own, with Gear pair).
  */
-predicate hasBore(definition is map)
+predicate isExternalGear(definition is map)
 {
-    definition.gearType == GearType.GEAR || definition.gearType == GearType.BEVEL || (definition.gearType == GearType.INTERNAL && definition.gearPair);
+    definition.gearType == GearType.GEAR || definition.gearType == GearType.BEVEL;
+}
+
+/**
+ * A gear pair's mate with its own bore (`mateBorePredicate`): an internal gear's pinion (its ring has none), or a spur
+ * or bevel gear's mate without Use gear's bore.
+ */
+predicate hasMateBore(definition is map)
+{
+    definition.gearType == GearType.INTERNAL || !definition.mateUsesGearBore;
 }
 
 /**
@@ -528,6 +540,12 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
+        // A spur or bevel gear's, and its mate's (by default); an internal gear's pinion's is in Gear pair
+        if (isExternalGear(definition))
+        {
+            borePredicate(definition);
+        }
+
         if (isGear(definition))
         {
             annotation { "Name" : "Gear pair", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -562,14 +580,20 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
 
                         angleOffsetPredicate(definition);
                     }
+
+                    // The gear's, or its own
+                    if (definition.gearType != GearType.INTERNAL)
+                    {
+                        annotation { "Name" : "Use gear's bore", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                        definition.mateUsesGearBore is boolean;
+                    }
+
+                    if (hasMateBore(definition))
+                    {
+                        mateBorePredicate(definition);
+                    }
                 }
             }
-        }
-
-        // A spur or bevel gear's (and its mate's), or an internal gear's pinion's: the ring has none
-        if (hasBore(definition))
-        {
-            borePredicate(definition);
         }
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
@@ -654,7 +678,15 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             }
         }
 
-        const bore = hasBore(definition) ? definitionBore(definition) : undefined;
+        // The gear's (not an internal gear's ring's), and its mate's: the gear's, or its own
+        const bores = [isExternalGear(definition) ? definitionBore(definition) : undefined,
+                hasMateBore(definition) ? definitionMateBore(definition) : definitionBore(definition)];
+        // Each one's teeth, for the bore's warning
+        const teethParameters = ["teeth", switch (definition.gearType) {
+                        GearType.BEVEL : "bevelMateTeeth",
+                        GearType.INTERNAL : "internalMateTeeth",
+                        GearType.GEAR : "mateTeeth"
+                    }];
         for (var i, built in gears)
         {
             if (definition.addMateConnectors)
@@ -664,16 +696,16 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                             "owner" : built.body
                         });
             }
-            // Not an internal gear's ring
-            if (bore != undefined && built.hubRadius != undefined)
+            const bore = bores[i];
+            if (bore != undefined)
             {
-                cutBores(context, id + ("bore" ~ (i == 0 ? "" : i)), bore, [built.plane], [undefined], [built.body]);
+                cutBores(context, id + ("bore" ~ (i == 0 ? "" : i)), bore, [built.plane], [undefined], [built.body], built.rebuild);
                 if (warning == undefined && boreReach(bore) >= built.hubRadius)
                 {
                     warning = {
                             "message" : "Bore cuts into " ~ (i == 0 ? "gear" : "mating gear") ~ " teeth, decrease bore size" ~
                                 (definition.gearType == GearType.BEVEL ? " or thickness, or increase teeth." : " or increase teeth."),
-                            "parameters" : ["boreHexSize", "hexWidth", "boreDiameter", "splineType", "teeth", "thickness"]
+                            "parameters" : concatenateArrays([bore.parameters, [teethParameters[i], "thickness"]])
                         };
                 }
             }
@@ -736,11 +768,20 @@ function rootFilletSize(definition is map)
  *      @field hubRadius {ValueWithUnits} : How far out it's solid all the way through, for its bore: its root, or a
  *              bevel gear's at its top face. Not an internal gear's, which has no bore.
  *      @field outsideRadius {ValueWithUnits} : An internal gear's ring's (see `internalRingRadius`).
+ *      @field rebuild {function} : Builds it again under the `Id` it's given, to show if its bore uses it up (see
+ *              `cutBores`).
  * }}
  */
 function buildGear(context is Context, featureId is Id, id is Id, definition is map, gearPlane is Plane, module is ValueWithUnits, teeth is number) returns map
 {
-    var result = { "plane" : gearPlane, "connector" : coordSystem(gearPlane) };
+    var result = {
+        "plane" : gearPlane,
+        "connector" : coordSystem(gearPlane),
+        "rebuild" : function(rebuildId is Id)
+            {
+                buildGear(context, featureId, rebuildId, definition, gearPlane, module, teeth);
+            }
+    };
     if (definition.gearType == GearType.BEVEL)
     {
         const bevel = buildBevelGear(context, featureId, id, definition, gearPlane, module, teeth);
@@ -764,8 +805,8 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
             throw regenError("Outside diameter is too small, increase the value.", ["outsideDiameter"]);
         }
         result.outsideRadius = form.outsideRadius;
+        checkBitSlots(context, id, definition, gearPlane, form, undefined);
         result.body = buildInternalGearBody(context, id, definition, gearPlane, form);
-        checkBitSlots(context, id, definition, gearPlane, form, result.body, undefined);
     }
     else
     {
@@ -776,10 +817,10 @@ function buildGear(context is Context, featureId is Id, id is Id, definition is 
             form.contactRadius = internalMesh(module, definition.ringTeeth, teeth, pressureAngle(definition)).mateContactRadius;
         }
         result.hubRadius = form.rootRadius;
+        checkBitSlots(context, id, definition, gearPlane, form, undefined);
         const profile = sketchGearProfile(context, id + "profile", gearPlane, form, undefined);
         result.body = buildGearBody(context, id, definition, gearPlane, profile, form);
         cleanup(context, id + "deleteSketch", qCreatedBy(id + "profile", EntityType.BODY));
-        checkBitSlots(context, id, definition, gearPlane, form, result.body, undefined);
     }
     setGearProperties(context, result.body, definition, teeth);
     return result;
@@ -823,19 +864,33 @@ function buildInternalGearBody(context is Context, id is Id, definition is map, 
             });
     const ring = qCreatedBy(id + "ring", EntityType.BODY);
     cleanup(context, id + "deleteSketch", qUnion([qCreatedBy(id + "profile", EntityType.BODY), qCreatedBy(id + "ringSketch", EntityType.BODY)]));
-    opBoolean(context, id + "joinRing", {
-                "tools" : qUnion([teeth, ring]),
-                "operationType" : BooleanOperationType.UNION
-            });
+    try
+    {
+        opBoolean(context, id + "joinRing", {
+                    "tools" : qUnion([teeth, ring]),
+                    "operationType" : BooleanOperationType.UNION
+                });
+    }
+    catch
+    {
+        // A failed boolean changes nothing, so both are still there to show
+        throw regenError("Failed to create gear teeth.", GEAR_TEETH_PARAMETERS, qUnion([teeth, ring]));
+    }
     return qUnion([teeth, ring]);
 }
 
 /**
  * Errors if a router bit's slots (see `gearRoot`, or an internal gear's `internalRoot`) cut into the teeth's flanks
- * where a mating gear's teeth touch them, showing the gear (`body`, built from `form` on `gearPlane`) in blue, and what
- * its slots cut from its teeth in red: the same teeth with sharp roots, less the gear.
+ * where a mating gear's teeth touch them (`tooLarge`). It's checked from `form` alone, before anything of the gear is
+ * built: a bit that much too wide can cut its gaps' slots into each other, leaving a profile its teeth can't be built
+ * from. So what's shown is built for the error, from scratch, without booleans (nothing it builds can fail as the
+ * gear's own teeth would):
+ *
+ * 1. The teeth with sharp roots (`form`'s, on `gearPlane`; a sector of `sectorTeeth`, if it's given), in blue.
+ * 2. The bit's slots, in red: its path down a gap's middle, from its round end on the root circle out to the tip
+ *    circle (in, an internal gear's), built once down the plane's x axis, then patterned to each gap's middle.
  */
-function checkBitSlots(context is Context, id is Id, definition is map, gearPlane is Plane, form is map, body is Query, sectorTeeth)
+function checkBitSlots(context is Context, id is Id, definition is map, gearPlane is Plane, form is map, sectorTeeth)
 {
     const internal = form.internal != undefined;
     const slot = form.filletRadius == undefined ? undefined : (internal ? internalRoot(form) : gearRoot(form)).slot;
@@ -843,28 +898,60 @@ function checkBitSlots(context is Context, id is Id, definition is map, gearPlan
     {
         return;
     }
-    var sharp;
-    var profile;
+    // 1. The teeth with sharp roots
+    var teeth;
     if (internal)
     {
-        sharp = getInternalGearForm(form.module, form.teeth, form.mateTeeth, form.pressureAngle, 0, form.offset);
+        var sharp = getInternalGearForm(form.module, form.teeth, form.mateTeeth, form.pressureAngle, 0, form.offset);
         sharp.outsideRadius = form.outsideRadius;
-        profile = sketchInternalGearProfile(context, id + "sharpProfile", gearPlane, sharp);
+        teeth = buildInternalGearBody(context, id + "sharp", definition, gearPlane, sharp);
     }
     else
     {
-        sharp = getGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
-        profile = sketchGearProfile(context, id + "sharpProfile", gearPlane, sharp, sectorTeeth);
+        const sharp = getGearForm(form.module, form.teeth, form.pressureAngle, 0, form.offset);
+        const profile = sketchGearProfile(context, id + "sharpProfile", gearPlane, sharp, sectorTeeth);
+        teeth = buildGearBody(context, id + "sharp", definition, gearPlane, profile, sharp);
     }
-    const slots = buildGearBody(context, id + "sharp", definition, gearPlane, profile, sharp);
-    opBoolean(context, id + "slots", {
-                "targets" : slots,
-                "tools" : body,
-                "operationType" : BooleanOperationType.SUBTRACTION,
-                "keepTools" : true
-            });
-    addDebugEntities(context, body, DebugColor.BLUE);
-    throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], slots);
+    addDebugEntities(context, teeth, DebugColor.BLUE);
+
+    // 2. A slot down the gap on the x axis: its round end on the root circle, and its sides out to the tips (none, if
+    // its round end reaches past them)
+    const slotId = id + "slots";
+    const radius = form.filletRadius;
+    // Out along the gap, from the root toward the tips
+    const out = internal ? -1 : 1;
+    const center = form.rootRadius + out * radius;
+    const top = internal ? min(form.tipRadius, center) : max(form.tipRadius, center);
+    const sketch = newSketchOnPlane(context, slotId + "sketch", { "sketchPlane" : gearPlane });
+    if (tolerantEquals(top, center))
+    {
+        skCircle(sketch, "end", { "center" : vector(center, 0 * meter), "radius" : radius });
+    }
+    else
+    {
+        skArc(sketch, "end", { "start" : vector(center, -radius), "mid" : vector(center - out * radius, 0 * meter), "end" : vector(center, radius) });
+        skLineSegment(sketch, "left", { "start" : vector(center, radius), "end" : vector(top, radius) });
+        skLineSegment(sketch, "top", { "start" : vector(top, radius), "end" : vector(top, -radius) });
+        skLineSegment(sketch, "right", { "start" : vector(top, -radius), "end" : vector(center, -radius) });
+    }
+    skSolve(sketch);
+    const slotBody = buildGearBody(context, slotId + "body", definition, gearPlane, qCreatedBy(slotId + "sketch", EntityType.FACE), form);
+    // Turned to each gap's middle: half a tooth from each tooth, all the way around, or a sector's, from the gap before
+    // its first tooth to the one after its last
+    const toothAngle = 360 * degree / form.teeth;
+    const count = sectorTeeth == undefined ? form.teeth : sectorTeeth + 1;
+    const first = sectorTeeth == undefined ? toothAngle / 2 : -sectorTeeth / 2 * toothAngle;
+    var transforms = [];
+    var names = [];
+    for (var k = 0; k < count; k += 1)
+    {
+        transforms = append(transforms, rotationAround(line(gearPlane.origin, gearPlane.normal), first + k * toothAngle));
+        names = append(names, "slot" ~ k);
+    }
+    opPattern(context, slotId + "pattern", { "entities" : slotBody, "transforms" : transforms, "instanceNames" : names });
+    // The first, down a tooth's middle
+    opDeleteBodies(context, slotId + "deleteFirst", { "entities" : slotBody });
+    throw regenError("Bit diameter is too large for the tooth profile.", ["bitDiameter"], qCreatedBy(slotId + "pattern", EntityType.BODY));
 }
 
 /**
@@ -1584,14 +1671,22 @@ function buildGearBody(context is Context, id is Id, definition is map, gearPlan
 {
     if (!definition.helical)
     {
-        opExtrude(context, id + "extrude", {
-                    "entities" : profile,
-                    "direction" : gearPlane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : definition.thickness / 2,
-                    "startBound" : BoundingType.BLIND,
-                    "startDepth" : definition.thickness / 2
-                });
+        try
+        {
+            opExtrude(context, id + "extrude", {
+                        "entities" : profile,
+                        "direction" : gearPlane.normal,
+                        "endBound" : BoundingType.BLIND,
+                        "endDepth" : definition.thickness / 2,
+                        "startBound" : BoundingType.BLIND,
+                        "startDepth" : definition.thickness / 2
+                    });
+        }
+        catch
+        {
+            // A failed extrude changes nothing, so the profile is still there to show
+            throw regenError("Failed to create gear teeth.", GEAR_TEETH_PARAMETERS, profile);
+        }
         return qCreatedBy(id + "extrude", EntityType.BODY);
     }
     // How far along the axis the teeth go to turn once: the pitch circle's circumference over the helix angle's tangent
@@ -1599,29 +1694,37 @@ function buildGearBody(context is Context, id is Id, definition is map, gearPlan
     // A right hand helix turns clockwise looking along it, either way
     const right = definition.hand == GearHand.RIGHT;
     var halves = [];
-    for (var half in ["up", "down"])
+    try
     {
-        const halfId = id + half;
-        opHelix(context, halfId + "helix", {
-                    "direction" : gearPlane.normal * (half == "up" ? 1 : -1),
-                    "axisStart" : gearPlane.origin,
-                    "startPoint" : gearPlane.origin + gearPlane.x * form.pitchRadius,
-                    "interval" : [0, definition.thickness / 2 / lead],
-                    "clockwise" : half == "down" && definition.doubleHelical ? !right : right,
-                    "helicalPitch" : lead,
-                    "spiralPitch" : 0 * meter
+        for (var half in ["up", "down"])
+        {
+            const halfId = id + half;
+            opHelix(context, halfId + "helix", {
+                        "direction" : gearPlane.normal * (half == "up" ? 1 : -1),
+                        "axisStart" : gearPlane.origin,
+                        "startPoint" : gearPlane.origin + gearPlane.x * form.pitchRadius,
+                        "interval" : [0, definition.thickness / 2 / lead],
+                        "clockwise" : half == "down" && definition.doubleHelical ? !right : right,
+                        "helicalPitch" : lead,
+                        "spiralPitch" : 0 * meter
+                    });
+            opSweep(context, halfId + "sweep", {
+                        "profiles" : profile,
+                        "path" : qCreatedBy(halfId + "helix", EntityType.EDGE)
+                    });
+            halves = append(halves, qCreatedBy(halfId + "sweep", EntityType.BODY));
+        }
+        cleanup(context, id + "deleteHelices", qUnion([qCreatedBy(id + "up" + "helix", EntityType.BODY), qCreatedBy(id + "down" + "helix", EntityType.BODY)]));
+        opBoolean(context, id + "join", {
+                    "tools" : qUnion(halves),
+                    "operationType" : BooleanOperationType.UNION
                 });
-        opSweep(context, halfId + "sweep", {
-                    "profiles" : profile,
-                    "path" : qCreatedBy(halfId + "helix", EntityType.EDGE)
-                });
-        halves = append(halves, qCreatedBy(halfId + "sweep", EntityType.BODY));
     }
-    cleanup(context, id + "deleteHelices", qUnion([qCreatedBy(id + "up" + "helix", EntityType.BODY), qCreatedBy(id + "down" + "helix", EntityType.BODY)]));
-    opBoolean(context, id + "join", {
-                "tools" : qUnion(halves),
-                "operationType" : BooleanOperationType.UNION
-            });
+    catch
+    {
+        // The profile, which sweeping leaves as it was, shows what failed
+        throw regenError("Failed to create gear teeth.", GEAR_TEETH_PARAMETERS, profile);
+    }
     return qUnion(halves);
 }
 
@@ -2045,11 +2148,11 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
 
     // The teeth, centered on the face's width, their middle (a tooth, or a sector's middle) on the plane's x axis
     const gearPlane = plane(middlePoint, frame.zAxis, around(middle));
-    const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sectorTeeth);
     var gearDefinition = definition;
     gearDefinition.thickness = width;
+    checkBitSlots(context, id + "teeth", gearDefinition, gearPlane, form, sectorTeeth);
+    const profile = sketchGearProfile(context, id + "profile", gearPlane, form, sectorTeeth);
     const teethBody = buildGearBody(context, id + "teeth", gearDefinition, gearPlane, profile, form);
-    checkBitSlots(context, id + "teeth", gearDefinition, gearPlane, form, teethBody, sectorTeeth);
 
     // Around them: out past their tips, down to their root, across the face's angles
     const outside = tipRadius + module;

@@ -423,14 +423,18 @@ def test_internal_router_bit_too_wide_for_the_root_cuts_a_slot():
     assert not slot["tooLarge"] and slot["exitRadius"] > form["pitchRadius"]
 
 
-def test_internal_router_bit_too_wide_for_the_gap_at_the_pitch_circle():
-    # A 1/8 in. bit's slots cut a 20 DP internal gear's flanks inside its pitch circle (its gaps are about 0.08 in. wide
-    # there)
-    slot = internal_root(40, "inch / 16")["slot"]
-    assert slot["tooLarge"] and slot["exitRadius"] < 40 * 0.0254 / 40
-    # Its profile still closes, for showing what the slots cut
-    sketch, _ = internal_gear_profile(40, fillet="inch / 16")
-    assert all(loop.closed for loop in sketch.loops())
+@pytest.mark.parametrize("teeth,fillet", [(40, "inch / 16"), (72, "inch / 8"), (72, "inch / 4"), (72, "inch")])
+def test_internal_router_bit_too_wide_for_the_gap_at_the_pitch_circle(teeth, fillet):
+    # 1/8 in. bits and wider cut a 20 DP internal gear's flanks inside its pitch circle (its gaps are about 0.08 in. wide
+    # there), however much wider: its slots' sides, or its round end, reaching in past the tips
+    assert internal_root(teeth, fillet)["slot"]["tooLarge"]
+
+
+@pytest.mark.parametrize("fillet", ["inch / 16", "inch / 8", "inch / 4", "inch"])
+def test_router_bit_too_wide_for_the_gap_at_the_pitch_circle(fillet):
+    # Likewise a 60T 20 DP gear's, whose slots cross each other's from 3/16 in. (0.15 in. between gaps at its root)
+    form = f"getGearForm(inch / 20, 60, 14.5 * degree, {fillet}, 0 * meter)"
+    assert to_python(shared_evaluator().eval(f"gearRoot({form}).slot.tooLarge", "released/gear/gearCommon.fs"))
 
 
 def test_internal_gear_profile_offset_grows_its_teeth():

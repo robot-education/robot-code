@@ -1498,7 +1498,9 @@ const INTERNAL_SLOT_END_SAMPLES = 32;
  * halving the range), and has no side.
  *
  * It's `tooLarge` if it meets the flank inside the pitch circle: the bit's wider than the gap there (as wide as a
- * tooth, half the circular pitch), so it cuts into the middle of the flank, where meshing teeth always touch.
+ * tooth, half the circular pitch), so it cuts into the middle of the flank, where meshing teeth always touch. A bit
+ * that wide is found first, and its slot's points are only its round end's center's side, as nothing's built from
+ * them (see `checkBitSlots`).
  *
  * @returns {{
  *      @field middle {Vector} : The middle of its round end, from the root circle to its side (or its exit).
@@ -1515,6 +1517,14 @@ export function internalSlot(form is map, radius is ValueWithUnits) returns map
         {
             return at * sin(internalGapHalfAngle(form, at));
         };
+    const center = vector(form.rootRadius - radius, 0 * meter);
+    if (halfWidth(form.pitchRadius) <= radius)
+    {
+        // Wider than the gap at the pitch circle: too large, wherever it meets the flank (its end can reach in past
+        // the tips, where the rest of this doesn't apply), its side straight out from its end's center
+        const side = center + vector(0 * meter, radius);
+        return { "middle" : center + vector(cos(45 * degree), sin(45 * degree)) * radius, "side" : side, "exit" : side, "exitRadius" : norm(side), "tooLarge" : true };
+    }
     var exitRadius = form.tipRadius;
     if (halfWidth(form.tipRadius) > radius)
     {
@@ -1523,7 +1533,6 @@ export function internalSlot(form is map, radius is ValueWithUnits) returns map
         exitRadius = internalHalving(tip, root, at => halfWidth(at * meter) < radius) * meter;
     }
     // Its round end, from the root circle (at 0) to its side (at 90°)
-    const center = vector(form.rootRadius - radius, 0 * meter);
     const endAt = function(angle is ValueWithUnits) returns Vector
         {
             return center + vector(cos(angle), sin(angle)) * radius;

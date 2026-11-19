@@ -55,6 +55,22 @@ export predicate boreFitPredicate(definition is map)
 }
 
 /**
+ * The fit of a feature's second bore (a gear pair's mating gear's, when it has its own): `mateFit`, and
+ * `mateFitClearance` for a custom fit.
+ */
+export predicate mateBoreFitPredicate(definition is map)
+{
+    annotation { "Name" : "Fit", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+    definition.mateFit is Fit;
+
+    if (definition.mateFit == Fit.CUSTOM)
+    {
+        annotation { "Name" : "Clearance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        isLength(definition.mateFitClearance, FIT_CLEARANCE_BOUNDS);
+    }
+}
+
+/**
  * The clearance of the fit `fitPredicate` declares, for a profile `across` wide (see `standardFitClearance`).
  */
 export function fitClearance(definition is map, across is ValueWithUnits) returns ValueWithUnits
