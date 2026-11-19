@@ -646,6 +646,25 @@ export function rackRootFilletRadius(form is map) returns ValueWithUnits
 }
 
 /**
+ * A router bit's slot in a rack's gap whose middle is at `x`, as a region `rackCutRegions` would give (the face on the x
+ * axis, its part toward -y, the pitch line `faceHeight` below it): its path down the gap's middle, its round end (of
+ * the bit's radius, `form.filletRadius`) on the root, its sides up to the face (or, if its round end reaches past it,
+ * its whole round end), for showing what a bit too large for the teeth cuts (`rackBitTooLarge`).
+ */
+export function rackSlotRegion(form is map, faceHeight is ValueWithUnits, x is ValueWithUnits) returns array
+{
+    const radius = form.filletRadius;
+    const center = rackRoot(form) - faceHeight + radius;
+    if (center >= -TOLERANCE.zeroLength * meter)
+    {
+        // Its round end, whole
+        return [vector(x - radius, center), { "mid" : vector(x, center - radius) }, vector(x + radius, center), { "mid" : vector(x, center + radius) }];
+    }
+    return [vector(x - radius, 0 * meter), vector(x - radius, center), { "mid" : vector(x, center - radius) }, vector(x + radius, center),
+            vector(x + radius, 0 * meter)];
+}
+
+/**
  * Whether a router bit's slots (see `relieveRackRoots`) cut a rack's teeth's flanks above its pitch line, as a gear's
  * mustn't above its pitch circle (see `gearSlot`). With no slots (its fillets fit across the floor), they don't. Worked
  * out from the form, as every gap between teeth is the same: its floor's half width `f`, and the corners between it
@@ -881,15 +900,12 @@ export function sketchRackCut(context is Context, id is Id, plane is Plane, regi
 /**
  * A straight bevel gear's cones, for `teeth` meshing with `mateTeeth` with their shafts `shaftAngle` apart: its pitch
  * cone's angle from its axis, its pitch circle's radius (at its back), the cone distance (along its pitch cone, from
- * its apex to that circle), and its virtual teeth, for Tredgold's approximation: its teeth as a spur gear's on its back
- * cone (the cone square to its pitch cone at its back), whose radius is the pitch radius over the pitch angle's cosine:
- * a spur gear with `teeth / cos(pitchAngle)` teeth, not a whole number.
+ * its apex to that circle).
  *
  * @returns {{
  *      @field pitchAngle {ValueWithUnits} :
  *      @field pitchRadius {ValueWithUnits} :
  *      @field coneDistance {ValueWithUnits} :
- *      @field virtualTeeth {number} :
  * }}
  */
 export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits) returns map
@@ -899,8 +915,7 @@ export function bevelCones(module is ValueWithUnits, teeth is number, mateTeeth 
     return {
             "pitchAngle" : pitchAngle,
             "pitchRadius" : pitchRadius,
-            "coneDistance" : pitchRadius / sin(pitchAngle),
-            "virtualTeeth" : teeth / cos(pitchAngle)
+            "coneDistance" : pitchRadius / sin(pitchAngle)
         };
 }
 
@@ -1105,8 +1120,7 @@ function scaledCurves(curves is array, scale is number) returns array
  * Sketches the gap between two of a gear's teeth on `plane` (centered on the gear's center), scaled about its center by
  * `scale`, and returns its face: from its root (rounded as `halfGapCurves` rounds a gear's) to a module past the tip,
  * between the tooth centered on the plane's x axis and the next one around. For cutting a bevel gear's teeth, whose
- * `form` (a Tredgold virtual spur gear's, see `bevelCones`, or `sphericalBevelForm`) can have a fractional number of
- * teeth, at both ends of the gap.
+ * `form` (`sphericalBevelForm`'s) can have a fractional number of teeth, at both ends of the gap.
  */
 export function sketchToothGap(context is Context, id is Id, plane is Plane, form is map, scale is number) returns Query
 {

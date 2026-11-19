@@ -227,10 +227,9 @@ export function testRevolveAnglesAsStdRevolve()
 }
 
 /**
- * A 20 DP bevel gear's definition, meshing with `mateTeeth` at `shaftAngle`, `thickness` thick: Simplified bevels (a
- * spur gear's proportions), or Gleason's.
+ * A 20 DP bevel gear's definition, meshing with `mateTeeth` at `shaftAngle`, `thickness` thick.
  */
-function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits, simplified is boolean) returns map
+function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
 {
     return {
             "gearType" : GearType.BEVEL,
@@ -238,7 +237,6 @@ function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thic
             "mateTeeth" : mateTeeth,
             "shaftAngle" : shaftAngle,
             "thickness" : thickness,
-            "bevelProfile" : simplified ? BevelProfile.APPROXIMATE : BevelProfile.EXACT,
             "flatTop" : false,
             "addProfileOffset" : false
         };
@@ -247,18 +245,17 @@ function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thic
 /**
  * A 20 DP bevel gear's shape (see `bevelDefinition`), with `teeth`.
  */
-function bevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits, simplified is boolean) returns map
+function bevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
 {
-    return bevelShape(bevelDefinition(mateTeeth, shaftAngle, thickness, simplified), MODULE, teeth);
+    return bevelShape(bevelDefinition(mateTeeth, shaftAngle, thickness), MODULE, teeth);
 }
 
 export function testBevelThicknessRunsFromItsBackToItsTop()
 {
     // 45 degree cones: the apex is a pitch radius (half an inch) above the back's pitch circle
-    const shape = bevel(20, 20, 90 * degree, 0.25 * inch, true);
+    const shape = bevel(20, 20, 90 * degree, 0.25 * inch);
     expectNear(shape.apex, 0.5 * inch, 1e-9 * meter);
-    // Its flat back is under its teeth's roots, along the back cone
-    expectNear(shape.bottom, -1.25 * MODULE * sin(45 * degree), 1e-9 * meter);
+    // Its flat back is under its teeth's roots, along the back cone (see testGleasonBevelsBackIsUnderItsDeeperRoots)
     expectNear(shape.top - shape.bottom, 0.25 * inch, 1e-9 * meter);
     // Its teeth run along the pitch cone to its top
     expectNear(shape.faceWidth * cos(45 * degree), shape.top, 1e-9 * meter);
@@ -267,7 +264,7 @@ export function testBevelThicknessRunsFromItsBackToItsTop()
 export function testGleasonBevelsBackIsUnderItsDeeperRoots()
 {
     // A miter pair's teeth are a module each side of the pitch cone, and 0.188 m (and Gleason's allowance) deeper
-    const shape = bevel(20, 20, 90 * degree, 0.25 * inch, false);
+    const shape = bevel(20, 20, 90 * degree, 0.25 * inch);
     expectNear(shape.depths.addendum, MODULE, 1e-12 * meter);
     expectNear(shape.bottom, -(1.188 * MODULE + 0.002 * inch) * sin(45 * degree), 1e-12 * meter);
     expectNear(shape.top - shape.bottom, 0.25 * inch, 1e-9 * meter);
@@ -275,7 +272,7 @@ export function testGleasonBevelsBackIsUnderItsDeeperRoots()
 
 export function testBevelGearsPointsAreItsBottomMiddleTopAndApex()
 {
-    const definition = bevelDefinition(20, 90 * degree, 0.25 * inch, false);
+    const definition = bevelDefinition(20, 90 * degree, 0.25 * inch);
     const shape = bevelShape(definition, MODULE, 20);
     const points = gearPointDistances(definition, MODULE, 20);
     expectEqual(size(points), 4);
@@ -295,24 +292,18 @@ export function testSpurGearsPointsStartAtItsBottom()
 
 export function testBevelGearTooThinForItsTeeth()
 {
-    for (var simplified in [true, false])
-    {
-        expectContains(expectThrows(function()
-                {
-                    bevel(20, 20, 90 * degree, 0.05 * inch, simplified);
-                }), "Thickness is too small");
-    }
+    expectContains(expectThrows(function()
+            {
+                bevel(20, 20, 90 * degree, 0.05 * inch);
+            }), "Thickness is too small");
 }
 
 export function testBevelGearTooThickReachesItsApex()
 {
-    for (var simplified in [true, false])
-    {
-        expectContains(expectThrows(function()
-                {
-                    bevel(20, 20, 90 * degree, 0.6 * inch, simplified);
-                }), "thickness is too large");
-    }
+    expectContains(expectThrows(function()
+            {
+                bevel(20, 20, 90 * degree, 0.6 * inch);
+            }), "thickness is too large");
 }
 
 export function testBevelGearTooThinForItsMatesTeeth()
@@ -320,15 +311,9 @@ export function testBevelGearTooThinForItsMatesTeeth()
     // The pinion's thick enough for its own steep teeth, but its mate's, nearly flat, need a longer face
     expectContains(expectThrows(function()
             {
-                bevel(10, 40, 90 * degree, 0.15 * inch, true);
+                bevel(10, 40, 90 * degree, 0.12 * inch);
             }), "Thickness is too small");
-    bevel(10, 40, 90 * degree, 0.25 * inch, true);
-    // By Gleason's proportions, the mate's teeth are shorter (and the pinion's longer)
-    expectContains(expectThrows(function()
-            {
-                bevel(10, 40, 90 * degree, 0.12 * inch, false);
-            }), "Thickness is too small");
-    bevel(10, 40, 90 * degree, 0.15 * inch, false);
+    bevel(10, 40, 90 * degree, 0.15 * inch);
 }
 
 export function testBevelGearsFaceConeCantBeFlat()
@@ -336,18 +321,18 @@ export function testBevelGearsFaceConeCantBeFlat()
     // Its pitch cone's under 90 degrees, but its tips' isn't
     expectContains(expectThrows(function()
             {
-                bevel(60, 10, 100 * degree, 0.25 * inch, false);
+                bevel(60, 10, 100 * degree, 0.25 * inch);
             }), "too large for a bevel gear");
     expectContains(expectThrows(function()
             {
-                bevel(10, 60, 100 * degree, 0.25 * inch, false);
+                bevel(10, 60, 100 * degree, 0.25 * inch);
             }), "too large for a bevel mating gear");
 }
 
 export function testBevelMateHasTheGearsFaceWidth()
 {
-    const gear = bevel(10, 40, 90 * degree, 0.25 * inch, false);
-    var definition = bevelDefinition(10, 90 * degree, 0.25 * inch, false);
+    const gear = bevel(10, 40, 90 * degree, 0.25 * inch);
+    var definition = bevelDefinition(10, 90 * degree, 0.25 * inch);
     definition.faceWidth = gear.faceWidth;
     const mate = bevelShape(definition, MODULE, 40);
     expectNear(mate.faceWidth, gear.faceWidth, 1e-12 * meter);
@@ -356,7 +341,7 @@ export function testBevelMateHasTheGearsFaceWidth()
 
 export function testBevelSectionIsCutOffByItsTop()
 {
-    const gear = bevel(20, 30, 90 * degree, 0.3 * inch, false);
+    const gear = bevel(20, 30, 90 * degree, 0.3 * inch);
     expectNear(gear.topFace, gear.top, 1e-12 * meter);
     const outline = bevelSection(gear).outline;
     expectEqual(size(outline), 5);
@@ -368,9 +353,9 @@ export function testBevelSectionIsCutOffByItsTop()
 /**
  * A 20 DP bevel gear's shape with Flat top (see `bevelDefinition`), with `teeth`.
  */
-function flatTopBevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits, simplified is boolean) returns map
+function flatTopBevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
 {
-    var definition = bevelDefinition(mateTeeth, shaftAngle, thickness, simplified);
+    var definition = bevelDefinition(mateTeeth, shaftAngle, thickness);
     definition.flatTop = true;
     return bevelShape(definition, MODULE, teeth);
 }
@@ -381,46 +366,43 @@ export function testBevelFlatTopsTeethEndSquareToItsPitchConeOnItsTopFace()
     {
         for (var teeth in [[20, 30], [30, 20]])
         {
-            for (var simplified in [true, false])
+            const gear = flatTopBevel(teeth[0], teeth[1], shaftAngle, 0.25 * inch);
+            const pitchAngle = gear.cones.gear.pitchAngle;
+            const along = vector(-sin(pitchAngle), cos(pitchAngle));
+            const backPitch = vector(gear.cones.gear.pitchRadius, 0 * meter);
+            const frontPitch = backPitch + along * gear.faceWidth;
+            // Its tips at its front are Thickness above its bottom, and its roots there on its top face
+            expectNear(gear.top - gear.bottom, 0.25 * inch, 1e-12 * meter);
+            expectNear(gear.tipFront[1], gear.top, 1e-12 * meter);
+            expectNear(gear.rootFront[1], gear.topFace, 1e-12 * meter);
+            expectTrue(gear.topFace < gear.top, "its teeth stand above its top face");
+            // Its teeth's ends are square to its pitch cone, through its pitch circle a face width from its back's
+            expectNear(dot(gear.tipFront - frontPitch, along), 0 * meter, 1e-12 * meter);
+            expectNear(dot(gear.rootFront - frontPitch, along), 0 * meter, 1e-12 * meter);
+            // Its root runs straight to its apex
+            const toRoot = gear.rootFront - vector(0 * meter, gear.apex);
+            const toBackRoot = backPitch - vector(cos(pitchAngle), sin(pitchAngle)) * gear.depths.dedendum - vector(0 * meter, gear.apex);
+            expectNear(toRoot[0] * toBackRoot[1] - toRoot[1] * toBackRoot[0], 0 * meter * meter, 1e-15 * meter * meter);
+            const section = bevelSection(gear);
+            const outline = section.outline;
+            expectEqual(size(outline), 6);
+            expectNear(norm(outline[4] - vector(0 * meter, gear.topFace)), 0 * meter, 1e-12 * meter);
+            // What its gaps mustn't cut starts at its front cone, on its axis, and runs out past its tips
+            const solid = section.solid;
+            expectNear(solid[0][0], 0 * meter, 1e-12 * meter);
+            for (var point in [solid[0], solid[1]])
             {
-                const gear = flatTopBevel(teeth[0], teeth[1], shaftAngle, 0.25 * inch, simplified);
-                const pitchAngle = gear.cones.gear.pitchAngle;
-                const along = vector(-sin(pitchAngle), cos(pitchAngle));
-                const backPitch = vector(gear.cones.gear.pitchRadius, 0 * meter);
-                const frontPitch = backPitch + along * gear.faceWidth;
-                // Its tips at its front are Thickness above its bottom, and its roots there on its top face
-                expectNear(gear.top - gear.bottom, 0.25 * inch, 1e-12 * meter);
-                expectNear(gear.tipFront[1], gear.top, 1e-12 * meter);
-                expectNear(gear.rootFront[1], gear.topFace, 1e-12 * meter);
-                expectTrue(gear.topFace < gear.top, "its teeth stand above its top face");
-                // Its teeth's ends are square to its pitch cone, through its pitch circle a face width from its back's
-                expectNear(dot(gear.tipFront - frontPitch, along), 0 * meter, 1e-12 * meter);
-                expectNear(dot(gear.rootFront - frontPitch, along), 0 * meter, 1e-12 * meter);
-                // Its root runs straight to its apex
-                const toRoot = gear.rootFront - vector(0 * meter, gear.apex);
-                const toBackRoot = backPitch - vector(cos(pitchAngle), sin(pitchAngle)) * gear.depths.dedendum - vector(0 * meter, gear.apex);
-                expectNear(toRoot[0] * toBackRoot[1] - toRoot[1] * toBackRoot[0], 0 * meter * meter, 1e-15 * meter * meter);
-                const section = bevelSection(gear);
-                const outline = section.outline;
-                expectEqual(size(outline), 6);
-                expectNear(norm(outline[4] - vector(0 * meter, gear.topFace)), 0 * meter, 1e-12 * meter);
-                // What its gaps mustn't cut starts at its front cone, on its axis, and runs out past its tips
-                const solid = section.solid;
-                expectNear(solid[0][0], 0 * meter, 1e-12 * meter);
-                for (var point in [solid[0], solid[1]])
-                {
-                    expectNear(dot(point - frontPitch, along), 0 * meter, 1e-12 * meter);
-                }
-                expectTrue(norm(solid[1] - frontPitch) > norm(gear.tipFront - frontPitch), "past its tips");
+                expectNear(dot(point - frontPitch, along), 0 * meter, 1e-12 * meter);
             }
+            expectTrue(norm(solid[1] - frontPitch) > norm(gear.tipFront - frontPitch), "past its tips");
         }
     }
 }
 
 export function testBevelFlatTopsMateEndsAtTheSameConeDistance()
 {
-    const gear = flatTopBevel(20, 30, 90 * degree, 0.25 * inch, false);
-    var definition = bevelDefinition(20, 90 * degree, 0.25 * inch, false);
+    const gear = flatTopBevel(20, 30, 90 * degree, 0.25 * inch);
+    var definition = bevelDefinition(20, 90 * degree, 0.25 * inch);
     definition.flatTop = true;
     definition.faceWidth = gear.faceWidth;
     const mate = bevelShape(definition, MODULE, 30);
@@ -432,10 +414,10 @@ export function testBevelFlatTopsMateEndsAtTheSameConeDistance()
 export function testBevelFlatTopsTipsMustReachItsFrontCone()
 {
     // Nearly to its apex: its tips, coming down toward it, are below its pitch cone there
-    bevel(30, 20, 110 * degree, 0.3 * inch, false);
+    bevel(30, 20, 110 * degree, 0.3 * inch);
     expectContains(expectThrows(function()
             {
-                flatTopBevel(30, 20, 110 * degree, 0.3 * inch, false);
+                flatTopBevel(30, 20, 110 * degree, 0.3 * inch);
             }), "thickness is too large");
 }
 
@@ -474,17 +456,11 @@ export function testGleasonRatioAtOtherShaftAngles()
 export function testGleasonFaceConeIsParallelToItsMatesRootCone()
 {
     // Its tips' cone is as far from its pitch cone as its mate's roots' is, so the clearance between them is the same all along
-    const definition = bevelDefinition(31, 90 * degree, 0.25 * inch, false);
+    const definition = bevelDefinition(31, 90 * degree, 0.25 * inch);
     const cones = bevelPairCones(MODULE, 13, 31, 90 * degree);
     const depths = bevelDepths(definition, MODULE, 13, cones);
     const mate = gleasonProportions(MODULE, 31, 13, cones.mate.pitchAngle, cones.gear.pitchAngle, 20 * degree);
     expectNear(depths.faceAngle, atan(mate.dedendum / cones.gear.coneDistance), 1e-12 * degree);
-    // Simplified, its tips' cone runs to its apex
-    var simplified = definition;
-    simplified.bevelProfile = BevelProfile.APPROXIMATE;
-    const spur = bevelDepths(simplified, MODULE, 13, cones);
-    expectNear(spur.faceAngle, atan(MODULE / cones.gear.coneDistance), 1e-12 * degree);
-    expectNear(spur.dedendum, 1.25 * MODULE, 1e-12 * meter);
 }
 
 export function testLowestContactRadius()

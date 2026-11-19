@@ -1,8 +1,8 @@
 # Robot gear
 
 Makes involute spur, helical, and herringbone gears, internal gears (teeth inside a ring, sized by its thickness out
-from their roots, pitch circle, or tips, or its outside diameter), straight bevel gears (by Profile: Exact, spherical involute teeth
-with Gleason's proportions, or Approximate, by Tredgold's approximation), or cuts rack teeth into a part's flat face,
+from their roots, pitch circle, or tips, or its outside diameter), straight bevel gears (spherical involute teeth
+with Gleason's proportions), or cuts rack teeth into a part's flat face,
 or a gear's teeth around its round one, all along it or (Partial rack) part of it (Gear type: Gear, Rack, Bevel, or
 Internal). All are at a standard pitch (10 DP for 3D printing, 20 DP or 32 DP for FRC, module 0.8 for FTC), or a custom
 module, diametral pitch, or circular pitch, with standard proportions (a bevel gear's, Gleason's). A gear is sized by its teeth or a pitch
@@ -47,6 +47,11 @@ Since v1.1.0 (`fs changes robotGear`).
   the bit's slots in red, built for the error. A failed extrude or sweep of the teeth says Failed to create gear
   teeth., showing the profile.
 - The bore bigger than the part shows the gear in blue (built again), not just the bore.
+- A rack's or bevel gear's router bit too large is likewise found before anything's cut, and shown the same way (the
+  part, or the bevel gear's blank, in blue); their operations fail with the feature's own errors (Failed to create rack
+  teeth., Failed to cut rack teeth., and the bevel gear's, which now cover its blank and pattern too).
+- Bevel gears' Profile is removed: they're always Exact (spherical involute teeth, with Gleason's proportions).
+  Approximate ones (Tredgold's approximation, a spur gear's proportions) become Exact when they update.
 
 ## Strings
 
@@ -64,7 +69,7 @@ Its own parameters have none. From `core/`:
 
 | Parameter | Description |
 | --- | --- |
-| Width (`hexWidth`, a custom hex bore's) | Across the hex's flats. |
+| Width (`hexWidth`, a custom hex bore's, and `mateHexWidth`, the mate's own bore's) | Across the hex's flats. |
 | Start offset reference (`startOffsetReference`, the starting offset's) | A reference point, planar edge, or plane to measure the offset from. |
 
 | Hidden parameter | Set by |
@@ -84,8 +89,8 @@ Its own parameters have none. From `core/`:
 | The angle reference is on the axis, so it doesn't give an angle. / The angle reference must be parallel to the location's plane. / The angle reference must be a point, circle, or line. | error | Gear pair's Angle reference (`core/mounting.fs`, shared with Robot motor, so not reworded here) | the location or `pitchCircle`, the angle reference | Limit face must be parallel to face being moved. |
 | Thickness is too small, increase the value. | error | a bevel gear's top is below its teeth's tips at its back, or its mate's teeth, as long as its, don't reach the mate's top | `thickness` | Bend angle is too small. |
 | Selected thickness is too large, decrease the value. | error | a bevel gear's top is at its apex or past it; or with Flat top, its tips (coming down toward its apex, as Gleason's do) reach its pitch cone before its front cone (`bevelShape`) | `thickness` | Selected offset is too large, decrease the value. |
-| Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a gear's (or a bevel gear's virtual or projected) teeth come to points below the tip circle, or meet at their roots | `profileOffsetDistance`, `teeth` / `profileOffsetDistance` | Selected offset is too large, decrease the value. |
-| Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the gap's loft, taking what's in front of Flat top's front cone from the gap, or cutting the gaps from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the gap's sketches or the gaps | Failed to extrude selections, check input. |
+| Profile offset is too small, increase the value. / Profile offset is too large, decrease the value. | error | a gear's (or a bevel gear's projected) teeth come to points below the tip circle, or meet at their roots | `profileOffsetDistance`, `teeth` / `profileOffsetDistance` | Selected offset is too large, decrease the value. |
+| Failed to create bevel gear teeth. / Failed to cut bevel gear teeth. | error | the blank's revolve, the gap's loft, taking what's in front of Flat top's front cone from the gap, or patterning the gaps and cutting them from the blank, fails | `teeth`, `bevelMateTeeth`, `thickness`, and the blank's section, the gap's sketches, the gap, or the gaps | Failed to extrude selections, check input. |
 | Too few teeth for a gear, increase teeth. | error | the root circle's at or below the center | `teeth` | Cannot create hem, increase total length. |
 | Too few teeth for an internal gear, increase teeth. / Profile offset is too large, decrease the value. | error | an internal gear's gaps come to points below its root circle (the second with a positive profile offset) | `teeth` / `profileOffsetDistance` | Cannot create hem, increase total length. |
 | Mating gear teeth is too large for an internal gear, decrease the value or increase teeth. | error | an internal gear's pinion has as many teeth or more, or the two's tip corners, turning, go into the other's teeth (`internalMeshInterferes`): with few teeth between them | `internalMateTeeth`, `teeth` | Selected offset is too large, decrease the value. |
@@ -96,11 +101,12 @@ Its own parameters have none. From `core/`:
 | Ring thickness is too small, increase the value. / Outside diameter is too small, increase the value. | error | an internal gear's ring's outside is at or inside its root circle | `ringThickness`, `ringFrom` / `outsideDiameter` | Selected offset is too large, decrease the value. |
 | Profile offset is larger than the bit's radius, decrease profile offset or increase bit diameter. | error | the profile offset leaves no root fillet | `profileOffsetDistance`, `bitDiameter` | Cannot create hem, decrease gap. |
 | Bit diameter is too large, decrease the value. | error | a router bit's full round, where it reaches the root but its fillets don't fit, meets the radial lines above where they meet the involutes (a bevel gear's, at its gap's small end); or a rack's corner fillet runs past its flank | `bitDiameter` | Selected offset is too large, decrease the value. |
-| Bit diameter is too large for the tooth profile. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there. A gear's is checked before anything's built (`checkBitSlots`) | `bitDiameter`; a gear's teeth with sharp roots in blue, and the bit's slots in red, built for the error (the cut rack in blue, and what the slots cut from its teeth in red) | Selected offset is too large, decrease the value. |
+| Bit diameter is too large for the tooth profile. | error | a router bit's slots (`gearSlot`, `rackBitTooLarge`) meet the flanks above the pitch circle (or a rack's pitch line): the bit's wider than the gap there. Checked before anything's built (`checkBitSlots`; a rack's in `cutRack`) | `bitDiameter`; a gear's teeth with sharp roots (or the rack's part) in blue, and the bit's slots in red, built for the error | Selected offset is too large, decrease the value. |
+| Failed to create rack teeth. / Failed to cut rack teeth. | error | a rack's (or round face's teeth's) tools' extrude, the ring around round teeth, or cutting them from the part, fails: nothing known to | `rackFace`, `rackFaceAt`, `rootFillet`, `bitDiameter`, `profileOffsetDistance`, `helixAngle`; the profile, the teeth and ring, or what's cut (and the part in blue) | Failed to extrude selections, check input. |
 | Failed to create gear teeth. | error | a spur, helical, or internal gear's teeth's extrude or sweep fails, or joining a helical internal gear's teeth to its ring (`buildGearBody`, `buildInternalGearBody`): nothing known to (the bit's slots are checked first) | `teeth`, `rootFillet`, `bitDiameter`, `profileOffsetDistance`, `helixAngle`; the profile, or the teeth and ring | Failed to extrude selections, check input. |
 | Could not create full root fillet. | error | a spur gear's full round would meet the radial lines above where they meet the involutes (a bevel gear's is a smaller fillet instead) | `rootFillet` | Radius of fillet on face too large. |
-| Bit diameter is too large for the tooth profile. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`) | `bitDiameter` | Selected offset is too large, decrease the value. |
-| Failed to cut router bit slots. | error | joining a bevel gear's slot to its gap fails | `bitDiameter`, the gap and slot | Failed to extrude selections, check input. |
+| Bit diameter is too large for the tooth profile. | error | a bevel gear's router bit slot meets its flanks above the pitch cone at its gap's small end (at its pitch cone), where it's narrowest (`bevelBitRoot`), found before its teeth are cut | `bitDiameter`; the blank in blue, and the bit's slots in red, built for the error | Selected offset is too large, decrease the value. |
+| Failed to cut router bit slots. | error | a bevel gear's slot's extrude, or joining it to its gap, fails | `bitDiameter`, the gap and slot | Failed to extrude selections, check input. |
 | Select a face to cut teeth into. | error | Rack, no face | `rackFace` | Select a face to terminate the extrude. |
 | Failed to offset face. | error | Face at Pitch diameter or Base (or a round face not at its tips), and moving the faces fails | `rackFace`, `rackFaceAt`, the faces | Could not offset selected faces as requested. |
 | Cannot cut teeth on a concave face. | error | a round face whose part is inside it (a hole's) | `rackFace`, the face | Cannot fillet parallel edges. |
@@ -127,7 +133,7 @@ Its own parameters have none. From `core/`:
 ### Execution order
 
 1. **Precondition**: Gear type (Gear, Rack, Bevel, or Internal), and a gear's Size by (`sizeBy`: Teeth or Pitch circle), then the
-   Gear group: a bevel gear's Profile (`bevelProfile`: Approximate or Exact, unlabeled), Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
+   Gear group: Teeth (a gear's, by Teeth), a bevel gear's Mating gear teeth (`bevelMateTeeth`) and Shaft angle (its cones depend on them, with or
    without Gear pair), an internal gear's Mating gear teeth (`internalMateTeeth`: its teeth are shaped for its pinion,
    likewise), Pitch (with Custom, Pitch type: Module, Diametral pitch, or Circular pitch, and Pressure
    angle), a gear's Thickness, an internal gear's Ring size (`ringSizeBy`: Ring thickness, with Measured from, `ringFrom`: Root, Pitch, or Tip diameter;
@@ -293,8 +299,7 @@ Its teeth are shaped for its pinion (Mating gear teeth, `internalMateTeeth`), wh
 
 ### Bevel gears
 
-`buildBevelGear` makes a straight bevel gear (by Profile) with spherical involute teeth and Gleason's proportions
-(Exact), or by Tredgold's approximation with a spur gear's proportions (Approximate):
+`buildBevelGear` makes a straight bevel gear with spherical involute teeth and Gleason's proportions:
 
 - **Cones** (`bevelCones`): its pitch cone's angle from its axis is `atan(sin Σ / (z₂ / z + cos Σ))`, for its teeth
   `z`, its mate's `z₂`, and shaft angle `Σ` (`atan(z / z₂)` at 90°). Its pitch circle (radius `m z / 2`) is at its
@@ -310,7 +315,6 @@ Its teeth are shaped for its pinion (Mating gear teeth, `internalMateTeeth`), wh
     from a chart, is left out); and its face cone parallel to its mate's root cone (`atan(b₂ / R)` from its pitch cone,
     for the mate's dedendum `b₂`), so the clearance between them is the same all along, and its tips come down a
     little toward the apex.
-  - Approximate: a spur gear's (`m` and `1.25 m`, half the circular pitch thick), its face cone through its apex.
 - **Teeth**: a gap between two teeth (`sketchToothGap`) is sketched on the plane square to the pitch cone through the
   middle of the gap after the first tooth, centered where the axis meets it (the back cone's apex), and lofted to the
   same gap scaled toward the apex: scaled about the apex, its flanks run straight to it, as a straight bevel's do.
@@ -327,19 +331,16 @@ Its teeth are shaped for its pinion (Mating gear teeth, `internalMateTeeth`), wh
     angle at a radius is found by halving the range of angles from the axis the flank's point there is in (50 times),
     and whose roots are full rounds (`gearRoot`, as a gear's; the root, `b` from the pitch circle on the gap's middle,
     is on the root cone there). The flank runs up to its tips at the back, the highest they reach.
-  - Either way, its root's radial lines stop where its mate's tips touch its flanks (`contactRadius`, from their back
+  - Its root's radial lines stop where its mate's tips touch its flanks (`contactRadius`, from their back
     cones' virtual spur gears, `lowestContactRadius`), so they don't relieve flank its mate touches; where a full round
     doesn't fit below that (a Gleason pinion's, whose teeth are long), it's the largest fillet that does, tangent to the
     root circle and the line at its top.
-  - Approximate (Tredgold's approximation): its teeth, seen on its back cone, are close to a spur gear's whose pitch
-    radius is the back cone's: the pitch radius over the pitch angle's cosine, with `z / cos(pitch angle)` teeth (its
-    virtual teeth, not a whole number). Its roots are full rounds, as a spur gear's are (`halfGapCurves`): the shapes
-    scale with the gap, so both ends of the loft match.
 - **Router bit** (Root fillet's, `bevelRootFillet`): a ball end bit square to the root, running along it toward the
   apex, cuts the full round where it fits, and where it doesn't (toward the apex, as the gap narrows), a slot its width
   straight down the gap's middle to the root, as a spur gear's (`gearSlot`). Whether it fits is worked out at the gap's
   small end, at its pitch cone (`bevelBitRoot`: `gearRoot` at that scale, with the bit's radius), where it's narrowest;
-  a slot meeting the flanks above the pitch cone there is an error. The slot is a U (its round bottom on the root line,
+  a slot meeting the flanks above the pitch cone there is an error, found once the blank's made, before its teeth are
+  cut: the blank in blue, and the slot (below) patterned to each gap in red, built for the error. The slot is a U (its round bottom on the root line,
   its sides the bit's radius from the gap's middle, up past the tips) on the plane square to the root line through the
   gap's middle, extruded along it as far as the gap runs, and joined to the gap before it's patterned. Where the gap's
   wide, the slot's inside it.
@@ -448,11 +449,14 @@ around a round one (`cutRoundTeeth`, below). `cutRack`:
    (`rackSlot`): its width straight down the gap's middle, square to the pitch line, its round bottom on the root, its
    sides cutting into the flanks up to where the gap's as wide as the bit (a round tangent to both flanks is above the
    root once the fillets overlap, so the bit couldn't reach the root). A slot meeting the flanks above the pitch line
-   (`rackBitTooLarge`, worked out from the form) is an error, as a gear's is: the rack's cut (blue), and what's cut less
-   the same cut with sharp roots (`rackTools` again) is what the slots cut (red). An end's round, on a floor too short
+   (`rackBitTooLarge`, worked out from the form) is an error, as a gear's is, found before anything's cut: the part
+   (blue), and the bit's slots (red), built for the error with `rackTools` (given the slot's region, `rackSlotRegion`,
+   rather than `rackCutRegions`), the one in the gap before the first tooth, patterned along the face to the gap after
+   each. An end's round, on a floor too short
    for it, is cut off at the end.
 5. The regions are sketched on a plane across the face's start (`sketchRackCut`), extruded through its width
-   (`rackTools`), and cut from the part. A helical rack's are extruded slanting along it at the helix angle (`rackPieces`), up to a plane at
+   (`rackTools`), and cut from the part, each in a `try` (Failed to create rack teeth. showing the profile; Failed to
+   cut rack teeth. showing the part in blue and what's cut). A helical rack's are extruded slanting along it at the helix angle (`rackPieces`), up to a plane at
    the far side, with its teeth where a straight rack's are at the middle of its width; a herringbone rack's in two
    halves slanting opposite ways. Its hand is the hand of the gear it stands in for, so like gears it meshes with the
    opposite hand: a left hand rack's teeth move along it going across its width (z), and a right hand rack's back.
@@ -532,9 +536,8 @@ around it.
   fillets aren't kept below where the pinion's tips touch its flanks, as the other root fillets are.
 - With Gear pair, an internal gear's pinion's bore is the bore's default, a 1/2 in. hex, which is too large for a
   small pinion (a 12T 20 DP one's roots are about 0.47 in. across): it warns.
-- The router bit's slots too large, the teeth failing to build, and the bore bigger than the gear are untried in
-  Onshape, as are the mate's own bore and its errors. A rack's or bevel gear's bit too large is shown as before (a
-  boolean of the cut, or of the gap, with sharp roots), which a bit as much too wide might fail the same way.
+- The router bit's slots too large (a gear's, rack's, and bevel gear's), the teeth failing to build or cut, and the
+  bore bigger than the gear are untried in Onshape, as are the mate's own bore and its errors.
 - Root fillets' full round is tangent to the radial lines below the involutes (as the router bit's is), not to the
   involutes themselves, as Onshape's Spur gear's is.
 - Tried in Onshape (from the browser): a bevel pair, its too thin error, a spur gear on its bottom, a flat rack, and

@@ -647,6 +647,39 @@ def test_rack_roots_are_a_slot_when_the_floor_is_too_narrow():
     assert not rack_bit_too_large(0.2)
 
 
+def rack_slot(radius_mm: float, face_height: str = "1 * millimeter"):
+    """A bit's slot in a module 1 rack's gap at x = 2 mm, for showing a bit too large: sketched, and its one loop."""
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    form = RACK_FORM.format(fillet=f"{radius_mm} * millimeter", offset=0)
+    region = f"rackSlotRegion({form}, {face_height}, 2 * millimeter)"
+    evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, [{region}])', "released/gear/gearCommon.fs", context=context)
+    (loop,) = recorded_sketch(context, "profile").loops()
+    return loop
+
+
+def test_rack_slot_runs_from_the_root_to_the_face():
+    # A 1.5 mm radius bit (too large): its round end on the root (2.25 mm below a face at the tips), its sides up to it
+    assert rack_bit_too_large(1.5)
+    loop = rack_slot(1.5)
+    assert loop.closed
+    (end,) = [curve for curve in loop.curves if curve.kind == "arc"]
+    assert end.radius == pytest.approx(0.0015, abs=1e-12)
+    assert end.center == pytest.approx((0.002, -0.00225 + 0.0015), abs=1e-12)
+    points = [point for curve in loop.curves for point in (curve.start, curve.end)]
+    assert max(y for _, y in points) == pytest.approx(0, abs=1e-12)
+    # Its sides the bit's radius from the gap's middle
+    assert sorted({round(x, 9) for x, _ in points}) == pytest.approx([0.0005, 0.0035], abs=1e-9)
+
+
+def test_rack_slot_wider_than_the_teeth_are_high_is_its_round_end():
+    # A 3 mm radius bit's round end reaches past the face: it's shown whole
+    loop = rack_slot(3)
+    assert loop.closed
+    assert [curve.kind for curve in loop.curves] == ["arc", "arc"]
+    assert all(arc.radius == pytest.approx(0.003, abs=1e-12) for arc in loop.curves)
+
+
 def test_rack_full_round_fillets_meet_in_the_floors_middle():
     sketch = rack_cut("0 * meter", 10 * math.pi, fillet="1")
     loops = sketch.loops()
@@ -737,12 +770,11 @@ def bevel_cones(teeth: int, mate_teeth: int, shaft_degrees: float = 90, module_m
 
 
 def test_bevel_cones():
-    # A miter pair: 45 degree pitch cones, and a back cone sqrt(2) times the pitch radius
+    # A miter pair: 45 degree pitch cones, and a cone distance sqrt(2) times the pitch radius
     cones = bevel_cones(20, 20)
     assert cones["pitchAngle"] == pytest.approx(math.pi / 4)
     assert cones["pitchRadius"] == pytest.approx(0.010)
     assert cones["coneDistance"] == pytest.approx(0.010 * math.sqrt(2))
-    assert cones["virtualTeeth"] == pytest.approx(20 * math.sqrt(2))
     # At right angles, the pinion's and gear's pitch angles add up to the shaft angle, and their cone distances match
     pinion, gear = bevel_cones(15, 45), bevel_cones(45, 15)
     assert pinion["pitchAngle"] + gear["pitchAngle"] == pytest.approx(math.pi / 2)
