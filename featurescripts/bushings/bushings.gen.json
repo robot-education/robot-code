@@ -101,16 +101,6 @@
           "values": {
             "bore": "ROUND",
             "size": "IN_3_4",
-            "dimensions": "OD_1_X_0_563_STEP",
-            "vendor": "GENERIC"
-          },
-          "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
-          "material": "Bronze - SAE 841"
-        },
-        {
-          "values": {
-            "bore": "ROUND",
-            "size": "IN_3_4",
             "dimensions": "OD_1_125_X_0_333",
             "vendor": "GENERIC"
           },
@@ -230,18 +220,6 @@
         },
         {
           "values": {
-            "bore": "ROUND",
-            "size": "IN_3_4",
-            "dimensions": "OD_1_X_0_563_STEP",
-            "vendor": "REV"
-          },
-          "name": "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))",
-          "vendor": "REV Robotics",
-          "partNumber": "REV-21-2396",
-          "material": "Bronze - SAE 841"
-        },
-        {
-          "values": {
             "bore": "ROUNDED_HEX",
             "size": "IN_1_2",
             "material": "BRONZE",
@@ -327,10 +305,6 @@
     {
       "id": "THRIFTYBOT",
       "name": "ThriftyBot"
-    },
-    {
-      "id": "REV",
-      "name": "REV"
     }
   ],
   "bushings": [
@@ -432,17 +406,6 @@
       "outerDiameter": 0.022225,
       "width": 0.0079502,
       "flangeDiameter": 0.0254
-    },
-    {
-      "vendor": "GENERIC",
-      "material": "BRONZE",
-      "bore": "ROUND",
-      "size": "IN_3_4",
-      "boreSize": 0.01905,
-      "dimensions": "OD_1_X_0_563_STEP",
-      "outerDiameter": 0.0254,
-      "width": 0.0143002,
-      "flangeDiameter": 0.031115
     },
     {
       "vendor": "GENERIC",
@@ -571,18 +534,6 @@
       "width": 0.0079502,
       "flangeDiameter": 0.03175,
       "partNumber": "WCP-1004"
-    },
-    {
-      "vendor": "REV",
-      "material": "BRONZE",
-      "bore": "ROUND",
-      "size": "IN_3_4",
-      "boreSize": 0.01905,
-      "dimensions": "OD_1_X_0_563_STEP",
-      "outerDiameter": 0.0254,
-      "width": 0.0143002,
-      "flangeDiameter": 0.031115,
-      "partNumber": "REV-21-2396"
     },
     {
       "vendor": "THRIFTYBOT",

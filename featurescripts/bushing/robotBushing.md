@@ -41,11 +41,10 @@ Robot bearing's steps 2, 3 and 5 (see `../released/bearing/robotBearing.md`), in
 Bore fit; Position):
 
 1. The bushing (`libraryBushing`): its `bushingTable` entry (Bore, Size, Material, Dimensions, and Vendor, skipping a
-   level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, flange, and any
-   step, with its hole at its bore's corners (the bearings' `boreRadius`), as a `BearingPart`.
-2. The plane, and `placeBearing`, declaring it as a bushing: a bushing with a step gets a counterbore for it, at the
-   same fit, and its Auto Assembly body has the step under its flange. Until the bushings set is released, its studio
-   has no document, so it's declared nothing, with Robot bearing's info.
+   level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, and flange,
+   with its hole at its bore's corners (the bearings' `boreRadius`), as a `BearingPart`.
+2. The plane, and `placeBearing`, declaring it as a bushing. Until the bushings set is released, its studio has no
+   document, so it's declared nothing, with Robot bearing's info.
 
 ## Issues found
 

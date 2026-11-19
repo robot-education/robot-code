@@ -47,7 +47,7 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
     });
 
 /**
- * The bushing chosen, as FRCDesign's bushings part set makes it: its sizes, flange and step from the set's `BUSHINGS`,
+ * The bushing chosen, as FRCDesign's bushings part set makes it: its sizes and flange from the set's `BUSHINGS`,
  * and its body's hole at its bore's corners (`boreRadius`).
  */
 function libraryBushing(definition is map) returns BearingPart
@@ -66,11 +66,6 @@ function libraryBushing(definition is map) returns BearingPart
         "flangeThickness" : made.flangeThickness,
         "product" : entry.product
     };
-    if (made.stepDiameter != undefined)
-    {
-        part.stepDiameter = made.stepDiameter;
-        part.stepHeight = made.stepHeight;
-    }
     return part as BearingPart;
 }
 

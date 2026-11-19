@@ -34,11 +34,6 @@ export function testEveryBushingsProfileCloses()
         // Its flange is above the origin, as wide as its flange and as thick
         expectNear(points[0][1], bushing.flangeThickness - bushing.width, 1e-12 * meter);
         expectTrue(bushing.flangeDiameter > bushing.outerDiameter, bushing.name ~ "'s flange isn't wider than it");
-        if (bushing.stepDiameter != undefined)
-        {
-            expectTrue(bushing.stepDiameter > bushing.outerDiameter && bushing.stepDiameter < bushing.flangeDiameter, bushing.name);
-            expectTrue(bushing.stepHeight < bushing.width - bushing.flangeThickness, bushing.name);
-        }
     }
 }
 

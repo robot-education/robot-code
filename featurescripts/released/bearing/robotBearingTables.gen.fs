@@ -1345,14 +1345,6 @@ export const bushingTable = {
                                     "WCP" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_0_875_X_0_313, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_0_875_X_0_313", "vendor" : "WCP" }, "name" : "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.WCP },
                                 },
                             },
-                            "1 in OD x 0.563 in (1.125 in step)" : {
-                                "name" : "vendor",
-                                "displayName" : "Vendor",
-                                "entries" : {
-                                    "Generic" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP", "vendor" : "GENERIC" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.GENERIC },
-                                    "REV" : { "bore" : BushingBore.ROUND, "dimensions" : BushingDimensions.OD_1_X_0_563_STEP, "material" : BushingMaterial.BRONZE, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "bore" : "ROUND", "size" : "IN_3_4", "dimensions" : "OD_1_X_0_563_STEP", "vendor" : "REV" }, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))" }, "size" : BushingSize.IN_3_4, "vendor" : BushingVendor.REV },
-                                },
-                            },
                             "1.125 in OD x 0.333 in" : {
                                 "name" : "vendor",
                                 "displayName" : "Vendor",

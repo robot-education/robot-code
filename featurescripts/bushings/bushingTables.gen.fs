@@ -11,9 +11,7 @@ export enum BushingVendor
     annotation { "Name" : "WCP" }
     WCP,
     annotation { "Name" : "ThriftyBot" }
-    THRIFTYBOT,
-    annotation { "Name" : "REV" }
-    REV
+    THRIFTYBOT
 }
 
 export enum BushingMaterial
@@ -64,8 +62,6 @@ export enum BushingDimensions
     OD_0_75_X_0_375,
     annotation { "Name" : "0.875 in OD x 0.313 in" }
     OD_0_875_X_0_313,
-    annotation { "Name" : "1 in OD x 0.563 in (1.125 in step)" }
-    OD_1_X_0_563_STEP,
     annotation { "Name" : "1.125 in OD x 0.313 in" }
     OD_1_125_X_0_313,
     annotation { "Name" : "1.125 in OD x 0.333 in" }
@@ -88,7 +84,7 @@ export const BUSHING_BORES = {
     }
 };
 
-/** What's made, by bore, size, material, dimensions, and vendor: each bushing's sizes, its flange (and step), and its properties. */
+/** What's made, by bore, size, material, dimensions, and vendor: each bushing's sizes, its flange, and its properties. */
 export const BUSHINGS = {
     BushingBore.ROUNDED_HEX : {
         BushingSize.IN_1_2 : {
@@ -152,10 +148,6 @@ export const BUSHINGS = {
                 BushingDimensions.OD_0_875_X_0_313 : {
                     BushingVendor.GENERIC : { "outerDiameter" : 0.875 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1 * inch, "flangeThickness" : 0.0625 * inch, "name" : "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)", "material" : BRONZE, "appearance" : BRASS_YELLOW },
                     BushingVendor.WCP : { "outerDiameter" : 0.875 * inch, "width" : 0.313 * inch, "flangeDiameter" : 1 * inch, "flangeThickness" : 0.0625 * inch, "name" : "3/4 in Round Flanged Bronze Bushing (0.875 in OD x 0.313 in)", "vendor" : "West Coast Products", "partNumber" : "WCP-1000", "material" : BRONZE, "appearance" : BRASS_YELLOW }
-                },
-                BushingDimensions.OD_1_X_0_563_STEP : {
-                    BushingVendor.GENERIC : { "outerDiameter" : 1 * inch, "width" : 0.563 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.0625 * inch, "stepDiameter" : 1.125 * inch, "stepHeight" : 0.125 * inch, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))", "material" : BRONZE, "appearance" : BRASS_YELLOW },
-                    BushingVendor.REV : { "outerDiameter" : 1 * inch, "width" : 0.563 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.0625 * inch, "stepDiameter" : 1.125 * inch, "stepHeight" : 0.125 * inch, "name" : "3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))", "vendor" : "REV Robotics", "partNumber" : "REV-21-2396", "material" : BRONZE, "appearance" : BRASS_YELLOW }
                 },
                 BushingDimensions.OD_1_125_X_0_333 : {
                     BushingVendor.GENERIC : { "outerDiameter" : 1.125 * inch, "width" : 0.333 * inch, "flangeDiameter" : 1.225 * inch, "flangeThickness" : 0.083 * inch, "name" : "3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)", "material" : BRONZE, "appearance" : BRASS_YELLOW },

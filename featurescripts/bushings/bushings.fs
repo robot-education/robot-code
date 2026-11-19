@@ -13,8 +13,7 @@ import(path : "bearings/bearings.fs", version : "");
  * `bearings/bearings.fs`), in a Part Studio whose configuration sets every parameter and offers only what's made (see
  * bushingTables.py), so this dialog is a flat list of enums, with no conditions.
  *
- * Each bushing is built along the Z axis, its flange above the origin and its body (and any step under its flange)
- * below, with a mate connector at the origin pointing out of the hole it sits in, one on its flange's top pointing up,
+ * Each bushing is built along the Z axis, its flange above the origin and its body below, with a mate connector at the origin pointing out of the hole it sits in, one on its flange's top pointing up,
  * and one on its bottom pointing down, as the bearings' are.
  */
 
@@ -99,7 +98,7 @@ export const libraryBushing = defineFeature(function(context is Context, id is I
 
 /**
  * The bushing's half section, revolved about the axis, from its bottom on the axis: out to its outer diameter, up to
- * any step under its flange, out and up it, out to its flange at the origin, up its flange, and back to the axis.
+ * the origin, out to its flange, up its flange, and back to the axis.
  */
 export function bushingProfile(bushing is map) returns array
 {
@@ -108,15 +107,6 @@ export function bushingProfile(bushing is map) returns array
     const bottom = top - bushing.width;
     const radius = bushing.outerDiameter / 2;
     const flange = bushing.flangeDiameter / 2;
-    var side = [vector(radius, bottom)];
-    if (bushing.stepDiameter == undefined)
-    {
-        side = append(side, vector(radius, zero));
-    }
-    else
-    {
-        const step = bushing.stepDiameter / 2;
-        side = concatenateArrays([side, [vector(radius, -bushing.stepHeight), vector(step, -bushing.stepHeight), vector(step, zero)]]);
-    }
-    return concatenateArrays([[vector(zero, bottom)], side, [vector(flange, zero), vector(flange, top), vector(zero, top), vector(zero, bottom)]]);
+    return [vector(zero, bottom), vector(radius, bottom), vector(radius, zero), vector(flange, zero), vector(flange, top),
+            vector(zero, top), vector(zero, bottom)];
 }

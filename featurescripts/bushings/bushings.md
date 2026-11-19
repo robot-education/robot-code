@@ -6,8 +6,8 @@ FRCDesign's library bushings, generated for FRCDesignApp: `libraryBushing`, buil
 sets every parameter, in place of FRCDesign's hand-made Flanged Bushing. Files: `bushings.fs` (the feature),
 `bushingTables.py` (the catalog, read from FRCDesign's Flanged Bushing in `vendor/frcdesign-bushings.json` and refreshed
 by `uv run python featurescripts/bushings/bushingTables.py fetch`: the enums and data in `bushingTables.gen.fs`, the Part
-Studio's configuration, and FRCDesign's manifest `bushings.gen.json`). `vendor/` holds the vendors' STEP files and
-drawing (The Thrifty Bot's and REV's), and WCP's bushings as FRCDesign models them (`wcp-bushings.json`), which the
+Studio's configuration, and FRCDesign's manifest `bushings.gen.json`). `vendor/` holds The Thrifty Bot's STEP files, and WCP's
+bushings as FRCDesign models them (`wcp-bushings.json`), which the
 flanges are measured from.
 
 Unreleased. It's a part set (`[tool.fs.parts.bushings]`, see docs/parts.md), released into the FRCDesignLib document
@@ -33,7 +33,7 @@ The configuration only offers what's made, so these show only in the feature's o
 
 | Part | Name |
 | --- | --- |
-| Bushing | `<size> <bore> Flanged <material> Bushing (<OD> OD x <width>)`, with any step after its dimensions: `1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.333 in)`, `3/4 in Round Flanged Bronze Bushing (1 in OD x 0.563 in (1.125 in step))` |
+| Bushing | `<size> <bore> Flanged <material> Bushing (<OD> OD x <width>)`: `1/2 in Rounded Hex Flanged Bronze Bushing (0.75 in OD x 0.313 in)`, `3/4 in Round Flanged Bronze Bushing (1.125 in OD x 0.333 in)` |
 
 Bronze bushings are SAE 841 oil-impregnated bronze (`BRONZE` in `core/robotProperties.fs`), machined brass yellow;
 nylon ones Nylon 6/6 (`NYLON`), general black, as ThriftyBot sells its in black only. Each has its vendor as its Vendor
@@ -45,11 +45,11 @@ The configuration asks what the bushing is, then who makes it: Bore (Rounded hex
 then the rest from smallest), Material (Bronze or Nylon), Dimensions (outer diameter by width), and Vendor, each laid
 out by `LookupTable` (see docs/fs-cli.md's "Configured Part Studios") as the bearings' are: an input shows only where
 more than one of its options is made with the choices before it. The bearings ask Vendor first; a bushing's vendors
-each make few, so asked first, Vendor would hide every input after it (REV makes one bushing). Asked last, it shows for
+each make few, so asked first, Vendor would hide every input after it for a vendor making one. Asked last, it shows for
 every bushing, after its bore and size. The dialog is a flat list of the same enums, with no conditions.
 
 What's made comes from FRCDesign's records, by each record's Dimensions option, which names its bore, outer diameter,
-width, and any step, flange, or material (`parse`), and a record's name says nylon where its option doesn't. A bushing
+width, and any flange or material (`parse`), and a record's name says nylon where its option doesn't. A bushing
 is offered only where a vendor's model or listing gives its flange (`FLANGES`):
 
 | Bushing | Flange | Source |
@@ -58,20 +58,20 @@ is offered only where a vendor's model or listing gives its flange (`FLANGES`):
 | 1/2 in rounded hex, 0.75 in OD x 0.333 in, bronze | 0.875 in, 0.083 in thick | `TTB-0267.stp` |
 | 1/2 in rounded hex, 0.75 in OD x 0.375 in, nylon | 0.875 in, 0.125 in thick | TTB-0004's store listing |
 | 3/4, 7/8, and 1 in round, 1.125 in OD x 0.333 in, bronze | 1.225 in, 0.083 in thick | `TTB-0268.stp`, `TTB-0269.stp`, `TTB-0270.stp` |
-| 3/4 in round, 1 in OD x 0.563 in, bronze | 1.225 in, 0.0625 in thick, over a 1.125 in step 0.125 in tall | `REV-21-2396.STEP` |
 
 | 1/2 in and 3/8 in rounded hex, 1/4, 3/8, 1/2, 3/4, and 1 in round, 0.313 in wide, bronze | 0.0625 in thick: 0.875, 0.75, 0.625, 0.75, 0.875, 1, and 1.25 in | `wcp-bushings.json`: FRCDesignLib's models of WCP-0999, 0997, 0995, 0996, 0998, 1000, and 1004, measured in Onshape |
 
-Generic makes every bushing a vendor does, as the bearings' does. VEX's aren't offered (`DISCONTINUED_VENDORS`): VEX
-no longer sells bushings, and Generic's 1/2 in rounded hex nylon bushing 0.313 in wide, which only VEX sold, isn't either
-(`UNMEASURED`). The 3/8 in ID bushing with a 1/2 in hex outside (WCP-0567) isn't offered: its bore would be a hex.
+The vendors offered are WCP and ThriftyBot (`VENDORS`), and Generic makes every bushing one of them does, as the
+bearings' Generic does. VEX's aren't offered: VEX no longer sells bushings. Nor are REV's: it sells one, a 3/4 in
+bushing with a step under its flange. Generic's of what only they sold (VEX's 1/2 in rounded hex nylon bushing 0.313 in
+wide, REV's stepped one) aren't either. The 3/8 in ID bushing with a 1/2 in hex outside (WCP-0567) isn't offered: its bore would be a hex.
 
 `libraryBushing`:
 
 1. Resolves each choice with the bearings' `resolveChoices`: a hidden input keeps whatever it was last set to, so it
    stands for the one option made there. Anything else not made is an error.
 2. Revolves its half section (`bushingProfile`, in `PROFILE_PLANE`) a full turn about Z: a solid from the axis, its
-   flange above the origin, and its body below, with a step under the flange where it has one.
+   flange above the origin, and its body below.
 3. Cuts the bore through with the bearings' `cutBore`: a circle, or a hexagon across its flats rounded to 13.75 mm for
    1/2 in, 10.25 mm for 3/8 in (`BUSHING_BORES`), as Robot shaft rounds its shafts.
 4. Adds its mate connectors on the axis, each pointing out of the part it's on, as the bearings' do: where it seats, the
