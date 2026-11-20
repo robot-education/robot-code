@@ -7,7 +7,7 @@ export import(path : "6e24956e9977116c79280620", version : "4bf61c29c65737238445
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 // SplineXS bores at each standard fit
-import(path : "35acc10879cd067431ae1122", version : "d6247ba8d64267eb0851d9fc");
+import(path : "35acc10879cd067431ae1122", version : "ad6db8d328f9066cba1a5714");
 
 /**
  * Bores through parts on a shaft (sprockets, gears, and the like): a hex, round, or spline bore, and optionally an
