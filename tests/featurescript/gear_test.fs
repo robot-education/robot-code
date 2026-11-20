@@ -237,7 +237,7 @@ function bevelDefinition(mateTeeth is number, shaftAngle is ValueWithUnits, thic
             "mateTeeth" : mateTeeth,
             "shaftAngle" : shaftAngle,
             "thickness" : thickness,
-            "flatTop" : false,
+            "flatTop" : true,
             "addProfileOffset" : false
         };
 }
@@ -351,22 +351,22 @@ export function testBevelSectionIsCutOffByItsTop()
 }
 
 /**
- * A 20 DP bevel gear's shape with Flat top (see `bevelDefinition`), with `teeth`.
+ * A 20 DP bevel gear's shape without Flat top (see `bevelDefinition`): its teeth end at its front cone, with `teeth`.
  */
-function flatTopBevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
+function frontConeBevel(teeth is number, mateTeeth is number, shaftAngle is ValueWithUnits, thickness is ValueWithUnits) returns map
 {
     var definition = bevelDefinition(mateTeeth, shaftAngle, thickness);
-    definition.flatTop = true;
+    definition.flatTop = false;
     return bevelShape(definition, MODULE, teeth);
 }
 
-export function testBevelFlatTopsTeethEndSquareToItsPitchConeOnItsTopFace()
+export function testBevelFrontConesTeethEndSquareToItsPitchConeOnItsTopFace()
 {
     for (var shaftAngle in [45 * degree, 90 * degree, 110 * degree])
     {
         for (var teeth in [[20, 30], [30, 20]])
         {
-            const gear = flatTopBevel(teeth[0], teeth[1], shaftAngle, 0.25 * inch);
+            const gear = frontConeBevel(teeth[0], teeth[1], shaftAngle, 0.25 * inch);
             const pitchAngle = gear.cones.gear.pitchAngle;
             const along = vector(-sin(pitchAngle), cos(pitchAngle));
             const backPitch = vector(gear.cones.gear.pitchRadius, 0 * meter);
@@ -399,11 +399,11 @@ export function testBevelFlatTopsTeethEndSquareToItsPitchConeOnItsTopFace()
     }
 }
 
-export function testBevelFlatTopsMateEndsAtTheSameConeDistance()
+export function testBevelFrontConesMateEndsAtTheSameConeDistance()
 {
-    const gear = flatTopBevel(20, 30, 90 * degree, 0.25 * inch);
+    const gear = frontConeBevel(20, 30, 90 * degree, 0.25 * inch);
     var definition = bevelDefinition(20, 90 * degree, 0.25 * inch);
-    definition.flatTop = true;
+    definition.flatTop = false;
     definition.faceWidth = gear.faceWidth;
     const mate = bevelShape(definition, MODULE, 30);
     expectNear(mate.faceWidth, gear.faceWidth, 1e-12 * meter);
@@ -411,13 +411,13 @@ export function testBevelFlatTopsMateEndsAtTheSameConeDistance()
         mate.cones.gear.coneDistance - gear.faceWidth, 1e-12 * meter);
 }
 
-export function testBevelFlatTopsTipsMustReachItsFrontCone()
+export function testBevelFrontConesTipsMustReachItsFrontCone()
 {
     // Nearly to its apex: its tips, coming down toward it, are below its pitch cone there
     bevel(30, 20, 110 * degree, 0.3 * inch);
     expectContains(expectThrows(function()
             {
-                flatTopBevel(30, 20, 110 * degree, 0.3 * inch);
+                frontConeBevel(30, 20, 110 * degree, 0.3 * inch);
             }), "thickness is too large");
 }
 
@@ -528,10 +528,24 @@ export function testRackStopManipulatorSetsTheDistance()
     expectEqual(changed.rackStopDistance, -0.5 * inch);
 }
 
+export function testRackAngleManipulatorSetsTheAngle()
+{
+    // A flat face's is dragged along it, a pitch a turn: back half a pitch is half a turn the other way
+    const definition = { "pitch" : GearPitch.DP_20, "rackAngle" : 0 * degree, "rackAngleOppositeDirection" : false };
+    var changed = robotGearManipulatorChange(newContext(), definition,
+        { "rackAngle" : { "manipulatorType" : ManipulatorType.LINEAR_1D, "offset" : -PI * MODULE / 2 } });
+    expectNear(changed.rackAngle, 180 * degree, 1e-9 * degree);
+    expectTrue(changed.rackAngleOppositeDirection, "the other way");
+    // A round face's turns, less whole turns
+    changed = robotGearManipulatorChange(newContext(), definition, { "rackAngle" : { "manipulatorType" : ManipulatorType.ANGULAR, "angle" : 370 * degree } });
+    expectNear(changed.rackAngle, 10 * degree, 1e-9 * degree);
+    expectTrue(!changed.rackAngleOppositeDirection, "counterclockwise");
+}
+
 /**
  * A 72T 20 DP internal gear's definition, its ring 1/4 in. thick, measured from `from`.
  */
-function internalGear(from is InternalRingFrom) returns map
+function internalGear(from is MeasuredFrom) returns map
 {
     return {
             "gearType" : GearType.INTERNAL,
@@ -550,17 +564,17 @@ function internalGear(from is InternalRingFrom) returns map
 export function testInternalRingIsMeasuredFromItsTeeth()
 {
     // Its pitch radius is 1.8 in., its roots 1.25 modules out, and its tips a module in (above its base circle, at 14.5°)
-    expectNear(internalRingRadius(internalGear(InternalRingFrom.ROOT), MODULE, 72), (1.8 + 0.0625 + 0.25) * inch, 1e-12 * meter);
-    expectNear(internalRingRadius(internalGear(InternalRingFrom.PITCH), MODULE, 72), (1.8 + 0.25) * inch, 1e-12 * meter);
+    expectNear(internalRingRadius(internalGear(MeasuredFrom.ROOT), MODULE, 72), (1.8 + 0.0625 + 0.25) * inch, 1e-12 * meter);
+    expectNear(internalRingRadius(internalGear(MeasuredFrom.PITCH), MODULE, 72), (1.8 + 0.25) * inch, 1e-12 * meter);
     // With a 12T pinion, its tips are where the line of action touches the pinion's base circle, outside a module in
     const tip = sqrt((1.8 * cos(14.5 * degree)) ^ 2 + (1.5 * sin(14.5 * degree)) ^ 2) * inch;
     expectTrue(tip > 1.75 * inch, "outside a module in");
-    expectNear(internalRingRadius(internalGear(InternalRingFrom.TIP), MODULE, 72), tip + 0.25 * inch, 1e-12 * meter);
+    expectNear(internalRingRadius(internalGear(MeasuredFrom.TIP), MODULE, 72), tip + 0.25 * inch, 1e-12 * meter);
     // With a 60T one, a module in
-    var large = internalGear(InternalRingFrom.TIP);
+    var large = internalGear(MeasuredFrom.TIP);
     large.internalMateTeeth = 60;
     expectNear(internalRingRadius(large, MODULE, 72), (1.8 - 0.05 + 0.25) * inch, 1e-12 * meter);
-    var outside = internalGear(InternalRingFrom.ROOT);
+    var outside = internalGear(MeasuredFrom.ROOT);
     outside.ringSizeBy = InternalRingSize.OUTSIDE_DIAMETER;
     expectNear(internalRingRadius(outside, MODULE, 72), 2 * inch, 1e-12 * meter);
 }
@@ -568,7 +582,7 @@ export function testInternalRingIsMeasuredFromItsTeeth()
 export function testInternalRingOutsideDiameterKeepsTheRing()
 {
     // Switching to Outside diameter sets it to the ring's, unless it's been set
-    const definition = internalGear(InternalRingFrom.ROOT);
+    const definition = internalGear(MeasuredFrom.ROOT);
     var switched = definition;
     switched.ringSizeBy = InternalRingSize.OUTSIDE_DIAMETER;
     const result = robotGearEditLogic(newContext(), newId(), definition, switched, false, {}, qNothing());
