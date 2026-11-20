@@ -108,7 +108,7 @@ export enum GearHand
 }
 
 /**
- * How an internal gear's ring is sized: by its thickness, out from its teeth (see `InternalRingFrom`), or its outside
+ * How an internal gear's ring is sized: by its thickness, out from its teeth (see `MeasuredFrom`), or its outside
  * diameter.
  */
 export enum InternalRingSize
@@ -120,10 +120,11 @@ export enum InternalRingSize
 }
 
 /**
- * Where an internal gear's ring thickness is measured out from: its teeth's roots, their pitch circle, or their tips
- * (see `internalRingRadius`).
+ * Where a size is measured from on the teeth: their roots, their pitch circle, or their tips. An internal gear's ring
+ * thickness is measured out from it (see `internalRingRadius`), and a cut rack's face is at it (at the roots, the teeth
+ * are added on the face, see `rackFaceDepth`).
  */
-export enum InternalRingFrom
+export enum MeasuredFrom
 {
     annotation { "Name" : "Root diameter" }
     ROOT,
@@ -131,20 +132,6 @@ export enum InternalRingFrom
     PITCH,
     annotation { "Name" : "Tip diameter" }
     TIP
-}
-
-/**
- * Where a cut rack's face is on its teeth: their pitch line, their tips, or their base (their root line: the teeth are
- * added on the face, see `rackFaceDepth`).
- */
-export enum RackFaceAt
-{
-    annotation { "Name" : "Pitch diameter" }
-    PITCH,
-    annotation { "Name" : "Outside diameter" }
-    OUTSIDE,
-    annotation { "Name" : "Base" }
-    BASE
 }
 
 /**
@@ -156,17 +143,6 @@ export enum RackStopBy
     annotation { "Name" : "Teeth" }
     TEETH,
     annotation { "Name" : "Stop reference" }
-    REFERENCE
-}
-
-/**
- * What a cut rack's teeth line up with.
- */
-export enum RackAlignment
-{
-    annotation { "Name" : "End" }
-    END,
-    annotation { "Name" : "Angle reference" }
     REFERENCE
 }
 
@@ -225,6 +201,7 @@ const RACK_TEETH_PARAMETERS = ["rackFace", "rackFaceAt", "rootFillet", "bitDiame
 
 const RACK_END_MANIPULATOR = "rackEnd";
 const RACK_STOP_MANIPULATOR = "rackStop";
+const RACK_ANGLE_MANIPULATOR = "rackAngle";
 
 /**
  * The standard pitches' modules, pressure angles, and names (in part names). FRC's 20 DP gears (VEXpro, WCP, and
@@ -398,7 +375,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                     isLength(definition.ringThickness, RING_THICKNESS_BOUNDS);
 
                     annotation { "Name" : "Measured from", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
-                    definition.ringFrom is InternalRingFrom;
+                    definition.ringFrom is MeasuredFrom;
                 }
                 else
                 {
@@ -407,11 +384,11 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 }
             }
 
-            // A bevel gear's teeth end square to its pitch cone, their roots flush with its top face, rather than cut off
-            // by it (see `bevelShape`)
+            // A bevel gear's teeth are cut off by its top face; without it, they end square to its pitch cone, their roots
+            // flush with its top face (see `bevelShape`)
             if (definition.gearType == GearType.BEVEL)
             {
-                annotation { "Name" : "Flat top", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Flat top", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.flatTop is boolean;
             }
 
@@ -464,22 +441,33 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                         "MaxNumberOfPicks" : 1 }
             definition.rackFace is Query;
 
-            annotation { "Name" : "Face at", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.rackFaceAt is RackFaceAt;
+            annotation { "Name" : "Measured from", "Default" : MeasuredFrom.PITCH, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.rackFaceAt is MeasuredFrom;
 
-            annotation { "Name" : "Align teeth to" }
-            definition.rackAlignment is RackAlignment;
+            // Without it, the teeth line up with an end
+            annotation { "Name" : "Align teeth", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.alignTeeth is boolean;
 
-            if (definition.rackAlignment == RackAlignment.END)
+            if (definition.alignTeeth)
             {
-                annotation { "Name" : "Opposite end", "UIHint" : UIHint.OPPOSITE_DIRECTION }
-                definition.oppositeEnd is boolean;
+                annotation { "Group Name" : "Align teeth", "Collapsed By Default" : false, "Driving Parameter" : "alignTeeth" }
+                {
+                    annotation { "Name" : "Angle reference",
+                                "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.LINE || GeometryType.CIRCLE || GeometryType.ARC,
+                                "MaxNumberOfPicks" : 1 }
+                    definition.rackReference is Query;
+
+                    annotation { "Name" : "Angle" }
+                    isAngle(definition.rackAngle, ANGLE_360_ZERO_DEFAULT_BOUNDS);
+
+                    annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+                    definition.rackAngleOppositeDirection is boolean;
+                }
             }
             else
             {
-                annotation { "Name" : "Angle reference", "Filter" : QueryFilterCompound.ALLOWS_VERTEX || GeometryType.CIRCLE || GeometryType.ARC,
-                            "MaxNumberOfPicks" : 1 }
-                definition.rackReference is Query;
+                annotation { "Name" : "Opposite end", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+                definition.oppositeEnd is boolean;
             }
 
             annotation { "Name" : "Partial rack", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -698,10 +686,12 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
                 cutBores(context, id + ("bore" ~ (i == 0 ? "" : i)), bore, [built.plane], [undefined], [built.body], built.rebuild);
                 if (warning == undefined && boreReach(bore) >= built.hubRadius)
                 {
+                    // Only a bevel gear's thickness reaches its hub: its teeth's roots run in toward its apex
+                    const bevel = definition.gearType == GearType.BEVEL;
                     warning = {
                             "message" : "Bore cuts into " ~ (i == 0 ? "gear" : "mating gear") ~ " teeth, decrease bore size" ~
-                                (definition.gearType == GearType.BEVEL ? " or thickness, or increase teeth." : " or increase teeth."),
-                            "parameters" : concatenateArrays([bore.parameters, [teethParameters[i], "thickness"]])
+                                (bevel ? " or thickness, or increase teeth." : " or increase teeth."),
+                            "parameters" : concatenateArrays([bore.parameters, bevel ? [teethParameters[i], "thickness"] : [teethParameters[i]]])
                         };
                 }
             }
@@ -1149,12 +1139,12 @@ export function bevelDepths(definition is map, module is ValueWithUnits, teeth i
  * its teeth's depths (see `bevelDepths`), its `bottom` (its flat back, under its teeth's back ends), its `top` (the
  * highest it reaches), its `topFace` (flat, square to its axis), its `apex`, and its `faceWidth`, how far its teeth run
  * along its pitch cone from its back. Its teeth end at its top face, cut off by it, so its top is its top face, and its
- * teeth reach it at their pitch cone. With Flat top (`flatTop`), they end instead at its front cone, square to its
+ * teeth reach it at their pitch cone. Without Flat top (`flatTop`), they end instead at its front cone, square to its
  * pitch cone (as its back cone is at its back): their tips there are its top, and their roots there its top face, so
  * they stand above it, its whole round face (`tipFront` and `rootFront`, as points `(r, z)`, `r` out from its axis).
  * Either way, its top is Thickness above its bottom. A gear's face width is from its thickness; its mate's is the gear's
  * (`definition.faceWidth`, see `mateDefinition`), so their teeth meet end to end. Errors if the gear (or its mate) is
- * too thin for its teeth to reach its top, or so thick its top reaches its apex, or with Flat top, its tips (coming
+ * too thin for its teeth to reach its top, or so thick its top reaches its apex, or without Flat top, its tips (coming
  * down toward its apex, as Gleason's do) reach its pitch cone before its front cone.
  *
  * @returns {{
@@ -1165,8 +1155,8 @@ export function bevelDepths(definition is map, module is ValueWithUnits, teeth i
  *      @field topFace {ValueWithUnits} :
  *      @field apex {ValueWithUnits} :
  *      @field faceWidth {ValueWithUnits} :
- *      @field tipFront {Vector} : With Flat top.
- *      @field rootFront {Vector} : With Flat top.
+ *      @field tipFront {Vector} : Without Flat top.
+ *      @field rootFront {Vector} : Without Flat top.
  * }}
  */
 export function bevelShape(definition is map, module is ValueWithUnits, teeth is number) returns map
@@ -1204,7 +1194,7 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         {
             throw regenError("Selected thickness is too large, decrease the value.", ["thickness"]);
         }
-        if (definition.flatTop)
+        if (!definition.flatTop)
         {
             // Its tips rise from its back to its top
             faceWidth = (top - tipHeight(depths.addendum, pitchAngle)) / faceRise;
@@ -1229,7 +1219,7 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
         "apex" : apex,
         "faceWidth" : faceWidth
     };
-    if (definition.flatTop)
+    if (!definition.flatTop)
     {
         // Its tips coming down toward its apex (Gleason's) reach its pitch cone before its front cone
         const frontAddendum = depths.addendum - faceWidth * tan(depths.faceAngle);
@@ -1255,15 +1245,15 @@ export function bevelShape(definition is map, module is ValueWithUnits, teeth is
 /**
  * A bevel gear's section through its axis (`shape`, as `bevelShape` gives it), as points `(r, z)`: `r` out from its
  * axis, `z` along it from its back's pitch circle. Its `outline` runs across its flat bottom, out to its back cone (its
- * teeth's roots and tips at its back), up its face cone (its tips') toward its apex to its top face (or with Flat top,
+ * teeth's roots and tips at its back), up its face cone (its tips') toward its apex to its top face (or without Flat top,
  * to its front cone, and down that to its teeth's roots there, on its top face), and in to its axis across its top face.
  * A pair's front cones, at the same cone distance, meet along the line their teeth touch on, as their back cones do.
- * With Flat top, its `solid` is what its gaps mustn't cut: from its front cone toward its apex, from where the cone
+ * Without Flat top, its `solid` is what its gaps mustn't cut: from its front cone toward its apex, from where the cone
  * meets the axis out past its tips, and up past them.
  *
  * @returns {{
  *      @field outline {array} :
- *      @field solid {array} : With Flat top.
+ *      @field solid {array} : Without Flat top.
  * }}
  */
 export function bevelSection(shape is map) returns map
@@ -1299,7 +1289,7 @@ export function bevelSection(shape is map) returns map
  * with Root fillet None), and with a router bit, slots where the bit can't reach them. In steps:
  *
  * 1. Its blank: revolved from its section through its axis (`bevelSection`): its flat bottom, out to its back cone, up
- *    that to its face cone (its tips'), along that toward the apex to its flat top face (or with Flat top, its front
+ *    that to its face cone (its tips'), along that toward the apex to its flat top face (or without Flat top, its front
  *    cone, and down that to its teeth's roots there, on its top face), and back to its axis.
  * 2. A router bit's slot (below) meeting the flanks above the pitch cone at the gap's small end is an error, found
  *    before anything's cut: the blank in blue, and the bit's slots in red (one, patterned to each gap), built for it.
@@ -1311,7 +1301,7 @@ export function bevelSection(shape is map) returns map
  *    narrowest, see `bevelBitRoot`), a slot the bit's width straight down the gap's middle to its root, as a ball end
  *    bit square to the root cuts running along it toward the apex, joined to the gap. Where it's wide, the bit cuts the
  *    full round, and the slot's inside it.
- * 5. With Flat top, the gap less what's in front of its front cone (`bevelSection`'s `solid`, revolved), so its teeth
+ * 5. Without Flat top, the gap less what's in front of its front cone (`bevelSection`'s `solid`, revolved), so its teeth
  *    end there, and its top is whole.
  * 6. The gap, patterned around the axis once per tooth, and cut from the blank.
  *
@@ -1473,8 +1463,8 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         }
     }
 
-    // 5. With Flat top, the gap less what's in front of its front cone
-    if (definition.flatTop)
+    // 5. Without Flat top, the gap less what's in front of its front cone
+    if (!definition.flatTop)
     {
         const solidSketch = newSketchOnPlane(context, id + "solidSection", { "sketchPlane" : sectionPlane });
         for (var i, point in section.solid)
@@ -1489,7 +1479,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
                         "axis" : line(gearPlane.origin, axis),
                         "angleForward" : 360 * degree
                     });
-            opBoolean(context, id + "flatTop", {
+            opBoolean(context, id + "frontCone", {
                         "targets" : gap,
                         "tools" : qCreatedBy(id + "solid", EntityType.BODY),
                         "operationType" : BooleanOperationType.SUBTRACTION
@@ -1497,7 +1487,7 @@ function buildBevelGear(context is Context, featureId is Id, id is Id, definitio
         }
         catch
         {
-            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "flatTop", "propagateErrorDisplay" : true });
+            processSubfeatureStatus(context, featureId, { "subfeatureId" : id + "frontCone", "propagateErrorDisplay" : true });
             throw regenError("Failed to create bevel gear teeth.", ["teeth", "bevelMateTeeth", "thickness"], gap);
         }
     }
@@ -1539,9 +1529,9 @@ export function internalRingRadius(definition is map, module is ValueWithUnits, 
     }
     const pitchRadius = module * teeth / 2;
     const from = switch (definition.ringFrom) {
-            InternalRingFrom.ROOT : pitchRadius + 1.25 * module,
-            InternalRingFrom.PITCH : pitchRadius,
-            InternalRingFrom.TIP : internalTipRadius(pitchRadius, module * definition.internalMateTeeth / 2, module, pressureAngle(definition))
+            MeasuredFrom.ROOT : pitchRadius + 1.25 * module,
+            MeasuredFrom.PITCH : pitchRadius,
+            MeasuredFrom.TIP : internalTipRadius(pitchRadius, module * definition.internalMateTeeth / 2, module, pressureAngle(definition))
         };
     return from + definition.ringThickness;
 }
@@ -1765,24 +1755,101 @@ function moveFacesOut(context is Context, featureId is Id, id is Id, faces is Qu
 
 /**
  * How far Face to cut is below the teeth's tips (`rackFaceAt`), which it's moved out by first: at their pitch line, a
- * module; at their tips, nothing; at their base (their root line, without the profile offset), `2.25 m`, so the teeth
+ * module; at their tips, nothing; at their roots (their root line, without the profile offset), `2.25 m`, so the teeth
  * are added on it.
  */
 function rackFaceDepth(definition is map, module is ValueWithUnits) returns ValueWithUnits
 {
     return switch (definition.rackFaceAt) {
-            RackFaceAt.PITCH : module,
-            RackFaceAt.OUTSIDE : 0 * meter,
-            RackFaceAt.BASE : 2.25 * module
+            MeasuredFrom.PITCH : module,
+            MeasuredFrom.TIP : 0 * meter,
+            MeasuredFrom.ROOT : 2.25 * module
         };
 }
 
 /**
+ * A rack's Angle, signed: counterclockwise about a round face's axis, or along a flat face, unless Opposite direction.
+ */
+function rackAngle(definition is map) returns ValueWithUnits
+{
+    return definition.rackAngleOppositeDirection ? -definition.rackAngle : definition.rackAngle;
+}
+
+/**
+ * A rack's Angle reference: its first selection, which must be there.
+ */
+function rackReference(context is Context, definition is map) returns Query
+{
+    const reference = qNthElement(definition.rackReference, 0);
+    if (isQueryEmpty(context, reference))
+    {
+        throw regenError("Select an angle reference.", ["rackReference"]);
+    }
+    return reference;
+}
+
+/**
+ * Where a flat face's Angle reference is along it (`frame`'s x axis, across it its z axis), at `middle` across it: a
+ * point's, or where a line crosses the face's middle (a line square to the face, where it meets it).
+ */
+function rackReferenceAlong(context is Context, definition is map, frame is CoordSystem, middle is ValueWithUnits) returns ValueWithUnits
+{
+    const reference = rackReference(context, definition);
+    const point = angleReferencePoint(context, reference);
+    if (point != undefined)
+    {
+        return fromWorld(frame, point)[0];
+    }
+    const edge = evLine(context, { "edge" : reference });
+    const origin = fromWorld(frame, edge.origin);
+    const along = dot(edge.direction, frame.xAxis);
+    const across = dot(edge.direction, frame.zAxis);
+    if (abs(across) < TOLERANCE.zeroAngle)
+    {
+        if (abs(along) < TOLERANCE.zeroAngle)
+        {
+            return origin[0];
+        }
+        throw regenError("Angle reference must cross the face.", ["rackReference"], reference);
+    }
+    return origin[0] + (middle - origin[2]) * along / across;
+}
+
+/**
+ * A round face's Angle reference's angle around its axis (`frame`'s z axis, from its x axis): a point's, or a line's
+ * direction (a line along the axis, where it is).
+ */
+function rackReferenceAngle(context is Context, definition is map, frame is CoordSystem) returns ValueWithUnits
+{
+    const reference = rackReference(context, definition);
+    const yAxis = cross(frame.zAxis, frame.xAxis);
+    var point = angleReferencePoint(context, reference);
+    if (point == undefined)
+    {
+        const edge = evLine(context, { "edge" : reference });
+        const x = dot(edge.direction, frame.xAxis);
+        const y = dot(edge.direction, yAxis);
+        if (abs(x) > TOLERANCE.zeroAngle || abs(y) > TOLERANCE.zeroAngle)
+        {
+            return atan2(y, x);
+        }
+        point = edge.origin;
+    }
+    const local = fromWorld(frame, point);
+    if (tolerantEquals(vector(local[0], local[1]), vector(0, 0) * meter))
+    {
+        // On the axis, it has no angle around it
+        throw regenError("Angle reference could not be projected onto the face.", ["rackReference"], reference);
+    }
+    return atan2(local[1], local[0]);
+}
+
+/**
  * Cuts rack teeth into the part along Face to cut (and the flat faces in line with it, across tangent edges): along its
- * longest straight edge, from end to end, through its width. At the teeth's pitch line or base (`rackFaceAt`), the
+ * longest straight edge, from end to end, through its width. At the teeth's pitch line or roots (`rackFaceAt`), the
  * faces are first moved out to their tips (`rackFaceDepth`). Whole teeth fill it, a pitch apart, lined up with an end (a gap centered on
  * it) or the angle reference (likewise); past the first and last, it's cut to the root. A partial rack's stop at its
- * far end (`rackStop`): past it, the face is left as it is; at the teeth's base, there's no stop, and past them it's
+ * far end (`rackStop`): past it, the face is left as it is; at the teeth's roots, there's no stop, and past them it's
  * cut to the root, the face where it was. A router bit's slots which cut the teeth's flanks where a
  * mating gear's teeth touch them are an error (`rackBitTooLarge`), found before anything's cut, showing the part in
  * blue and the bit's slots in red (`rackSlotRegion`), built for the error.
@@ -1815,7 +1882,7 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     const sketchPlane = plane(toWorld(frame, vector(bounds.minCorner[0], 0 * meter, bounds.minCorner[2])), frame.zAxis, direction);
 
     var gap;
-    if (definition.rackAlignment == RackAlignment.END)
+    if (!definition.alignTeeth)
     {
         gap = definition.oppositeEnd ? length : 0 * meter;
         addManipulators(context, id, {
@@ -1828,17 +1895,18 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
     }
     else
     {
-        const reference = qNthElement(definition.rackReference, 0);
-        if (isQueryEmpty(context, reference))
-        {
-            throw regenError("Select an angle reference.", ["rackReference"]);
-        }
-        const point = angleReferencePoint(context, reference);
-        if (point == undefined)
-        {
-            throw regenError("Angle reference must be a point.", ["rackReference"], reference);
-        }
-        gap = dot(point - sketchPlane.origin, direction);
+        const middle = (bounds.minCorner[2] + bounds.maxCorner[2]) / 2;
+        const reference = rackReferenceAlong(context, definition, frame, middle) - bounds.minCorner[0];
+        // The angle is the teeth's phase: a turn is a pitch along the face
+        const shift = rackAngle(definition) / (360 * degree) * PI * form.module;
+        gap = reference + shift;
+        addManipulators(context, id, {
+                    (RACK_ANGLE_MANIPULATOR) : linearManipulator({
+                            "base" : sketchPlane.origin + direction * reference + frame.zAxis * width / 2,
+                            "direction" : direction,
+                            "offset" : shift
+                        })
+                });
     }
 
     // Where the teeth are across the middle of its width (a helical rack's slant across it)
@@ -1853,7 +1921,7 @@ function cutRack(context is Context, id is Id, definition is map, face is Query,
         const partial = rackStop(context, id, definition, form, sketchPlane.origin, direction, frame.zAxis * width / 2, length, centers, gap);
         centers = partial.centers;
         // Teeth added on the face have no stop: past them, it's cut back to where the face was
-        stop = definition.rackFaceAt == RackFaceAt.BASE ? undefined : partial.stop;
+        stop = definition.rackFaceAt == MeasuredFrom.ROOT ? undefined : partial.stop;
     }
     if (rackBitTooLarge(form))
     {
@@ -1936,7 +2004,7 @@ function rackStop(context is Context, id is Id, definition is map, form is map, 
         reference = dot(point - origin, direction);
     }
     var fromEnd = definition.oppositeEnd;
-    if (definition.rackAlignment == RackAlignment.REFERENCE)
+    if (definition.alignTeeth)
     {
         fromEnd = reference != undefined ? reference < length / 2 : gap > length / 2;
     }
@@ -2023,8 +2091,8 @@ function rackTools(context is Context, id is Id, definition is map, form is map,
 /**
  * Cuts a gear's teeth into the part around Face to cut, a round face (and the faces on the same cylinder, across
  * tangent edges), across its width: a gear with the nearest whole number of teeth to its size (at
- * its pitch circle, tips, or base, `rackFaceAt`), whose faces are first moved to its tips. A partial rack's teeth at
- * its base have no stops: past them, it's cut to the root, the face where it was. Whole teeth fill it, a pitch apart,
+ * its pitch circle, tips, or roots, `rackFaceAt`), whose faces are first moved to its tips. A partial rack's teeth at
+ * its roots have no stops: past them, it's cut to the root, the face where it was. Whole teeth fill it, a pitch apart,
  * lined up with an end (a gap centered on it; all the way around, with the cylinder's x axis) or the angle reference
  * (likewise); past the first and last, it's cut to the root. The teeth are a gear's (or a sector's, see
  * `buildGearBody`; its router bit's slots checked as a gear's, `checkBitSlots`), and what's cut is what's around them:
@@ -2094,25 +2162,19 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
             return frame.xAxis * cos(angle) + yAxis * sin(angle);
         };
     var gap;
-    if (definition.rackAlignment == RackAlignment.REFERENCE)
+    if (definition.alignTeeth)
     {
-        const reference = qNthElement(definition.rackReference, 0);
-        if (isQueryEmpty(context, reference))
-        {
-            throw regenError("Select an angle reference.", ["rackReference"]);
-        }
-        const point = angleReferencePoint(context, reference);
-        if (point == undefined)
-        {
-            throw regenError("Angle reference must be a point.", ["rackReference"], reference);
-        }
-        const local = fromWorld(frame, point);
-        if (tolerantEquals(vector(local[0], local[1]), vector(0, 0) * meter))
-        {
-            // On the axis, it has no angle around it
-            throw regenError("Angle reference could not be projected onto the face.", ["rackReference"], reference);
-        }
-        gap = atan2(local[1], local[0]);
+        const reference = rackReferenceAngle(context, definition, frame);
+        gap = reference + rackAngle(definition);
+        addManipulators(context, id, {
+                    (RACK_ANGLE_MANIPULATOR) : angularManipulator({
+                            "axisOrigin" : middlePoint,
+                            "axisDirection" : frame.zAxis,
+                            "rotationOrigin" : middlePoint + around(reference) * (tipRadius + module),
+                            "angle" : rackAngle(definition),
+                            "primaryParameterId" : "rackAngle"
+                        })
+                });
     }
     else if (span.full)
     {
@@ -2150,8 +2212,8 @@ function cutRoundTeeth(context is Context, id is Id, definition is map, face is 
             toothAngles = append(toothAngles, gap + (k + 0.5) * pitch);
         }
     }
-    // Teeth added on the face (at its base) have no stops: around them, it's cut back to where the face was
-    const addedOn = definition.rackFaceAt == RackFaceAt.BASE;
+    // Teeth added on the face (at their roots) have no stops: around them, it's cut back to where the face was
+    const addedOn = definition.rackFaceAt == MeasuredFrom.ROOT;
     if (definition.partialRack)
     {
         const partial = roundRackStop(context, id, definition, form, frame, middlePoint, span, gap, pitch, toothAngles);
@@ -2344,7 +2406,7 @@ function roundRackStop(context is Context, id is Id, definition is map, form is 
             return wrapped(angle - span.start);
         };
     var fromEnd = definition.oppositeEnd;
-    if (definition.rackAlignment == RackAlignment.REFERENCE)
+    if (definition.alignTeeth)
     {
         const half = (span.end - span.start) / 2;
         fromEnd = reference != undefined ? within(reference) < half : within(gap) > half;
@@ -2628,6 +2690,17 @@ export function robotGearManipulatorChange(context is Context, definition is map
     if (newManipulators[RACK_END_MANIPULATOR] != undefined)
     {
         definition.oppositeEnd = newManipulators[RACK_END_MANIPULATOR].flipped;
+        return definition;
+    }
+    const rackAngleManipulator = newManipulators[RACK_ANGLE_MANIPULATOR];
+    if (rackAngleManipulator != undefined)
+    {
+        // A flat face's is dragged along it: a pitch is a turn
+        const angle = rackAngleManipulator.manipulatorType == ManipulatorType.ANGULAR ? rackAngleManipulator.angle :
+            rackAngleManipulator.offset / (PI * gearModule(definition)) * 360 * degree;
+        // Whole turns change nothing, and Angle is under one
+        definition.rackAngle = abs(angle) - floor(abs(angle) / (360 * degree)) * 360 * degree;
+        definition.rackAngleOppositeDirection = angle < 0 * degree;
         return definition;
     }
     const stop = newManipulators[RACK_STOP_MANIPULATOR];

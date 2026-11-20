@@ -162,7 +162,7 @@ in.)").
 
 Give a parameter a `"Description"` (its tooltip) only if it's both non-standard or confusing and has no clear
 effect when it's changed. That's rare: most parameters need none, as their name, their options, and what changing them
-does to the model say enough. Robot gear's have none, not even a rack's Face at, a bevel gear's Shaft angle, or an
+does to the model say enough. Robot gear's have none, not even a rack's Measured from, a bevel gear's Shaft angle, or an
 optional selection (Stop reference). Don't describe a parameter just to restate its name, give its units, say it's
 optional, or explain a standard term (Module, Diametral pitch, Helix angle, Center to center adjustment).
 

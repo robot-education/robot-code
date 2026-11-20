@@ -834,8 +834,8 @@ def test_spline_xs_bores_are_the_shaft_offset_by_their_fit(fit, clearance_in):
             assert angle == pytest.approx(expected, abs=1e-9)
 
 
-@pytest.mark.parametrize("face_at, modules", [("PITCH", 1), ("OUTSIDE", 0), ("BASE", 2.25)])
+@pytest.mark.parametrize("face_at, modules", [("PITCH", 1), ("TIP", 0), ("ROOT", 2.25)])
 def test_rack_face_is_moved_out_to_the_tips(face_at, modules):
     # At the base (the root line), the teeth are added on the face: it's moved out their whole depth
-    depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : RackFaceAt.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
+    depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : MeasuredFrom.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
     assert to_python(depth) == pytest.approx(modules * 0.0254 / 20, abs=1e-12)
