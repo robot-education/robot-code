@@ -1,4 +1,0 @@
-script = "robotGear"
-bump = "patch"
-description = "Fixes Flat top, renames a rack's Face at to Measured from, adds Align teeth with an angle, and fixes the pinion's bore warning"
-publish = true
