@@ -388,7 +388,7 @@ export const robotGear = defineFeature(function(context is Context, id is Id, de
             // flush with its top face (see `bevelShape`)
             if (definition.gearType == GearType.BEVEL)
             {
-                annotation { "Name" : "Flat top", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                annotation { "Name" : "Flat top", "Default" : false, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                 definition.flatTop is boolean;
             }
 

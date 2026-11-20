@@ -32,36 +32,16 @@ without it, end square to its pitch cone, their roots flush with a whole round t
 
 ## Changelog
 
-Since v1.2.0 (`fs changes robotGear`).
+Since v1.3.0 (`fs changes robotGear`).
 
-- Internal gears' teeth are shaped for their pinion (Mating gear teeth, `internalMateTeeth`, 12 by default, whether or
-  not it's made): their tips stop where they'd hit its flanks below its base circle (a module in, they clipped a small
-  pinion's roots: a 10T one's by about `0.04 m` at 20°, or `0.11 m` at 14.5°), and their roots meet their flanks no
-  lower than its tips touch them. Existing internal gears' tips move out when they update, and Ring thickness Measured
-  from Tip diameter measures from the moved tips. A pinion too large for them (as many teeth, or too few between them)
-  is an error.
-- Flat top is the other way round, and on by default: on, a bevel gear's teeth are cut off by its flat top; off,
-  they end square to its pitch cone. Existing bevel gears flip when they update.
+- Flat top was the wrong way round: on, a bevel gear's teeth are now cut off by its flat top; off (the default), they
+  end square to its pitch cone. Existing bevel gears flip when they update.
 - A rack's Face at is Measured from, its options Root diameter (was Base), Pitch diameter, and Tip diameter (was
   Outside diameter), as an internal gear's Ring thickness's.
 - A rack's Align teeth to is a checkbox, Align teeth: off, its teeth line up with an end (Opposite end); on, with the
   Angle reference, turned by an Angle (Opposite direction flips it). The Angle reference can be a line too.
 - An internal gear's pinion's bore warning highlights Mating gear teeth, not Thickness: only a bevel gear's thickness
   reaches its bore.
-- Bevel gears' Profile is removed: they're always Exact (spherical involute teeth, with Gleason's proportions).
-  Approximate ones (Tredgold's approximation, a spur gear's proportions) become Exact when they update.
-- Gear pair for internal gears: the pinion, inside the ring, with its own bore (in Gear pair: the ring has none), and
-  Center to center adjustment.
-- Gear pair's Use gear's bore: on (by default), the mate's bore is the gear's, as before; off, it has its own, in Gear
-  pair.
-- A router bit too large for the teeth is found before anything's built or cut: a much wider one (3/16 in. on a 60T
-  20 DP gear) failed with an extrude's or boolean's error, showing nothing. It shows the teeth with sharp roots (a
-  rack's part, or a bevel gear's blank) in blue, and the bit's slots in red, built for the error. An internal gear's
-  bit wider than its gaps at the pitch circle is too large (it wasn't, at all widths).
-- Operations fail with the feature's own errors, showing what they were given: Failed to create gear teeth. (a gear's
-  extrude or sweep, or an internal gear's ring), Failed to create rack teeth. and Failed to cut rack teeth., and the
-  bevel gear's, which now cover its blank and pattern too.
-- The bore bigger than the part shows the gear in blue (built again), not just the bore.
 
 ## Strings
 
