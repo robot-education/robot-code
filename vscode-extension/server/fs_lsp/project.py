@@ -948,6 +948,7 @@ class Project:
         problems.extend(self._editing_logic_key_problems(module))
         problems.extend(self._set_by_problems(module))
         problems.extend(self._support_annotation_problems(module))
+        problems.extend(self._vendor_order_problems(module))
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
         problems.extend(self._horizontal_enum_problems(module))
@@ -1357,6 +1358,39 @@ class Project:
                     report = at if owner is module else token
                     problems.append(Problem(report.offset, report.end, "error", message, "unknown-parameter"))
         return _dedupe_problems(problems)
+
+    def _vendor_order_problems(self, module: Module) -> list[Problem]:
+        """A part's vendor is the first thing asked of it, as it's the first level of its lookup tables and its Part
+        Studios' configurations: a feature's `vendor` is the first parameter its dialog shows after its top level
+        options, and a `<part>Vendor`
+        (`screwVendor`) the first of its part's (`screwHead`, `screwLength`)."""
+        problems = []
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration" or _feature_precondition(module, feature) is None:
+                continue
+            # Its top level options, horizontal enums, come before it
+            shown = [p for p in self.feature_parameters(module, feature) if p.kind == "shown"]
+            for index, parameter in enumerate(shown):
+                if parameter.module is not module:
+                    continue
+                if parameter.name == "vendor":
+                    before = shown[:index]
+                elif parameter.name.endswith("Vendor"):
+                    prefix = parameter.name[: -len("Vendor")]
+                    before = [p for p in shown[:index] if p.name.startswith(prefix)]
+                else:
+                    continue
+                if before:
+                    problems.append(
+                        Problem(
+                            parameter.token.offset,
+                            parameter.token.end,
+                            "error",
+                            f"Vendor goes first, before {before[0].label or before[0].name}.",
+                            "vendor-order",
+                        )
+                    )
+        return problems
 
     def _support_annotation_problems(self, module: Module) -> list[Problem]:
         """`"Auto Assembly"` and `"Simplification"`, our own keys in a feature's annotation, which `fs release` writes

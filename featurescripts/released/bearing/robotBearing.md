@@ -73,7 +73,8 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 1. **Editing logic** (`robotBearingHatEditLogic`): sets Has clearance; when the hole table's path changes, Hole
    diameter and Tap drill diameter from it; then `mountingEditLogic`.
 2. **Body**:
-   1. The bearing (`libraryBearing`): its `robotBearingTable` entry's enums, looked up in the bearings set's `BEARINGS`
+   1. The bearing (`libraryBearing`): its `robotBearingTable` entry's enums (Vendor, Type, Bore, Size, Dimensions, and
+      Seal, skipping a level with one option), looked up in the bearings set's `BEARINGS`
       for its outside diameter, width and flange, with its hole at its bore's corners (`boreRadius`), as a
       `BearingPart`.
    2. The plane (`bearingPlane`): the location's, offset, turned to the angle reference, flipped, and turned by Angle,

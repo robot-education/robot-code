@@ -41,7 +41,7 @@ export function testScrewHolesClearTheBore()
             "product" : { "documentId" : "d", "elementId" : "e", "configuration" : {}, "name" : "Bearing" } } as BearingPart;
     for (var count in [ScrewCount.TWO, ScrewCount.THREE])
     {
-        const definition = { "screwCount" : count, "overrideHoleCircle" : false, "holeDiameter" : 0.201 * inch };
+        const definition = { "retentionScrewCount" : count, "overrideHoleCircle" : false, "holeDiameter" : 0.201 * inch };
         const positions = screwPositions(definition, part);
         expectEqual(size(positions), count == ScrewCount.TWO ? 2 : 3);
         for (var position in positions)
@@ -50,6 +50,6 @@ export function testScrewHolesClearTheBore()
             expectNear(norm(position) - 0.201 * inch / 2, 1.125 * inch / 2 + 0.03 * inch, 1e-9 * meter);
         }
     }
-    const overridden = screwPositions({ "screwCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, part);
+    const overridden = screwPositions({ "retentionScrewCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, part);
     expectNear(norm(overridden[1]), 1 * inch, 1e-9 * meter);
 }

@@ -40,7 +40,7 @@ whole table entry.
 Robot bearing's steps 2, 3 and 5 (see `../released/bearing/robotBearing.md`), in its groups (Bushing; Position). It has no
 Bore fit: a COTS bushing is pressed in, so its bore is its outside diameter.
 
-1. The bushing (`libraryBushing`): its `bushingTable` entry (Bore, Size, Material, Dimensions, and Vendor, skipping a
+1. The bushing (`libraryBushing`): its `bushingTable` entry (Vendor, Bore, Size, Material, and Dimensions, skipping a
    level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, and flange,
    with its hole at its bore's corners (the bearings' `boreRadius`), as a `BearingPart`.
 2. The plane, and `placeBearing`, declaring it as a bushing. Until the bushings set is released, its studio has no

@@ -2,7 +2,7 @@
 
 - Bearings and bushings are FRCDesign's bearings and bushings part sets' (`featurescripts/bearings/`,
   `featurescripts/bushings/`): every one their FRC studios offer, from their catalogs, by what the part is and then who
-  makes it, each with its studio's configuration (its record's values) and the studio's location once the set is
+  makes it, by vendor first, each with its studio's configuration (its record's values) and the studio's location once the set is
   released. Before then, a part's product has no document, and the feature declares nothing.
 - WCP's bearing hats are FRCDesignLib's own, from the snapshot in `vendor/frcdesign-hats.json`, which `uv run python
   featurescripts/released/bearing/robotBearingTables.py fetch` refreshes (see `fs_cli/library.py`).
@@ -84,22 +84,22 @@ def part_set_node(
 
 
 def bearing_node() -> Node:
-    """The bearings set's FRC bearings, by type, bore, size, dimensions, seal, and vendor."""
+    """The bearings set's FRC bearings, by vendor, type, bore, size, dimensions, and seal."""
     columns = BEARING_SET["COLUMNS"]
     defaults = dict(zip(columns, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED")))
     return part_set_node(
         BEARING_SET["FRC"].records, BEARING_SET["LOCATIONS"], columns, BEARING_SET["_ENUMS"],
-        ["type", "bore", "size", "dimensions", "seal", "vendor"], defaults,
+        ["vendor", "type", "bore", "size", "dimensions", "seal"], defaults,
     )
 
 
 def bushing_node() -> Node:
-    """The bushings set's bushings, by bore, size, material, dimensions, and vendor."""
+    """The bushings set's bushings, by vendor, bore, size, material, and dimensions."""
     columns = BUSHING_SET["COLUMNS"]
     defaults = {"bore": "ROUNDED_HEX", "size": "IN_1_2", "material": "BRONZE", "dimensions": "OD_0_75_X_0_313", "vendor": "GENERIC"}
     return part_set_node(
         BUSHING_SET["RECORDS"], BUSHING_SET["LOCATIONS"], columns, BUSHING_SET["_ENUMS"],
-        ["bore", "size", "material", "dimensions", "vendor"], defaults,
+        ["vendor", "bore", "size", "material", "dimensions"], defaults,
     )
 
 

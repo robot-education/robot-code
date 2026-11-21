@@ -188,7 +188,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
                 else
                 {
                     annotation { "Name" : "Screw count", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.screwCount is ScrewCount;
+                    definition.retentionScrewCount is ScrewCount;
 
                     annotation { "Name" : "Override hole circle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
                     definition.overrideHoleCircle is boolean;
@@ -368,7 +368,7 @@ const SCREW_WALL = 0.03 * inch;
  */
 export function screwPositions(definition is map, part is BearingPart) returns array
 {
-    const count = definition.screwCount == ScrewCount.TWO ? 2 : 3;
+    const count = definition.retentionScrewCount == ScrewCount.TWO ? 2 : 3;
     const diameter = definition.overrideHoleCircle ? definition.holeCircleDiameter :
         part.outerDiameter + 2 * SCREW_WALL + definition.holeDiameter;
     return mapArray(range(0, count - 1), i => vector(cos(i * 360 * degree / count), sin(i * 360 * degree / count)) * diameter / 2);

@@ -248,3 +248,10 @@ def test_generate_rejects_exported_feature_studios(tmp_path):
     (tmp_path / "tables.py").write_text("CONTENTS = []\nEXPORTS = {'other.fs': ''}\n")
     with pytest.raises(GenerateError, match="Feature Studio"):
         generate(tmp_path, "2960")
+
+
+def test_a_tables_vendor_is_its_first_level():
+    sizes = Node("size", [Value("1/2 in", {"x": "1"})])
+    Table("t", Node("vendor", [Value("WCP", next=sizes)]))
+    with pytest.raises(ValueError, match="vendor goes first"):
+        Table("t", Node("size", [Value("1/2 in", next=Node("vendor", [Value("WCP", {"x": "1"})]))]))
