@@ -7084,6 +7084,52 @@
           "material": "Stainless Steel"
         }
       ]
+    },
+    "eClip": {
+      "feature": "fastenerEClip",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "MM_8"
+          },
+          "name": "8 mm E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "MM_12"
+          },
+          "name": "12 mm E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "MM_8"
+          },
+          "name": "8 mm E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98543A114",
+          "url": "https://www.mcmaster.com/98543A114/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "MM_12"
+          },
+          "name": "12 mm E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98543A117",
+          "url": "https://www.mcmaster.com/98543A117/",
+          "material": "Carbon Steel"
+        }
+      ]
     }
   },
   "vendors": [

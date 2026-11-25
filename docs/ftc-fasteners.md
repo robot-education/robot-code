@@ -108,6 +108,21 @@ AndyMark sells no metric flat washer for M3 or M4.
 Lock washers are left out, goBILDA's split and tooth ones and AndyMark's split ones alike: a nylock or thread
 locker does the job on an FTC robot.
 
+## E-clips
+
+goBILDA's REX shafts with an e-clip come with it: goBILDA sells it no other way, REV has none, and ConfigLib has no
+e-clip. The shafts' STEP models hold theirs, which Generic's are measured from, with no part number. McMaster-Carr's
+are the phosphate-coated DIN 6799 ones for the same grooves, for replacing one.
+
+| Shaft | Groove | Generic (goBILDA's model) | McMaster-Carr |
+| --- | --- | --- | --- |
+| 8 mm REX | 6 | 12.3 outside, 6 inside, 0.7 thick (2106-4008-0560) | 98543A114: 11.8 outside, 0.7 thick |
+| 12 mm REX | 9 | 18 outside, 9.1 inside, 1 thick (2109-4012-1040, where it's 2824-0002-0091) | 98543A117: 18.2 outside, 1.1 thick |
+
+McMaster-Carr's outside diameters and thicknesses are its table's and the inside ones DIN 6799's (5.26 and 7.63); the rest
+takes the proportions of its model of the 2 mm one, so it hasn't been measured. 98543A117 is sold for a 1.15 mm groove,
+and goBILDA's is 1 mm wide (robotShaftTables.py), so it may not fit.
+
 ## Vendors and finishes
 
 Prices only order a vendor's finishes and pick which of McMaster-Carr's supplies a length's part number comes from;

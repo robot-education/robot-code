@@ -268,7 +268,9 @@ def test_each_set_offers_its_own_sizes():
     assert {key[1] for key in DEFINITION["FRC"].screws} == DEFINITION["IMPERIAL"]
     assert {key[1] for key in DEFINITION["FTC"].screws} == DEFINITION["METRIC"]
     assert [size["id"] for size in FTC_MANIFEST["sizes"]] == ["M3", "M4"]
-    assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer"}
+    assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer", "eClip"}
+    e_clips = {name: {key[1] for key in DEFINITION[name.upper()].e_clips} for name in CATALOGS}
+    assert e_clips == {"frc": {"MM_2", "IN_3_16", "IN_3_8", "IN_1_2"}, "ftc": {"MM_8", "MM_12"}}
 
 
 def test_each_studio_keeps_to_the_configuration_rules():

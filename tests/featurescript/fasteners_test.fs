@@ -264,29 +264,26 @@ export function testEClipOutlinesClose()
 {
     for (var vendor, sizes in E_CLIPS)
     {
-        for (var sizeId, types in sizes)
+        for (var sizeId, clip in sizes)
         {
-            for (var type, clip in types)
+            // Each curve's ends meet exactly one other's
+            const curves = eClipProfile(clip);
+            for (var curve in curves)
             {
-                // Each curve's ends meet exactly one other's
-                const curves = eClipProfile(clip);
-                for (var curve in curves)
+                for (var point in [curve.start, curve.end])
                 {
-                    for (var point in [curve.start, curve.end])
+                    var meeting = 0;
+                    for (var other in curves)
                     {
-                        var meeting = 0;
-                        for (var other in curves)
+                        for (var end in [other.start, other.end])
                         {
-                            for (var end in [other.start, other.end])
+                            if (norm(end - point) < 1e-9 * meter)
                             {
-                                if (norm(end - point) < 1e-9 * meter)
-                                {
-                                    meeting += 1;
-                                }
+                                meeting += 1;
                             }
                         }
-                        expectEqual(meeting, 2);
                     }
+                    expectEqual(meeting, 2);
                 }
             }
         }
@@ -295,32 +292,40 @@ export function testEClipOutlinesClose()
 
 export function testEClipsMatchMcMasterCarrsModels()
 {
-    const clips = E_CLIPS[EClipVendor.MCMASTER];
+    const clips = E_CLIPS[FastenerVendor.MCMASTER];
     // Where the opening's side meets its prong's fillet, in FRCDesign's 3/16 in and 1/2 in e-clips
-    const openingPoint = function(clip)
-        {
-            const inner = clip.innerDiameter / 2;
-            const side = { "origin" : inner * vector(sqrt(1 - clip.opening ^ 2), clip.opening),
-                    "direction" : vector(cos(clip.openingAngle), sin(clip.openingAngle)) };
-            return filletToCircle(side, true, inner, clip.prongFilletRadius, false).start;
-        };
-    expectNear(norm(openingPoint(clips[EClipSize.IN_3_16][EClipType.FLAT]) - vector(0.047624, 0.059288) * inch), 0 * meter, 1e-5 * inch);
-    expectNear(norm(openingPoint(clips[EClipSize.IN_1_2][EClipType.FLAT]) - vector(0.124621, 0.158993) * inch), 0 * meter, 1e-5 * inch);
-    // FRCDesign's connectors on its bowed one are 0.029577 and 0.051 in either side of its middle
-    expectNear(eClipHeight(clips[EClipSize.IN_1_2][EClipType.BOWED]), 0.080577 * inch, 1e-5 * inch);
-    expectEqual(eClipHeight(clips[EClipSize.IN_1_2][EClipType.FLAT]), 0.042 * inch);
+    expectEClipPoint(clips[EClipSize.IN_3_16], vector(0.047624, 0.059288) * inch, 1e-5 * inch);
+    expectEClipPoint(clips[EClipSize.IN_1_2], vector(0.124621, 0.158993) * inch, 1e-5 * inch);
 }
 
-export function testEClipEditLogicStaysOnWhatsMade()
+export function testEClipsMatchGobildasModels()
 {
-    const edit = function(old, changed)
-        {
-            return eClipEditLogic(newContext(), newId(), old, mergeMaps(old, changed), false);
-        };
-    const andymark = { "vendor" : EClipVendor.ANDYMARK, "size" : EClipSize.IN_1_2, "eClipType" : EClipType.BOWED };
-    expectEqual(edit(andymark, { "vendor" : EClipVendor.WCP }),
-        { "vendor" : EClipVendor.WCP, "size" : EClipSize.MM_2, "eClipType" : EClipType.FLAT });
-    expectEqual(edit(andymark, { "size" : EClipSize.MM_2 }),
-        { "vendor" : EClipVendor.WCP, "size" : EClipSize.MM_2, "eClipType" : EClipType.FLAT });
-    expectEqual(edit(andymark, { "vendor" : EClipVendor.MCMASTER }).eClipType, EClipType.BOWED);
+    const clips = E_CLIPS[FastenerVendor.GENERIC];
+    const tolerance = 0.001 * millimeter;
+    // Vertices of its models of 2106-4008-0560's and 2109-4012-1040's e-clips: the pockets' ends, the opening's sides',
+    // and where its ends' fillets meet its rim
+    for (var point in [vector(-0.4643, 4.378), vector(0, 3), vector(0, 3.9604), vector(-2.8062, 1.0607), vector(-3.7046, 1.4002),
+                vector(-3.9311, 1.9822), vector(2.1639, 2.0778), vector(4.0787, 3.6009), vector(4.1077, 4.577)])
+    {
+        expectEClipPoint(clips[EClipSize.MM_8], point * millimeter, tolerance);
+    }
+    for (var point in [vector(-4.8056, 1.4692), vector(-4.4615, 0.8929), vector(-5.9759, 1.827), vector(-6.4712, 2.9212),
+                vector(-2.9232, 6.4703), vector(-1.8289, 5.9754), vector(-1.4707, 4.8052), vector(-0.8943, 4.4612),
+                vector(1.7918, 4.1823), vector(2.1286, 4.1619), vector(5.81, 5.2349), vector(6.1311, 6.5886)])
+    {
+        expectEClipPoint(clips[EClipSize.MM_12], point * millimeter, tolerance);
+    }
+}
+
+/**
+ * Expects one of an e-clip's outline's curves to end at `point`.
+ */
+function expectEClipPoint(clip is map, point is Vector, tolerance is ValueWithUnits)
+{
+    var nearest = 1 * meter;
+    for (var curve in eClipProfile(clip))
+    {
+        nearest = min([nearest, norm(curve.start - point), norm(curve.end - point)]);
+    }
+    expectNear(nearest, 0 * meter, tolerance);
 }
