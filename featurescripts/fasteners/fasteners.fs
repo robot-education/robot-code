@@ -364,21 +364,17 @@ annotation { "Feature Type Name" : "Retainer",
 export const fastenerRetainer = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.retainerType is RetainerType;
-
         annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.vendor is RetainerVendor;
+
+        annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.retainerType is RetainerType;
 
         annotation { "Name" : "Shaft size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.size is RetainerSize;
     }
     {
-        const choices = resolveChoices(RETAINERS, definition, ["retainerType", "vendor", "size"]);
-        if (choices.unmade == "vendor")
-        {
-            throw regenError("Selected vendor does not make this type of retainer, change the vendor.", ["vendor"]);
-        }
+        const choices = resolveChoices(RETAINERS, definition, ["vendor", "retainerType", "size"]);
         if (choices.unmade != undefined)
         {
             throw regenError("Selected vendor does not make this retainer for this shaft, change the shaft size.", ["size"]);

@@ -14860,8 +14860,8 @@
       "records": [
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "GENERIC",
+            "type": "E_CLIP",
             "size": "MM_2"
           },
           "name": "2 mm E-Clip",
@@ -14869,8 +14869,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "GENERIC",
+            "type": "E_CLIP",
             "size": "IN_3_16"
           },
           "name": "3/16 in E-Clip",
@@ -14878,8 +14878,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "GENERIC",
+            "type": "E_CLIP",
             "size": "IN_3_8"
           },
           "name": "3/8 in E-Clip",
@@ -14887,8 +14887,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "GENERIC",
+            "type": "E_CLIP",
             "size": "IN_1_2"
           },
           "name": "1/2 in E-Clip",
@@ -14896,8 +14896,26 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
+            "vendor": "GENERIC",
+            "type": "RETAINING_RING",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RETAINING_RING",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
             "vendor": "MCMASTER",
+            "type": "E_CLIP",
             "size": "MM_2"
           },
           "name": "2 mm E-Clip",
@@ -14908,8 +14926,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "MCMASTER",
+            "type": "E_CLIP",
             "size": "IN_3_16"
           },
           "name": "3/16 in E-Clip",
@@ -14920,8 +14938,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "MCMASTER",
+            "type": "E_CLIP",
             "size": "IN_3_8"
           },
           "name": "3/8 in E-Clip",
@@ -14932,8 +14950,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
             "vendor": "MCMASTER",
+            "type": "E_CLIP",
             "size": "IN_1_2"
           },
           "name": "1/2 in E-Clip",
@@ -14944,69 +14962,8 @@
         },
         {
           "values": {
-            "type": "E_CLIP",
-            "vendor": "WCP"
-          },
-          "name": "2 mm E-Clip",
-          "vendor": "WCP",
-          "partNumber": "WCP-0227",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "E_CLIP",
-            "vendor": "ANDYMARK",
-            "size": "IN_3_16"
-          },
-          "name": "3/16 in E-Clip",
-          "vendor": "AndyMark",
-          "partNumber": "am-1155",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "E_CLIP",
-            "vendor": "ANDYMARK",
-            "size": "IN_3_8"
-          },
-          "name": "3/8 in E-Clip",
-          "vendor": "AndyMark",
-          "partNumber": "am-1124",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "E_CLIP",
-            "vendor": "ANDYMARK",
-            "size": "IN_1_2"
-          },
-          "name": "1/2 in E-Clip",
-          "vendor": "AndyMark",
-          "partNumber": "am-0206",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "RETAINING_RING",
-            "vendor": "GENERIC",
-            "size": "IN_3_8"
-          },
-          "name": "3/8 in Retaining Ring",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "RETAINING_RING",
-            "vendor": "GENERIC",
-            "size": "IN_1_2"
-          },
-          "name": "1/2 in Retaining Ring",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "type": "RETAINING_RING",
             "vendor": "MCMASTER",
+            "type": "RETAINING_RING",
             "size": "IN_3_8"
           },
           "name": "3/8 in Retaining Ring",
@@ -15017,8 +14974,8 @@
         },
         {
           "values": {
-            "type": "RETAINING_RING",
             "vendor": "MCMASTER",
+            "type": "RETAINING_RING",
             "size": "IN_1_2"
           },
           "name": "1/2 in Retaining Ring",
@@ -15029,8 +14986,18 @@
         },
         {
           "values": {
-            "type": "RETAINING_RING",
             "vendor": "WCP",
+            "type": "E_CLIP"
+          },
+          "name": "2 mm E-Clip",
+          "vendor": "WCP",
+          "partNumber": "WCP-0227",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RETAINING_RING",
             "size": "IN_3_8"
           },
           "name": "3/8 in Retaining Ring",
@@ -15040,13 +15007,43 @@
         },
         {
           "values": {
-            "type": "RETAINING_RING",
             "vendor": "WCP",
+            "type": "RETAINING_RING",
             "size": "IN_1_2"
           },
           "name": "1/2 in Retaining Ring",
           "vendor": "WCP",
           "partNumber": "WCP-0229",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1155",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1124",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-0206",
           "material": "Carbon Steel"
         }
       ]

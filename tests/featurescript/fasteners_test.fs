@@ -255,8 +255,8 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
                 "finish" : ScrewFinish.BLACK, "length" : ScrewLength.IN_0_5 }, parameters);
     expectEqual(frc.definition.size, FastenerSize.NO_10_32);
     // McMaster-Carr's e-clips come in four sizes for FRC, and one for FTC
-    const eClip = resolveChoices(RETAINERS[RetainerType.E_CLIP], { "vendor" : RetainerVendor.MCMASTER, "size" : RetainerSize.MM_12 },
-        ["vendor", "size"]);
+    const eClip = resolveChoices(RETAINERS, { "vendor" : RetainerVendor.MCMASTER, "retainerType" : RetainerType.E_CLIP,
+                "size" : RetainerSize.MM_12 }, ["vendor", "retainerType", "size"]);
     expectEqual(eClip.definition.size, RetainerSize.MM_8);
     // Nothing of goBILDA's comes in #10-32
     const unmade = resolveChoices(NUTS, { "vendor" : FastenerVendor.GOBILDA, "size" : FastenerSize.NO_10_32,
@@ -266,9 +266,9 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
 
 export function testRetainerOutlinesClose()
 {
-    for (var retainerType, vendors in RETAINERS)
+    for (var vendor, types in RETAINERS)
     {
-        for (var vendor, sizes in vendors)
+        for (var retainerType, sizes in types)
         {
             for (var sizeId, retainer in sizes)
             {
@@ -304,7 +304,7 @@ function retainerProfile(retainer is map) returns array
 
 export function testRetainingRingsMatchMcMasterCarrsModels()
 {
-    const rings = RETAINERS[RetainerType.RETAINING_RING][RetainerVendor.MCMASTER];
+    const rings = RETAINERS[RetainerVendor.MCMASTER][RetainerType.RETAINING_RING];
     const tolerance = 2e-6 * inch;
     // The ends of a lug's corner's and root's fillets, and of its side of the gap, in FRCDesign's
     for (var point in [vector(0.256961, 0.004485), vector(0.235484, 0.077631), vector(0.183600, 0.095896), vector(0.167459, 0.108945)])
@@ -322,7 +322,7 @@ export function testRetainingRingsMatchMcMasterCarrsModels()
 
 export function testEClipsMatchMcMasterCarrsModels()
 {
-    const clips = RETAINERS[RetainerType.E_CLIP][RetainerVendor.MCMASTER];
+    const clips = RETAINERS[RetainerVendor.MCMASTER][RetainerType.E_CLIP];
     // Where the opening's side meets its prong's fillet, in FRCDesign's 3/16 in and 1/2 in e-clips
     expectRetainerPoint(clips[RetainerSize.IN_3_16], vector(0.047624, 0.059288) * inch, 1e-5 * inch);
     expectRetainerPoint(clips[RetainerSize.IN_1_2], vector(0.124621, 0.158993) * inch, 1e-5 * inch);
@@ -330,7 +330,7 @@ export function testEClipsMatchMcMasterCarrsModels()
 
 export function testEClipsMatchGobildasModels()
 {
-    const clips = RETAINERS[RetainerType.E_CLIP][RetainerVendor.GOBILDA];
+    const clips = RETAINERS[RetainerVendor.GOBILDA][RetainerType.E_CLIP];
     const tolerance = 0.001 * millimeter;
     // Vertices of its models of 2106-4008-0560's and 2109-4012-1040's e-clips: the pockets' ends, the opening's sides',
     // and where its ends' fillets meet its rim

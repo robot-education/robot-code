@@ -269,7 +269,7 @@ def test_each_set_offers_its_own_sizes():
     assert {key[1] for key in DEFINITION["FTC"].screws} == DEFINITION["METRIC"]
     assert [size["id"] for size in FTC_MANIFEST["sizes"]] == ["M3", "M4"]
     assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer", "retainer"}
-    retainers = {name: {(key[0], key[2]) for key in DEFINITION[name.upper()].retainers} for name in CATALOGS}
+    retainers = {name: {key[1:] for key in DEFINITION[name.upper()].retainers} for name in CATALOGS}
     assert retainers == {
         "frc": {("E_CLIP", size) for size in ("MM_2", "IN_3_16", "IN_3_8", "IN_1_2")}
         | {("RETAINING_RING", "IN_3_8"), ("RETAINING_RING", "IN_1_2")},
