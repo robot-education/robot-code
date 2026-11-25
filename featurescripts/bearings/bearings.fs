@@ -226,7 +226,7 @@ function sealPoint(points is array, index is number) returns Vector
 /**
  * Cuts a bore through the bearing: a hex's corners rounded to its `diameter` where it has one.
  */
-function cutBore(context is Context, id is Id, body is Query, boreShape is map, bottom is ValueWithUnits, width is ValueWithUnits)
+export function cutBore(context is Context, id is Id, body is Query, boreShape is map, bottom is ValueWithUnits, width is ValueWithUnits)
 {
     // From below the bearing to above it, so the cut doesn't share its faces
     const start = bottom - width;
@@ -263,7 +263,7 @@ function cutBore(context is Context, id is Id, body is Query, boreShape is map, 
  * Sets a part's properties from its table entry (see bearingTables.py's `Record`): its name, its vendor and part
  * number, a link to buy it where it has them, and its material and appearance.
  */
-function setBearingProperties(context is Context, body is Query, entry is map)
+export function setBearingProperties(context is Context, body is Query, entry is map)
 {
     setProperty(context, { "entities" : body, "propertyType" : PropertyType.NAME, "value" : entry.name });
     if (entry.vendor != undefined)
