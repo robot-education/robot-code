@@ -312,6 +312,36 @@ export enum WasherType
     MM_10_9_X_1_5
 }
 
+export enum EClipVendor
+{
+    annotation { "Name" : "McMaster-Carr" }
+    MCMASTER,
+    annotation { "Name" : "WCP" }
+    WCP,
+    annotation { "Name" : "AndyMark" }
+    ANDYMARK
+}
+
+export enum EClipSize
+{
+    annotation { "Name" : "2 mm" }
+    MM_2,
+    annotation { "Name" : "3/16 in" }
+    IN_3_16,
+    annotation { "Name" : "3/8 in" }
+    IN_3_8,
+    annotation { "Name" : "1/2 in" }
+    IN_1_2
+}
+
+export enum EClipType
+{
+    annotation { "Name" : "Flat" }
+    FLAT,
+    annotation { "Name" : "Bowed" }
+    BOWED
+}
+
 export const FASTENER_SIZES = {
             FastenerSize.NO_4_40 : { "name" : "#4-40", "size" : "#4", "pitch" : "40 tpi", "threadPitch" : inch / 40, "majorDiameter" : 0.112 * inch, "minorDiameter" : 0.0814 * inch, "tapDrillDiameter" : 0.089 * inch, "closeClearanceDiameter" : 0.116 * inch, "freeClearanceDiameter" : 0.1285 * inch, "threadAllowance" : 0.5 * inch, "metric" : false },
             FastenerSize.NO_6_32 : { "name" : "#6-32", "size" : "#6", "pitch" : "32 tpi", "threadPitch" : inch / 32, "majorDiameter" : 0.138 * inch, "minorDiameter" : 0.1 * inch, "tapDrillDiameter" : 0.1065 * inch, "closeClearanceDiameter" : 0.144 * inch, "freeClearanceDiameter" : 0.1495 * inch, "threadAllowance" : 0.5 * inch, "metric" : false },
@@ -2854,6 +2884,41 @@ export const WASHERS = {
                     WasherType.MM_7_X_0_5 : {
                         WasherFinish.STAINLESS : { "innerDiameter" : 3.2 * millimeter, "outerDiameter" : 7 * millimeter, "thickness" : 0.5 * millimeter, "name" : "M3 Washer (7 mm OD x 0.5 mm, Stainless steel)", "vendor" : "REV", "partNumber" : "REV-41-2886", "url" : "https://www.revrobotics.com/rev-41-2886/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY }
                     }
+                }
+            }
+        };
+
+export const E_CLIPS = {
+            EClipVendor.MCMASTER : {
+                EClipSize.MM_2 : {
+                    EClipType.FLAT : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A060", "url" : "https://www.mcmaster.com/98543A060/", "material" : STEEL, "appearance" : BLACK }
+                },
+                EClipSize.IN_3_16 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A280", "url" : "https://www.mcmaster.com/97431A280/", "material" : STEEL, "appearance" : BLACK }
+                },
+                EClipSize.IN_3_8 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A320", "url" : "https://www.mcmaster.com/97431A320/", "material" : STEEL, "appearance" : BLACK }
+                },
+                EClipSize.IN_1_2 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A340", "url" : "https://www.mcmaster.com/97431A340/", "material" : STEEL, "appearance" : BLACK },
+                    EClipType.BOWED : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.596 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.05 * inch, "prongFilletRadius" : 0 * inch, "prongAngle" : 21.1 * degree, "openingAngle" : 11.2146 * degree, "opening" : 0.69603, "pocketAngle" : 3.6907 * degree, "bowRadius" : 1.552397 * inch, "name" : "1/2 in Bowed E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98398A138", "url" : "https://www.mcmaster.com/98398A138/", "material" : STEEL, "appearance" : BLACK }
+                }
+            },
+            EClipVendor.WCP : {
+                EClipSize.MM_2 : {
+                    EClipType.FLAT : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "WCP", "partNumber" : "WCP-0227", "material" : STEEL, "appearance" : BLACK }
+                }
+            },
+            EClipVendor.ANDYMARK : {
+                EClipSize.IN_3_16 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1155", "material" : STEEL, "appearance" : BLACK }
+                },
+                EClipSize.IN_3_8 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1124", "material" : STEEL, "appearance" : BLACK }
+                },
+                EClipSize.IN_1_2 : {
+                    EClipType.FLAT : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-0206", "material" : STEEL, "appearance" : BLACK },
+                    EClipType.BOWED : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.596 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.05 * inch, "prongFilletRadius" : 0 * inch, "prongAngle" : 21.1 * degree, "openingAngle" : 11.2146 * degree, "opening" : 0.69603, "pocketAngle" : 3.6907 * degree, "bowRadius" : 1.552397 * inch, "name" : "1/2 in Bowed E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1540", "material" : STEEL, "appearance" : BLACK }
                 }
             }
         };

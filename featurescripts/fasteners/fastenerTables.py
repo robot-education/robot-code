@@ -1,4 +1,4 @@
-"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, and nuts for FRC, and FTC's metric ones
+"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, nuts, and e-clips for FRC, and FTC's metric ones
 (`FTC`, whose Part Studios ftcFastenerTables.py configures as a part set of their own). Run `uv run fs gen` after
 editing.
 
@@ -1002,6 +1002,87 @@ WASHERS = {**WASHERS, **METRIC_WASHERS}
 WasherType = Enum("WasherType", list(_WASHER_TYPES), _WASHER_TYPES)
 
 
+# E-clips: FRCDesign's E-Clip (in its Shaft & Bearing Accessories document) in each of its sizes and vendors, measured
+# from the models it's made of, McMaster-Carr's. They're named for the shaft each goes on, as FRCDesign's are
+
+
+@dataclasses.dataclass(frozen=True)
+class EClip:
+    outer_diameter: float
+    # Across its prongs, where it sits in its groove
+    inner_diameter: float
+    # Across the pockets between its prongs
+    pocket_diameter: float
+    thickness: float
+    # Of its pockets' corners, and its ends'
+    fillet: float
+    # Of its prongs' corners, or 0 where they're sharp
+    prong_fillet: float
+    # Half the angle its middle prong spans
+    prong_angle: float
+    # Each side of its opening's, from its centerline
+    opening_angle: float
+    # How wide it opens where it meets `inner_diameter`, of it
+    opening: float
+    # How far its pockets stop short of square to its centerline
+    pocket_angle: float = 0
+    # A bowed clip's convex face's radius; its profile above is its convex face's, seen along its axis
+    bow_radius: float | None = None
+    unit: str = "in"
+
+
+def _inch_e_clip(outer: float, inner: float, pocket: float, thickness: float) -> EClip:
+    """Its fillets are 0.7 of its thickness, and half that; its middle prong's sides rise 1 in 3."""
+    fillet = round(0.7 * thickness, 6)
+    return EClip(outer, inner, pocket, thickness, fillet, fillet / 2, 18.434949, 17.347577, 0.8)
+
+
+E_CLIPS = {
+    ("MM_2", "FLAT"): EClip(2.9, 1.01, 2.01808, 0.3, 0.18, 0, 20.704811, 13.942784, 0.75, unit="mm"),
+    ("IN_3_16", "FLAT"): _inch_e_clip(0.335, 0.145, 0.247742, 0.025),
+    ("IN_3_8", "FLAT"): _inch_e_clip(0.66, 0.3, 0.495484, 0.035),
+    ("IN_1_2", "FLAT"): _inch_e_clip(0.8, 0.392, 0.615226, 0.042),
+    # Its opening's angle is fit to its ends' fillets; its sides are within 0.003 in of McMaster-Carr's model
+    ("IN_1_2", "BOWED"): EClip(0.8, 0.392, 0.596, 0.042, 0.05, 0, 21.1, 11.2146, 0.69603, 3.6907, 1.552397),
+}
+# Its own, so the feature's dialog offers no vendor which makes none
+EClipVendor = Enum(
+    "EClipVendor",
+    ["MCMASTER", "WCP", "ANDYMARK"],
+    {id: FastenerVendor.names[id] for id in ("MCMASTER", "WCP", "ANDYMARK")},  # type: ignore[index]
+)
+EClipSize = Enum(
+    "EClipSize",
+    ["MM_2", "IN_3_16", "IN_3_8", "IN_1_2"],
+    {"MM_2": "2 mm", "IN_3_16": "3/16 in", "IN_3_8": "3/8 in", "IN_1_2": "1/2 in"},
+)
+EClipType = Enum("EClipType", ["FLAT", "BOWED"], {"FLAT": "Flat", "BOWED": "Bowed"})
+
+
+def _mcmaster_e_clip(part: str) -> Stock:
+    return Stock(part, f"https://www.mcmaster.com/{part}/")
+
+
+# By vendor, size, and type: FRCDesign's "FRC Vendor (AM/WCP)" is WCP for 2 mm, and AndyMark for the rest
+E_CLIP_STOCK = {
+    ("MCMASTER", "MM_2", "FLAT"): _mcmaster_e_clip("98543A060"),
+    ("MCMASTER", "IN_3_16", "FLAT"): _mcmaster_e_clip("97431A280"),
+    ("MCMASTER", "IN_3_8", "FLAT"): _mcmaster_e_clip("97431A320"),
+    ("MCMASTER", "IN_1_2", "FLAT"): _mcmaster_e_clip("97431A340"),
+    ("MCMASTER", "IN_1_2", "BOWED"): _mcmaster_e_clip("98398A138"),
+    ("WCP", "MM_2", "FLAT"): Stock("WCP-0227"),
+    ("ANDYMARK", "IN_3_16", "FLAT"): Stock("am-1155"),
+    ("ANDYMARK", "IN_3_8", "FLAT"): Stock("am-1124"),
+    ("ANDYMARK", "IN_1_2", "FLAT"): Stock("am-0206"),
+    ("ANDYMARK", "IN_1_2", "BOWED"): Stock("am-1540"),
+}
+
+
+def e_clip_name(size: str, type: str) -> str:
+    """e.g. `1/2 in E-Clip`, or `1/2 in Bowed E-Clip`."""
+    return f"{EClipSize.names[size]}{' Bowed' if type == 'BOWED' else ''} E-Clip"  # type: ignore[index]
+
+
 # What each part is called and sold as: the features set these, and FRCDesignApp indexes the same records
 
 
@@ -1104,6 +1185,8 @@ class Defaults:
     screw: tuple[str, str, str, str, str]
     nut: tuple[str, str, str, str]
     washer: tuple[str, str, str, str]
+    # Where the set has e-clips
+    e_clip: tuple[str, str, str] | None = None
 
 
 class Catalog:
@@ -1156,6 +1239,17 @@ class Catalog:
             ),
         }
         self.records = {"screw": self._screw_records(), "nut": self._nut_records(), "washer": self._washer_records()}
+        if defaults.e_clip is not None:
+            self.e_clip_table = LookupTable(("vendor", "size", "type"), list(E_CLIP_STOCK))
+            self.studios["eClip"] = ConfiguredStudio(
+                "eClip",
+                "fastenerEClip",
+                self._e_clip_inputs(defaults.e_clip),
+                tab="E-Clip",
+                mate_connector="mateConnector",
+                top_mate_connector="topMateConnector",
+            )
+            self.records["eClip"] = self._e_clip_records()
 
     def _screw_inputs(self, defaults: tuple[str, str, str, str, str]) -> list[Input]:
         vendor, size, head, finish, length = defaults
@@ -1202,6 +1296,15 @@ class Catalog:
             table.input(_list("size", "Size", FastenerSize, "size", size)),
             table.input(_list("type", "Type", WasherType, "washerType", type)),
             table.input(_list("finish", "Finish", WasherFinish, "finish", finish, self.finishes)),
+        ]
+
+    def _e_clip_inputs(self, defaults: tuple[str, str, str]) -> list[Input]:
+        vendor, size, type = defaults
+        table = self.e_clip_table
+        return [
+            table.input(_list("vendor", "Vendor", EClipVendor, "vendor", vendor)),
+            table.input(_list("size", "Shaft size", EClipSize, "size", size)),
+            table.input(_list("type", "Type", EClipType, "eClipType", type)),
         ]
 
     def _screw_records(self) -> dict[tuple[str, str, str, str, str, bool], Record]:
@@ -1253,6 +1356,14 @@ class Catalog:
             for (vendor, size, type, finish), washer in self.washers.items()
         }
 
+    def _e_clip_records(self) -> dict[tuple[str, str, str], Record]:
+        return {
+            (vendor, size, type): Record(
+                self.e_clip_table.shown((vendor, size, type)), e_clip_name(size, type), vendor, stock
+            )
+            for (vendor, size, type), stock in E_CLIP_STOCK.items()
+        }
+
     def washer_finishes(self, vendor: str, size: str, type: str) -> list[str]:
         return [finish for (v, s, t, finish) in self.washers if (v, s, t) == (vendor, size, type)]
 
@@ -1270,6 +1381,8 @@ FRC = Catalog(
         ("MCMASTER", "NO_10_32", "BUTTON", STANDARD_FINISH, length_id(Fraction(1, 2))),
         ("MCMASTER", "NO_10_32", "NYLOCK", FRC_NUT_FINISH),
         ("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS"),
+        # As FRCDesign's E-Clip
+        ("MCMASTER", "IN_1_2", "FLAT"),
     ),
 )
 # FTC's, from what's inserted most from ConfigLib (docs/ftc-fasteners.md): M4 socket heads, nylocks and washers, from the
@@ -1291,7 +1404,7 @@ STUDIOS = FRC.studios
 RECORDS = FRC.records
 SCREW_RECORDS, NUT_RECORDS, WASHER_RECORDS = RECORDS["screw"], RECORDS["nut"], RECORDS["washer"]
 # Every part either set makes, which the feature's tables hold
-ALL_RECORDS = {kind: {**FRC.records[kind], **FTC.records[kind]} for kind in RECORDS}
+ALL_RECORDS = {kind: {**FRC.records[kind], **FTC.records.get(kind, {})} for kind in RECORDS}
 
 # Where each studio was last released: `fs release` records it beside its definition, FTC's beside
 # ftcFastenerTables.py
@@ -1412,6 +1525,25 @@ def _washer_fields(item: tuple[Washer, Record]) -> str:
     )
 
 
+def _e_clip_fields(item: tuple[EClip, Record]) -> str:
+    clip, record = item
+    fields = {
+        "outerDiameter": _length(clip.outer_diameter, clip.unit),
+        "innerDiameter": _length(clip.inner_diameter, clip.unit),
+        "pocketDiameter": _length(clip.pocket_diameter, clip.unit),
+        "thickness": _length(clip.thickness, clip.unit),
+        "filletRadius": _length(clip.fillet, clip.unit),
+        "prongFilletRadius": _length(clip.prong_fillet, clip.unit),
+        "prongAngle": f"{clip.prong_angle} * degree",
+        "openingAngle": f"{clip.opening_angle} * degree",
+        "opening": str(clip.opening),
+        "pocketAngle": f"{clip.pocket_angle} * degree",
+    }
+    if clip.bow_radius is not None:
+        fields["bowRadius"] = _length(clip.bow_radius, clip.unit)
+    return _fields({**fields, **record.fields()})
+
+
 def _documented(doc: str, name: str, expression: str) -> Code:
     return Code(f"/** {doc} */\nexport const {name} = {expression};")
 
@@ -1427,6 +1559,9 @@ CONTENTS = [
     NutFinish,
     NutType,
     WasherType,
+    EClipVendor,
+    EClipSize,
+    EClipType,
     Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES + METRIC_SIZES], 8)),
     Constant(
         "SCREW_HEADS",
@@ -1479,6 +1614,14 @@ CONTENTS = [
             {key: (WASHERS[key], record) for key, record in ALL_RECORDS["washer"].items()},
             [FastenerVendor, FastenerSize, WasherType, WasherFinish],
             _washer_fields,
+        ),
+    ),
+    Constant(
+        "E_CLIPS",
+        _nested(
+            {key: (E_CLIPS[key[1:]], record) for key, record in ALL_RECORDS["eClip"].items()},
+            [EClipVendor, EClipSize, EClipType],
+            _e_clip_fields,
         ),
     ),
 ]

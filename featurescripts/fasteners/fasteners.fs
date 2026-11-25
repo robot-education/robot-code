@@ -9,7 +9,7 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "86033ffc9510cee8dd457b7f", version : "dc93869b7b02c4912063ab01");
 
 /**
- * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp, FRC's imperial and FTC's
+ * FRCDesign's library fasteners: its screws, washers, nuts, and e-clips, generated for FRCDesignApp, FRC's imperial and FTC's
  * metric. Each is made in a Part Studio of its own, whose configuration sets every parameter and offers only what's
  * made (see fastenerTables.py), FRC's and FTC's studios each their own sizes, so these dialogs are rarely seen: each
  * is a flat list of enums, with no conditions, which the configuration filters.
@@ -32,6 +32,7 @@ const NYLOCK_CHAMFER_ANGLE = 25 * degree;
 // How far a nylock's nylon insert sits below the top of its dome
 const NYLON_RECESS = 0.009 * inch;
 const NYLON_COLOR = color(1, 1, 1);
+const E_CLIP_CREDIT = "<br><br>FeatureScript by Alex Kempen/Ethan Adler.";
 
 annotation { "Feature Type Name" : "Screw",
         "Feature Type Description" : "A standard screw from FRCDesign's library, seated at the origin." ~ CREDIT }
@@ -356,6 +357,140 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
         }
     });
 
+/**
+ * An e-clip, from its bottom face at the origin up, opening along X; a bowed one's convex face is its bottom.
+ */
+annotation { "Feature Type Name" : "E-clip",
+        "Editing Logic Function" : "eClipEditLogic",
+        "Feature Type Description" : "An e-clip from FRCDesign's library, from the origin up." ~ E_CLIP_CREDIT }
+export const fastenerEClip = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.vendor is EClipVendor;
+
+        annotation { "Name" : "Shaft size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.size is EClipSize;
+
+        annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.eClipType is EClipType;
+    }
+    {
+        const choices = resolveChoices(E_CLIPS, definition, ["vendor", "size", "eClipType"]);
+        if (choices.unmade == "eClipType")
+        {
+            throw regenError("Selected vendor does not make this e-clip, change the type.", ["eClipType"]);
+        }
+        if (choices.unmade != undefined)
+        {
+            throw regenError("Selected vendor does not make an e-clip for this shaft, change the shaft size.", ["size"]);
+        }
+        const clip = choices.made;
+        const isBowed = clip.bowRadius != undefined;
+
+        // 1. Extrude its profile: a flat clip itself, or what a bowed one is cut to
+        const sketchId = id + "sketch";
+        const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
+        for (var index, curve in eClipProfile(clip))
+        {
+            if (curve.mid == undefined)
+            {
+                skLineSegment(sketch, "line" ~ index, curve);
+            }
+            else
+            {
+                skArc(sketch, "arc" ~ index, curve);
+            }
+        }
+        skSolve(sketch);
+        opExtrude(context, id + "extrude", {
+                    "entities" : qSketchRegion(sketchId),
+                    "direction" : Z_DIRECTION,
+                    "startBound" : BoundingType.BLIND,
+                    "startDepth" : isBowed ? clip.outerDiameter : 0 * meter,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : isBowed ? clip.outerDiameter : clip.thickness
+                });
+        var body = qCreatedBy(id + "extrude", EntityType.BODY);
+
+        // 2. Bow it
+        if (isBowed)
+        {
+            bowEClip(context, id + "bow", body, clip);
+            body = qCreatedBy(id + "bow" + "thicken", EntityType.BODY);
+        }
+
+        // 3. Seat it on either face, as a washer is
+        opMateConnector(context, id + "mateConnector", {
+                    "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
+        opMateConnector(context, id + "topMateConnector", {
+                    "coordSystem" : coordSystem(WORLD_ORIGIN + eClipHeight(clip) * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
+
+        cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
+        setFastenerProperties(context, body, clip);
+    });
+
+/**
+ * Keeps the dialog on an e-clip that's made: a vendor brings a size it makes, a size a vendor which makes it, and a size
+ * made only flat is flat.
+ */
+export function eClipEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean) returns map
+{
+    // Without isCreating, it would only be called on creation
+    if (E_CLIPS[definition.vendor][definition.size] == undefined)
+    {
+        if (definition.vendor != oldDefinition.vendor)
+        {
+            definition.size = definition.vendor == EClipVendor.WCP ? EClipSize.MM_2 : EClipSize.IN_1_2;
+        }
+        else
+        {
+            definition.vendor = definition.size == EClipSize.MM_2 ? EClipVendor.WCP : EClipVendor.ANDYMARK;
+        }
+    }
+    if (E_CLIPS[definition.vendor][definition.size][definition.eClipType] == undefined)
+    {
+        definition.eClipType = EClipType.FLAT;
+    }
+    return definition;
+}
+
+/**
+ * Makes a bowed clip from its extruded profile, `prism`, which it uses up: its convex face, a sphere cut to the profile,
+ * thickened up toward the sphere's center, so its sides are square to its faces.
+ */
+function bowEClip(context is Context, id is Id, prism is Query, clip is map)
+{
+    const sketchId = id + "sketch";
+    const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : PROFILE_PLANE });
+    skArc(sketch, "sphere", eClipBow(clip));
+    skSolve(sketch);
+    opRevolve(context, id + "revolve", {
+                "entities" : qCreatedBy(sketchId, EntityType.EDGE),
+                "axis" : line(WORLD_ORIGIN, Z_DIRECTION),
+                "angleForward" : 2 * PI * radian
+            });
+    const sphere = qCreatedBy(id + "revolve", EntityType.BODY);
+    opBoolean(context, id + "trim", {
+                "tools" : prism,
+                "targets" : sphere,
+                "operationType" : BooleanOperationType.SUBTRACT_COMPLEMENT
+            });
+    const faces = qOwnedByBody(sphere, EntityType.FACE);
+    const normal = evFaceTangentPlane(context, { "face" : qNthElement(faces, 0), "parameter" : vector(0.5, 0.5) }).normal;
+    const isUp = dot(normal, Z_DIRECTION) > 0;
+    opThicken(context, id + "thicken", {
+                "entities" : faces,
+                "thickness1" : isUp ? clip.thickness : 0 * meter,
+                "thickness2" : isUp ? 0 * meter : clip.thickness
+            });
+    cleanup(context, id + "delete", qUnion([sphere, qCreatedBy(sketchId, EntityType.BODY)]));
+}
+
 predicate vendorPredicate(definition is map)
 {
     annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -471,6 +606,142 @@ export function nylockDome(nut is map) returns map
             "mid" : center + radius * vector(cos(45 * degree), sin(45 * degree)),
             "end" : vector(flat - radius, nut.height)
         };
+}
+
+/**
+ * The height of the center of a bowed clip's convex face, whose edge around the shaft is at the origin's height.
+ */
+function bowCenterHeight(clip is map) returns ValueWithUnits
+{
+    return sqrt(clip.bowRadius ^ 2 - (clip.innerDiameter / 2) ^ 2);
+}
+
+/**
+ * How tall an e-clip is, seated: its thickness, or a bowed one's up to its rim.
+ */
+export function eClipHeight(clip is map) returns ValueWithUnits
+{
+    if (clip.bowRadius == undefined)
+    {
+        return clip.thickness;
+    }
+    const rim = sqrt(clip.bowRadius ^ 2 - (clip.outerDiameter / 2) ^ 2);
+    return bowCenterHeight(clip) - rim * (clip.bowRadius - clip.thickness) / clip.bowRadius;
+}
+
+/**
+ * The arc a bowed clip's convex face is the revolve of, in `PROFILE_PLANE`: from the axis out past its rim.
+ */
+export function eClipBow(clip is map) returns map
+{
+    const center = vector(0 * meter, bowCenterHeight(clip));
+    const angle = asin(0.55 * clip.outerDiameter / clip.bowRadius);
+    return {
+            "start" : center - clip.bowRadius * vector(0, 1),
+            "mid" : center + clip.bowRadius * vector(sin(angle / 2), -cos(angle / 2)),
+            "end" : center + clip.bowRadius * vector(sin(angle), -cos(angle))
+        };
+}
+
+/**
+ * An e-clip's outline: its lines and arcs, opening along X and symmetric about it.
+ */
+export function eClipProfile(clip is map) returns array
+{
+    const outer = clip.outerDiameter / 2;
+    const inner = clip.innerDiameter / 2;
+    const pocket = clip.pocketDiameter / 2;
+    const fillet = clip.filletRadius;
+    const prongFillet = clip.prongFilletRadius;
+
+    // Above the X axis, the sides of its middle prong, its end prong, and its opening, each from the shaft out
+    const center = vector(0, 0) * meter;
+    const prong = { "origin" : center, "direction" : unitVector(180 * degree - clip.prongAngle) };
+    const wall = { "origin" : center, "direction" : unitVector(90 * degree - clip.pocketAngle) };
+    const corner = inner * vector(sqrt(1 - clip.opening ^ 2), clip.opening);
+    const opening = { "origin" : corner, "direction" : unitVector(clip.openingAngle) };
+
+    // Fillets from each side to the circle it meets: inside the pocket and the rim, and outside the shaft
+    const prongTip = filletToCircle(prong, true, inner, prongFillet, false);
+    const prongRoot = filletToCircle(prong, false, pocket, fillet, true);
+    const wallRoot = filletToCircle(wall, true, pocket, fillet, true);
+    const wallTip = filletToCircle(wall, false, inner, prongFillet, false);
+    const openingTip = filletToCircle(opening, true, inner, prongFillet, false);
+    const end = filletToCircle(opening, true, outer, fillet, true);
+
+    var half = [
+        prongRoot,
+        wallRoot,
+        end,
+        { "start" : prongTip.start, "end" : prongRoot.start },
+        arcAboutCenter(prongRoot.end, wallRoot.end),
+        { "start" : wallRoot.start, "end" : wallTip.start },
+        arcAboutCenter(wallTip.end, openingTip.end),
+        { "start" : openingTip.start, "end" : end.start }
+    ];
+    if (prongFillet > TOLERANCE.zeroLength * meter)
+    {
+        half = concatenateArrays([half, [prongTip, wallTip, openingTip]]);
+    }
+    return concatenateArrays([
+                half,
+                mapArray(half, function(curve)
+                    {
+                        return mirrorCurve(curve);
+                    }),
+                [
+                    { "start" : prongTip.end, "mid" : vector(-inner, 0 * meter), "end" : mirrorPoint(prongTip.end) },
+                    { "start" : end.end, "mid" : vector(-outer, 0 * meter), "end" : mirrorPoint(end.end) }
+                ]
+            ]);
+}
+
+function unitVector(angle is ValueWithUnits) returns Vector
+{
+    return vector(cos(angle), sin(angle));
+}
+
+/**
+ * The fillet from a line (`side`) to a circle about the origin: an arc on the line's left or right, inside the circle or
+ * outside it. A fillet of no radius is where they meet.
+ */
+export function filletToCircle(side is map, isLeft is boolean, circleRadius is ValueWithUnits, radius is ValueWithUnits,
+    isInside is boolean) returns map
+{
+    const normal = (isLeft ? 1 : -1) * vector(-side.direction[1], side.direction[0]);
+    // Its center is `radius` from the line, and from the circle
+    const offset = side.origin + radius * normal;
+    const distance = isInside ? circleRadius - radius : circleRadius + radius;
+    const along = dot(offset, side.direction);
+    const center = offset + (sqrt(along ^ 2 - squaredNorm(offset) + distance ^ 2) - along) * side.direction;
+    const outward = normalize(center);
+    return {
+            "start" : center - radius * normal,
+            "mid" : center + radius * normalize((isInside ? outward : -outward) - normal),
+            "end" : circleRadius * outward
+        };
+}
+
+/**
+ * The shorter arc about the origin between two points on it.
+ */
+function arcAboutCenter(start is Vector, end is Vector) returns map
+{
+    return { "start" : start, "mid" : norm(start) * normalize(start + end), "end" : end };
+}
+
+function mirrorPoint(point is Vector) returns Vector
+{
+    return vector(point[0], -point[1]);
+}
+
+function mirrorCurve(curve is map) returns map
+{
+    for (var key, point in curve)
+    {
+        curve[key] = mirrorPoint(point);
+    }
+    return curve;
 }
 
 /**

@@ -259,3 +259,68 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
                 "nutType" : NutType.NYLOCK, "finish" : NutFinish.ZINC_PLATED }, ["vendor", "size", "nutType", "finish"]);
     expectEqual(unmade.unmade, "size");
 }
+
+export function testEClipOutlinesClose()
+{
+    for (var vendor, sizes in E_CLIPS)
+    {
+        for (var sizeId, types in sizes)
+        {
+            for (var type, clip in types)
+            {
+                // Each curve's ends meet exactly one other's
+                const curves = eClipProfile(clip);
+                for (var curve in curves)
+                {
+                    for (var point in [curve.start, curve.end])
+                    {
+                        var meeting = 0;
+                        for (var other in curves)
+                        {
+                            for (var end in [other.start, other.end])
+                            {
+                                if (norm(end - point) < 1e-9 * meter)
+                                {
+                                    meeting += 1;
+                                }
+                            }
+                        }
+                        expectEqual(meeting, 2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+export function testEClipsMatchMcMasterCarrsModels()
+{
+    const clips = E_CLIPS[EClipVendor.MCMASTER];
+    // Where the opening's side meets its prong's fillet, in FRCDesign's 3/16 in and 1/2 in e-clips
+    const openingPoint = function(clip)
+        {
+            const inner = clip.innerDiameter / 2;
+            const side = { "origin" : inner * vector(sqrt(1 - clip.opening ^ 2), clip.opening),
+                    "direction" : vector(cos(clip.openingAngle), sin(clip.openingAngle)) };
+            return filletToCircle(side, true, inner, clip.prongFilletRadius, false).start;
+        };
+    expectNear(norm(openingPoint(clips[EClipSize.IN_3_16][EClipType.FLAT]) - vector(0.047624, 0.059288) * inch), 0 * meter, 1e-5 * inch);
+    expectNear(norm(openingPoint(clips[EClipSize.IN_1_2][EClipType.FLAT]) - vector(0.124621, 0.158993) * inch), 0 * meter, 1e-5 * inch);
+    // FRCDesign's connectors on its bowed one are 0.029577 and 0.051 in either side of its middle
+    expectNear(eClipHeight(clips[EClipSize.IN_1_2][EClipType.BOWED]), 0.080577 * inch, 1e-5 * inch);
+    expectEqual(eClipHeight(clips[EClipSize.IN_1_2][EClipType.FLAT]), 0.042 * inch);
+}
+
+export function testEClipEditLogicStaysOnWhatsMade()
+{
+    const edit = function(old, changed)
+        {
+            return eClipEditLogic(newContext(), newId(), old, mergeMaps(old, changed), false);
+        };
+    const andymark = { "vendor" : EClipVendor.ANDYMARK, "size" : EClipSize.IN_1_2, "eClipType" : EClipType.BOWED };
+    expectEqual(edit(andymark, { "vendor" : EClipVendor.WCP }),
+        { "vendor" : EClipVendor.WCP, "size" : EClipSize.MM_2, "eClipType" : EClipType.FLAT });
+    expectEqual(edit(andymark, { "size" : EClipSize.MM_2 }),
+        { "vendor" : EClipVendor.WCP, "size" : EClipSize.MM_2, "eClipType" : EClipType.FLAT });
+    expectEqual(edit(andymark, { "vendor" : EClipVendor.MCMASTER }).eClipType, EClipType.BOWED);
+}

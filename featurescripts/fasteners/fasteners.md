@@ -132,12 +132,27 @@ and where it's sold both ways needs several.
    a cosmetic thread up from the origin, to a nylock's insert.
 4. Adds the mate connector, deletes the sketches, names the part, and colors a nylock's insert white.
 
+`fastenerEClip` (FRC's E-Clip studio) makes FRCDesign's E-Clip's parts: 2 mm, 3/16 in, 3/8 in, and 1/2 in, flat and, in
+1/2 in, bowed, from McMaster-Carr and from WCP (2 mm) or AndyMark (the rest), measured from the models FRCDesign's derives.
+
+Its dialog stays on what's made (`eClipEditLogic`): a vendor brings a size it makes, and a size a vendor.
+
+1. Extrudes its profile (`eClipProfile`) up from the origin, opening along X: its fillets are computed
+   (`filletToCircle`), not solved or added after.
+2. Bows a bowed one (`bowEClip`): a sphere cut to the profile, its convex face, thickened up toward its center. The
+   edge of that face around the shaft is at the origin's height, its rim `eClipHeight` up.
+3. Adds a mate connector on each side, as a washer's, deletes the sketches, and names the part.
+
 Threads are cosmetic: the parts are for fit and clearance.
 
 There are no `try`s.
 
 ## Issues found
 
+- E-clips are tried in Onshape (in a scratch document, from the feature's dialog): every vendor, size, and type
+  regenerates as one part, named. Not yet tried: their studio's configuration.
+- A bowed e-clip's opening's sides are within 0.003 in of McMaster-Carr's model. AndyMark's and WCP's are modeled as
+  McMaster-Carr's, as FRCDesign's are, and have no links.
 - Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
   screw, washer, and nut regenerates as one part with its mate connector at the origin pointing up, named, and with
   its part number.

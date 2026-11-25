@@ -14851,6 +14851,122 @@
           "material": "Steel"
         }
       ]
+    },
+    "eClip": {
+      "feature": "fastenerEClip",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "MM_2"
+          },
+          "name": "2 mm E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98543A060",
+          "url": "https://www.mcmaster.com/98543A060/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A280",
+          "url": "https://www.mcmaster.com/97431A280/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A320",
+          "url": "https://www.mcmaster.com/97431A320/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "IN_1_2",
+            "type": "FLAT"
+          },
+          "name": "1/2 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A340",
+          "url": "https://www.mcmaster.com/97431A340/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "size": "IN_1_2",
+            "type": "BOWED"
+          },
+          "name": "1/2 in Bowed E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98398A138",
+          "url": "https://www.mcmaster.com/98398A138/",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP"
+          },
+          "name": "2 mm E-Clip",
+          "vendor": "WCP",
+          "partNumber": "WCP-0227",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1155",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1124",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_1_2",
+            "type": "FLAT"
+          },
+          "name": "1/2 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-0206",
+          "material": "Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_1_2",
+            "type": "BOWED"
+          },
+          "name": "1/2 in Bowed E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1540",
+          "material": "Steel"
+        }
+      ]
     }
   },
   "vendors": [
