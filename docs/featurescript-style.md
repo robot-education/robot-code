@@ -170,14 +170,14 @@ optional, or explain a standard term (Module, Diametral pitch, Helix angle, Cent
 
 Where a part is chosen by its vendor, the vendor is the first thing asked: the first level of its lookup table, the
 first input of its Part Studio's configuration, and the first parameter of its dialog after any top level options
-(horizontal enums, which go at the top), ahead of what the part is
-(Vendor, then Type, Bore, Size, as the bearings and bushings ask). A second part's vendor is the first of that part's
-own parameters: `screwVendor` before `screwHead` and `screwLength`. A choice made later can hide only what has one
-option left, so order what follows it so that what says which part it is (a bore, a size) still shows.
+(horizontal enums, which go at the top), ahead of what the part is (Vendor, then Type, Bore, Size, as the bearings
+ask). A second part's vendor is the first of that part's own parameters: `screwVendor` before `screwHead` and
+`screwLength`. A choice made later can hide only what has one option left, so order what follows it so that what says
+which part it is (a bore, a size) still shows.
 
 `fs gen` refuses a table with a `vendor` level below its first, and a configured Part Studio whose `vendor` input isn't
-its first; `fs check` reports a feature's `vendor` that isn't its first shown parameter after its horizontal enums, and a `<part>Vendor` after
-another of its part's (`vendor-order`).
+its first; `fs check` reports a feature's `vendor` that isn't its first shown parameter after its horizontal enums, and
+a `<part>Vendor` after another of its part's (`vendor-order`).
 
 ## Horizontal enums go at the top
 
@@ -679,8 +679,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A `"Set By"` parameter's function exists, takes the definition, and returns the parameter's type; the parameter is
   hidden; and the feature's editing logic declares `isCreating` and sets it from the function first thing (see
   "Hidden parameters set by editing logic").
-- A feature's `vendor` is the first parameter its dialog shows after its horizontal enums, and a `<part>Vendor` (`screwVendor`) comes before the
-  rest of its part's (`screwHead`), see "Vendor goes first".
+- A feature's `vendor` is the first parameter its dialog shows after its horizontal enums, and a `<part>Vendor`
+  (`screwVendor`) comes before the rest of its part's (`screwHead`); see "Vendor goes first".
 - `"Auto Assembly"` and `"Simplification"`, keys of ours in a feature's annotation (see `docs/auto-assembly.md`), are
   `true` or `false`, only in a feature's annotation, and true exactly when it does what they say: declares parts
   (`declarePart` is called in its file or a project file it imports) or allows simplification (its precondition
