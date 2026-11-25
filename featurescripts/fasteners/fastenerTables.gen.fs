@@ -2874,6 +2874,16 @@ export const WASHERS = {
             }
         };
 
+/** Which part set each e-clip size is in, as FASTENER_SIZES says of its sizes. */
+export const E_CLIP_SIZES = {
+            EClipSize.MM_2 : { "metric" : false },
+            EClipSize.IN_3_16 : { "metric" : false },
+            EClipSize.IN_3_8 : { "metric" : false },
+            EClipSize.IN_1_2 : { "metric" : false },
+            EClipSize.MM_8 : { "metric" : true },
+            EClipSize.MM_12 : { "metric" : true }
+        };
+
 export const CARBON_STEEL = material("Carbon Steel", 0.284 * pound / inch ^ 3);
 
 export const E_CLIPS = {
@@ -2890,8 +2900,7 @@ export const E_CLIPS = {
                 EClipSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A280", "url" : "https://www.mcmaster.com/97431A280/", "material" : CARBON_STEEL, "appearance" : BLACK },
                 EClipSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A320", "url" : "https://www.mcmaster.com/97431A320/", "material" : CARBON_STEEL, "appearance" : BLACK },
                 EClipSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A340", "url" : "https://www.mcmaster.com/97431A340/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_8 : { "outerDiameter" : 11.8 * millimeter, "innerDiameter" : 5.26 * millimeter, "pocketDiameter" : 8.7483 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "8 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A114", "url" : "https://www.mcmaster.com/98543A114/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_12 : { "outerDiameter" : 18.2 * millimeter, "innerDiameter" : 7.63 * millimeter, "pocketDiameter" : 13.2678 * millimeter, "thickness" : 1.1 * millimeter, "filletRadius" : 0.66 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "12 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A117", "url" : "https://www.mcmaster.com/98543A117/", "material" : CARBON_STEEL, "appearance" : BLACK }
+                EClipSize.MM_8 : { "outerDiameter" : 11.8 * millimeter, "innerDiameter" : 5.26 * millimeter, "pocketDiameter" : 8.7483 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "8 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A114", "url" : "https://www.mcmaster.com/98543A114/", "material" : CARBON_STEEL, "appearance" : BLACK }
             },
             FastenerVendor.WCP : {
                 EClipSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "WCP", "partNumber" : "WCP-0227", "material" : CARBON_STEEL, "appearance" : BLACK }

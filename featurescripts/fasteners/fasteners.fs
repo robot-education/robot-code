@@ -461,7 +461,8 @@ export function resolve(entries is map, value)
     var only;
     for (var entry in entries)
     {
-        if (value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric)
+        if ((value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric) ||
+            (value is EClipSize && E_CLIP_SIZES[entry.key].metric != E_CLIP_SIZES[value].metric))
         {
             continue;
         }

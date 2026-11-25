@@ -254,6 +254,9 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
     const frc = resolveChoices(SCREWS, { "vendor" : FastenerVendor.REV, "size" : FastenerSize.NO_8_32, "head" : ScrewHead.SOCKET,
                 "finish" : ScrewFinish.BLACK, "length" : ScrewLength.IN_0_5 }, parameters);
     expectEqual(frc.definition.size, FastenerSize.NO_10_32);
+    // McMaster-Carr's e-clips come in four sizes for FRC, and one for FTC
+    const eClip = resolveChoices(E_CLIPS, { "vendor" : FastenerVendor.MCMASTER, "size" : EClipSize.MM_12 }, ["vendor", "size"]);
+    expectEqual(eClip.definition.size, EClipSize.MM_8);
     // Nothing of goBILDA's comes in #10-32
     const unmade = resolveChoices(NUTS, { "vendor" : FastenerVendor.GOBILDA, "size" : FastenerSize.NO_10_32,
                 "nutType" : NutType.NYLOCK, "finish" : NutFinish.ZINC_PLATED }, ["vendor", "size", "nutType", "finish"]);

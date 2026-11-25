@@ -1065,7 +1065,6 @@ METRIC_E_CLIPS = {
     ),
     ("GENERIC", "MM_12"): EClip(18, 9.1, 14.2, 1, 0.8, 0.5, 16.9998, 16.2496, 0.90336, pocket_angle=-17.0175, unit="mm"),
     ("MCMASTER", "MM_8"): _mcmaster_rex_e_clip(11.8, 5.26, 0.7),
-    ("MCMASTER", "MM_12"): _mcmaster_rex_e_clip(18.2, 7.63, 1.1),
 }
 EClipSize = Enum(
     "EClipSize",
@@ -1103,7 +1102,6 @@ E_CLIP_STOCK = {
     ("MCMASTER", "IN_3_8"): _mcmaster_e_clip("97431A320"),
     ("MCMASTER", "IN_1_2"): _mcmaster_e_clip("97431A340"),
     ("MCMASTER", "MM_8"): _mcmaster_e_clip("98543A114"),
-    ("MCMASTER", "MM_12"): _mcmaster_e_clip("98543A117"),
     ("WCP", "MM_2"): Stock("WCP-0227", material=CARBON_STEEL),
     ("ANDYMARK", "IN_3_16"): Stock("am-1155", material=CARBON_STEEL),
     ("ANDYMARK", "IN_3_8"): Stock("am-1124", material=CARBON_STEEL),
@@ -1649,6 +1647,11 @@ CONTENTS = [
             [FastenerVendor, FastenerSize, WasherType, WasherFinish],
             _washer_fields,
         ),
+    ),
+    _documented(
+        "Which part set each e-clip size is in, as FASTENER_SIZES says of its sizes.",
+        "E_CLIP_SIZES",
+        _map([(EClipSize[id], _fields({"metric": str(id in METRIC_E_CLIP_SIZES).lower()})) for id in EClipSize.values], 8),
     ),
     Constant("CARBON_STEEL", 'material("Carbon Steel", 0.284 * pound / inch ^ 3)'),
     Constant(

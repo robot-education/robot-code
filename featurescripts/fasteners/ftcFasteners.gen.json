@@ -7109,24 +7109,12 @@
         },
         {
           "values": {
-            "vendor": "MCMASTER",
-            "size": "MM_8"
+            "vendor": "MCMASTER"
           },
           "name": "8 mm E-Clip",
           "vendor": "McMaster-Carr",
           "partNumber": "98543A114",
           "url": "https://www.mcmaster.com/98543A114/",
-          "material": "Carbon Steel"
-        },
-        {
-          "values": {
-            "vendor": "MCMASTER",
-            "size": "MM_12"
-          },
-          "name": "12 mm E-Clip",
-          "vendor": "McMaster-Carr",
-          "partNumber": "98543A117",
-          "url": "https://www.mcmaster.com/98543A117/",
           "material": "Carbon Steel"
         }
       ]
