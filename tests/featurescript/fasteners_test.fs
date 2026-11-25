@@ -255,7 +255,7 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
                 "finish" : ScrewFinish.BLACK, "length" : ScrewLength.IN_0_5 }, parameters);
     expectEqual(frc.definition.size, FastenerSize.NO_10_32);
     // McMaster-Carr's e-clips come in four sizes for FRC, and one for FTC
-    const eClip = resolveChoices(E_CLIPS, { "vendor" : FastenerVendor.MCMASTER, "size" : EClipSize.MM_12 }, ["vendor", "size"]);
+    const eClip = resolveChoices(E_CLIPS, { "vendor" : EClipVendor.MCMASTER, "size" : EClipSize.MM_12 }, ["vendor", "size"]);
     expectEqual(eClip.definition.size, EClipSize.MM_8);
     // Nothing of goBILDA's comes in #10-32
     const unmade = resolveChoices(NUTS, { "vendor" : FastenerVendor.GOBILDA, "size" : FastenerSize.NO_10_32,
@@ -295,7 +295,7 @@ export function testEClipOutlinesClose()
 
 export function testEClipsMatchMcMasterCarrsModels()
 {
-    const clips = E_CLIPS[FastenerVendor.MCMASTER];
+    const clips = E_CLIPS[EClipVendor.MCMASTER];
     // Where the opening's side meets its prong's fillet, in FRCDesign's 3/16 in and 1/2 in e-clips
     expectEClipPoint(clips[EClipSize.IN_3_16], vector(0.047624, 0.059288) * inch, 1e-5 * inch);
     expectEClipPoint(clips[EClipSize.IN_1_2], vector(0.124621, 0.158993) * inch, 1e-5 * inch);
@@ -303,7 +303,7 @@ export function testEClipsMatchMcMasterCarrsModels()
 
 export function testEClipsMatchGobildasModels()
 {
-    const clips = E_CLIPS[FastenerVendor.GENERIC];
+    const clips = E_CLIPS[EClipVendor.GENERIC];
     const tolerance = 0.001 * millimeter;
     // Vertices of its models of 2106-4008-0560's and 2109-4012-1040's e-clips: the pockets' ends, the opening's sides',
     // and where its ends' fillets meet its rim

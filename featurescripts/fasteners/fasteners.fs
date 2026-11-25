@@ -364,7 +364,8 @@ annotation { "Feature Type Name" : "E-clip",
 export const fastenerEClip = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        vendorPredicate(definition);
+        annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.vendor is EClipVendor;
 
         annotation { "Name" : "Shaft size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.size is EClipSize;

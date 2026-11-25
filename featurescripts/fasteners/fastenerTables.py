@@ -1108,6 +1108,13 @@ E_CLIP_STOCK = {
     ("ANDYMARK", "IN_1_2"): Stock("am-0206", material=CARBON_STEEL),
 }
 
+# Their own, as finishes are, so the feature's dialog offers no vendor without any
+EClipVendor = Enum(
+    "EClipVendor",
+    [vendor for vendor in FastenerVendor.values if any(key[0] == vendor for key in E_CLIP_STOCK)],
+    FastenerVendor.names,
+)
+
 
 def e_clip_name(size: str) -> str:
     """e.g. `1/2 in E-Clip`."""
@@ -1337,7 +1344,7 @@ class Catalog:
         vendor, size = defaults
         table = self.e_clip_table
         return [
-            table.input(_list("vendor", "Vendor", FastenerVendor, "vendor", vendor)),
+            table.input(_list("vendor", "Vendor", EClipVendor, "vendor", vendor)),
             table.input(_list("size", "Shaft size", EClipSize, "size", size)),
         ]
 
@@ -1593,6 +1600,7 @@ CONTENTS = [
     NutFinish,
     NutType,
     WasherType,
+    EClipVendor,
     EClipSize,
     Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES + METRIC_SIZES], 8)),
     Constant(
@@ -1658,7 +1666,7 @@ CONTENTS = [
         "E_CLIPS",
         _nested(
             {key: (e_clip_dimensions(*key), record) for key, record in ALL_RECORDS["eClip"].items()},
-            [FastenerVendor, EClipSize],
+            [EClipVendor, EClipSize],
             _e_clip_fields,
         ),
     ),
