@@ -312,7 +312,15 @@ export enum WasherType
     MM_10_9_X_1_5
 }
 
-export enum EClipVendor
+export enum RetainerType
+{
+    annotation { "Name" : "E-clip" }
+    E_CLIP,
+    annotation { "Name" : "Retaining ring" }
+    RETAINING_RING
+}
+
+export enum RetainerVendor
 {
     annotation { "Name" : "Generic" }
     GENERIC,
@@ -326,7 +334,7 @@ export enum EClipVendor
     ANDYMARK
 }
 
-export enum EClipSize
+export enum RetainerSize
 {
     annotation { "Name" : "2 mm" }
     MM_2,
@@ -2888,44 +2896,60 @@ export const WASHERS = {
             }
         };
 
-/** Which part set each e-clip size is in, as FASTENER_SIZES says of its sizes. */
-export const E_CLIP_SIZES = {
-            EClipSize.MM_2 : { "metric" : false },
-            EClipSize.IN_3_16 : { "metric" : false },
-            EClipSize.IN_3_8 : { "metric" : false },
-            EClipSize.IN_1_2 : { "metric" : false },
-            EClipSize.MM_8 : { "metric" : true },
-            EClipSize.MM_12 : { "metric" : true }
+/** Which part set each retainer size is in, as FASTENER_SIZES says of its sizes. */
+export const RETAINER_SIZES = {
+            RetainerSize.MM_2 : { "metric" : false },
+            RetainerSize.IN_3_16 : { "metric" : false },
+            RetainerSize.IN_3_8 : { "metric" : false },
+            RetainerSize.IN_1_2 : { "metric" : false },
+            RetainerSize.MM_8 : { "metric" : true },
+            RetainerSize.MM_12 : { "metric" : true }
         };
 
 export const CARBON_STEEL = material("Carbon Steel", 0.284 * pound / inch ^ 3);
 
-export const E_CLIPS = {
-            EClipVendor.GENERIC : {
-                EClipSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_8 : { "outerDiameter" : 12.3 * millimeter, "innerDiameter" : 6 * millimeter, "pocketDiameter" : 8.8052 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.7058 * degree, "openingAngle" : 38.5 * degree, "opening" : 0.6926, "pocketAngle" : 0 * degree, "endFilletRadius" : 0.6393 * millimeter, "name" : "8 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_12 : { "outerDiameter" : 18 * millimeter, "innerDiameter" : 9.1 * millimeter, "pocketDiameter" : 14.2 * millimeter, "thickness" : 1 * millimeter, "filletRadius" : 0.8 * millimeter, "prongFilletRadius" : 0.5 * millimeter, "prongAngle" : 16.9998 * degree, "openingAngle" : 16.2496 * degree, "opening" : 0.90336, "pocketAngle" : -17.0175 * degree, "name" : "12 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK }
+export const RETAINERS = {
+            RetainerType.E_CLIP : {
+                RetainerVendor.GENERIC : {
+                    RetainerSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.MM_8 : { "outerDiameter" : 12.3 * millimeter, "innerDiameter" : 6 * millimeter, "pocketDiameter" : 8.8052 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.7058 * degree, "openingAngle" : 38.5 * degree, "opening" : 0.6926, "pocketAngle" : 0 * degree, "endFilletRadius" : 0.6393 * millimeter, "name" : "8 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.MM_12 : { "outerDiameter" : 18 * millimeter, "innerDiameter" : 9.1 * millimeter, "pocketDiameter" : 14.2 * millimeter, "thickness" : 1 * millimeter, "filletRadius" : 0.8 * millimeter, "prongFilletRadius" : 0.5 * millimeter, "prongAngle" : 16.9998 * degree, "openingAngle" : 16.2496 * degree, "opening" : 0.90336, "pocketAngle" : -17.0175 * degree, "name" : "12 mm E-Clip", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.MCMASTER : {
+                    RetainerSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A060", "url" : "https://www.mcmaster.com/98543A060/", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A280", "url" : "https://www.mcmaster.com/97431A280/", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A320", "url" : "https://www.mcmaster.com/97431A320/", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A340", "url" : "https://www.mcmaster.com/97431A340/", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.MM_8 : { "outerDiameter" : 11.8 * millimeter, "innerDiameter" : 5.26 * millimeter, "pocketDiameter" : 8.7483 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "8 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A114", "url" : "https://www.mcmaster.com/98543A114/", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.WCP : {
+                    RetainerSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "WCP", "partNumber" : "WCP-0227", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.ANDYMARK : {
+                    RetainerSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1155", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1124", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-0206", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.GOBILDA : {
+                    RetainerSize.MM_8 : { "outerDiameter" : 12.3 * millimeter, "innerDiameter" : 6 * millimeter, "pocketDiameter" : 8.8052 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.7058 * degree, "openingAngle" : 38.5 * degree, "opening" : 0.6926, "pocketAngle" : 0 * degree, "endFilletRadius" : 0.6393 * millimeter, "name" : "8 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.MM_12 : { "outerDiameter" : 18 * millimeter, "innerDiameter" : 9.1 * millimeter, "pocketDiameter" : 14.2 * millimeter, "thickness" : 1 * millimeter, "filletRadius" : 0.8 * millimeter, "prongFilletRadius" : 0.5 * millimeter, "prongAngle" : 16.9998 * degree, "openingAngle" : 16.2496 * degree, "opening" : 0.90336, "pocketAngle" : -17.0175 * degree, "name" : "12 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK }
+                }
             },
-            EClipVendor.MCMASTER : {
-                EClipSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A060", "url" : "https://www.mcmaster.com/98543A060/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A280", "url" : "https://www.mcmaster.com/97431A280/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A320", "url" : "https://www.mcmaster.com/97431A320/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "97431A340", "url" : "https://www.mcmaster.com/97431A340/", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_8 : { "outerDiameter" : 11.8 * millimeter, "innerDiameter" : 5.26 * millimeter, "pocketDiameter" : 8.7483 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "8 mm E-Clip", "vendor" : "McMaster-Carr", "partNumber" : "98543A114", "url" : "https://www.mcmaster.com/98543A114/", "material" : CARBON_STEEL, "appearance" : BLACK }
-            },
-            EClipVendor.WCP : {
-                EClipSize.MM_2 : { "outerDiameter" : 2.9 * millimeter, "innerDiameter" : 1.01 * millimeter, "pocketDiameter" : 2.01808 * millimeter, "thickness" : 0.3 * millimeter, "filletRadius" : 0.18 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.704811 * degree, "openingAngle" : 13.942784 * degree, "opening" : 0.75, "pocketAngle" : 0 * degree, "name" : "2 mm E-Clip", "vendor" : "WCP", "partNumber" : "WCP-0227", "material" : CARBON_STEEL, "appearance" : BLACK }
-            },
-            EClipVendor.ANDYMARK : {
-                EClipSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1155", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1124", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-0206", "material" : CARBON_STEEL, "appearance" : BLACK }
-            },
-            EClipVendor.GOBILDA : {
-                EClipSize.MM_8 : { "outerDiameter" : 12.3 * millimeter, "innerDiameter" : 6 * millimeter, "pocketDiameter" : 8.8052 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.7058 * degree, "openingAngle" : 38.5 * degree, "opening" : 0.6926, "pocketAngle" : 0 * degree, "endFilletRadius" : 0.6393 * millimeter, "name" : "8 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK },
-                EClipSize.MM_12 : { "outerDiameter" : 18 * millimeter, "innerDiameter" : 9.1 * millimeter, "pocketDiameter" : 14.2 * millimeter, "thickness" : 1 * millimeter, "filletRadius" : 0.8 * millimeter, "prongFilletRadius" : 0.5 * millimeter, "prongAngle" : 16.9998 * degree, "openingAngle" : 16.2496 * degree, "opening" : 0.90336, "pocketAngle" : -17.0175 * degree, "name" : "12 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK }
+            RetainerType.RETAINING_RING : {
+                RetainerVendor.GENERIC : {
+                    RetainerSize.IN_3_8 : { "innerDiameter" : 0.338 * inch, "outerDiameter" : 0.417172 * inch, "rimOffset" : 0.010414 * inch, "thickness" : 0.025 * inch, "lugRadius" : 0.257 * inch, "lugWidth" : 0.066 * inch, "lugAngle" : 19.394359 * degree, "filletRadius" : 0.031 * inch, "holeDiameter" : 0.041 * inch, "gapAngle" : 1 * degree, "name" : "3/8 in Retaining Ring", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "innerDiameter" : 0.461 * inch, "outerDiameter" : 0.56446 * inch, "rimOffset" : 0.01327 * inch, "thickness" : 0.035 * inch, "lugRadius" : 0.3385 * inch, "lugWidth" : 0.081 * inch, "lugAngle" : 23.0524 * degree, "filletRadius" : 0.0355 * inch, "holeDiameter" : 0.047 * inch, "gapAngle" : 1 * degree, "name" : "1/2 in Retaining Ring", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.MCMASTER : {
+                    RetainerSize.IN_3_8 : { "innerDiameter" : 0.338 * inch, "outerDiameter" : 0.417172 * inch, "rimOffset" : 0.010414 * inch, "thickness" : 0.025 * inch, "lugRadius" : 0.257 * inch, "lugWidth" : 0.066 * inch, "lugAngle" : 19.394359 * degree, "filletRadius" : 0.031 * inch, "holeDiameter" : 0.041 * inch, "gapAngle" : 1 * degree, "name" : "3/8 in Retaining Ring", "vendor" : "McMaster-Carr", "partNumber" : "97633A170", "url" : "https://www.mcmaster.com/97633A170/", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "innerDiameter" : 0.461 * inch, "outerDiameter" : 0.56446 * inch, "rimOffset" : 0.01327 * inch, "thickness" : 0.035 * inch, "lugRadius" : 0.3385 * inch, "lugWidth" : 0.081 * inch, "lugAngle" : 23.0524 * degree, "filletRadius" : 0.0355 * inch, "holeDiameter" : 0.047 * inch, "gapAngle" : 1 * degree, "name" : "1/2 in Retaining Ring", "vendor" : "McMaster-Carr", "partNumber" : "97633A200", "url" : "https://www.mcmaster.com/97633A200/", "material" : CARBON_STEEL, "appearance" : BLACK }
+                },
+                RetainerVendor.WCP : {
+                    RetainerSize.IN_3_8 : { "innerDiameter" : 0.338 * inch, "outerDiameter" : 0.417172 * inch, "rimOffset" : 0.010414 * inch, "thickness" : 0.025 * inch, "lugRadius" : 0.257 * inch, "lugWidth" : 0.066 * inch, "lugAngle" : 19.394359 * degree, "filletRadius" : 0.031 * inch, "holeDiameter" : 0.041 * inch, "gapAngle" : 1 * degree, "name" : "3/8 in Retaining Ring", "vendor" : "WCP", "partNumber" : "WCP-0228", "material" : CARBON_STEEL, "appearance" : BLACK },
+                    RetainerSize.IN_1_2 : { "innerDiameter" : 0.461 * inch, "outerDiameter" : 0.56446 * inch, "rimOffset" : 0.01327 * inch, "thickness" : 0.035 * inch, "lugRadius" : 0.3385 * inch, "lugWidth" : 0.081 * inch, "lugAngle" : 23.0524 * degree, "filletRadius" : 0.0355 * inch, "holeDiameter" : 0.047 * inch, "gapAngle" : 1 * degree, "name" : "1/2 in Retaining Ring", "vendor" : "WCP", "partNumber" : "WCP-0229", "material" : CARBON_STEEL, "appearance" : BLACK }
+                }
             }
         };

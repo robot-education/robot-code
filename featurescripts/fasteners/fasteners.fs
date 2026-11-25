@@ -9,7 +9,7 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "86033ffc9510cee8dd457b7f", version : "dc93869b7b02c4912063ab01");
 
 /**
- * FRCDesign's library fasteners: its screws, washers, nuts, and e-clips, generated for FRCDesignApp, FRC's imperial and FTC's
+ * FRCDesign's library fasteners: its screws, washers, nuts, and retainers, generated for FRCDesignApp, FRC's imperial and FTC's
  * metric. Each is made in a Part Studio of its own, whose configuration sets every parameter and offers only what's
  * made (see fastenerTables.py), FRC's and FTC's studios each their own sizes, so these dialogs are rarely seen: each
  * is a flat list of enums, with no conditions, which the configuration filters.
@@ -357,31 +357,39 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
     });
 
 /**
- * An e-clip, from its bottom face at the origin up, opening along X.
+ * A retainer, an e-clip or a retaining ring, from its bottom face at the origin up, opening along X.
  */
-annotation { "Feature Type Name" : "E-clip",
-        "Feature Type Description" : "An e-clip from FRCDesign's library, from the origin up." ~ CREDIT }
-export const fastenerEClip = defineFeature(function(context is Context, id is Id, definition is map)
+annotation { "Feature Type Name" : "Retainer",
+        "Feature Type Description" : "An e-clip or retaining ring from FRCDesign's library, from the origin up." ~ CREDIT }
+export const fastenerRetainer = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
+        annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.retainerType is RetainerType;
+
         annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.vendor is EClipVendor;
+        definition.vendor is RetainerVendor;
 
         annotation { "Name" : "Shaft size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.size is EClipSize;
+        definition.size is RetainerSize;
     }
     {
-        const choices = resolveChoices(E_CLIPS, definition, ["vendor", "size"]);
+        const choices = resolveChoices(RETAINERS, definition, ["retainerType", "vendor", "size"]);
+        if (choices.unmade == "vendor")
+        {
+            throw regenError("Selected vendor does not make this type of retainer, change the vendor.", ["vendor"]);
+        }
         if (choices.unmade != undefined)
         {
-            throw regenError("Selected vendor does not make an e-clip for this shaft, change the shaft size.", ["size"]);
+            throw regenError("Selected vendor does not make this retainer for this shaft, change the shaft size.", ["size"]);
         }
-        const clip = choices.made;
+        const retainer = choices.made;
+        const isRing = choices.definition.retainerType == RetainerType.RETAINING_RING;
 
-        // 1. Extrude its profile
+        // 1. Extrude its profile, and a ring's holes
         const sketchId = id + "sketch";
         const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
-        for (var index, curve in eClipProfile(clip))
+        for (var index, curve in isRing ? retainingRingProfile(retainer) : eClipProfile(retainer))
         {
             if (curve.mid == undefined)
             {
@@ -392,12 +400,18 @@ export const fastenerEClip = defineFeature(function(context is Context, id is Id
                 skArc(sketch, "arc" ~ index, curve);
             }
         }
+        if (isRing)
+        {
+            const hole = retainingRingHole(retainer);
+            skCircle(sketch, "hole", { "center" : hole, "radius" : retainer.holeDiameter / 2 });
+            skCircle(sketch, "mirroredHole", { "center" : mirrorPoint(hole), "radius" : retainer.holeDiameter / 2 });
+        }
         skSolve(sketch);
         opExtrude(context, id + "extrude", {
-                    "entities" : qSketchRegion(sketchId),
+                    "entities" : qSketchRegion(sketchId, true),
                     "direction" : Z_DIRECTION,
                     "endBound" : BoundingType.BLIND,
-                    "endDepth" : clip.thickness
+                    "endDepth" : retainer.thickness
                 });
         const body = qCreatedBy(id + "extrude", EntityType.BODY);
 
@@ -407,12 +421,12 @@ export const fastenerEClip = defineFeature(function(context is Context, id is Id
                     "owner" : body
                 });
         opMateConnector(context, id + "topMateConnector", {
-                    "coordSystem" : coordSystem(WORLD_ORIGIN + clip.thickness * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
+                    "coordSystem" : coordSystem(WORLD_ORIGIN + retainer.thickness * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
                     "owner" : body
                 });
 
         cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
-        setFastenerProperties(context, body, clip);
+        setFastenerProperties(context, body, retainer);
     });
 
 predicate vendorPredicate(definition is map)
@@ -463,7 +477,7 @@ export function resolve(entries is map, value)
     for (var entry in entries)
     {
         if ((value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric) ||
-            (value is EClipSize && E_CLIP_SIZES[entry.key].metric != E_CLIP_SIZES[value].metric))
+            (value is RetainerSize && RETAINER_SIZES[entry.key].metric != RETAINER_SIZES[value].metric))
         {
             continue;
         }
@@ -585,6 +599,63 @@ export function eClipProfile(clip is map) returns array
                     { "start" : end.end, "mid" : vector(-outer, 0 * meter), "end" : mirrorPoint(end.end) }
                 ]
             ]);
+}
+
+/**
+ * A retaining ring's outline, without its holes: its lines and arcs, its gap along X and symmetric about it.
+ */
+export function retainingRingProfile(ring is map) returns array
+{
+    const inner = ring.innerDiameter / 2;
+    const outer = ring.outerDiameter / 2;
+    const rimCenter = vector(-ring.rimOffset, 0 * meter);
+
+    // The lug above the X axis: up the gap, out along its top to its corner, and back down its outer side to the rim
+    const gap = unitVector(ring.gapAngle);
+    const top = unitVector(ring.gapAngle + 90 * degree);
+    const side = unitVector(180 * degree - ring.lugAngle);
+    const corner = ring.lugRadius * gap + ring.lugWidth * top;
+
+    const setback = ring.filletRadius * tan((90 * degree - ring.gapAngle - ring.lugAngle) / 2);
+    const cornerStart = corner - setback * top;
+    const cornerEnd = corner + setback * side;
+    const cornerCenter = cornerStart - ring.filletRadius * gap;
+    const cornerFillet = {
+            "start" : cornerStart,
+            "mid" : cornerCenter + ring.filletRadius * normalize(cornerStart + cornerEnd - 2 * cornerCenter),
+            "end" : cornerEnd
+        };
+    // About the rim's center, outward along the side
+    const root = filletToCircle({ "origin" : corner - rimCenter, "direction" : -side }, true, outer, ring.filletRadius, false);
+    const rootFillet = { "start" : root.start + rimCenter, "mid" : root.mid + rimCenter, "end" : root.end + rimCenter };
+
+    const half = [
+            { "start" : inner * gap, "end" : ring.lugRadius * gap },
+            { "start" : ring.lugRadius * gap, "end" : cornerStart },
+            cornerFillet,
+            { "start" : cornerEnd, "end" : rootFillet.start },
+            rootFillet
+        ];
+    return concatenateArrays([
+                half,
+                mapArray(half, function(curve)
+                    {
+                        return mirrorCurve(curve);
+                    }),
+                [
+                    { "start" : inner * gap, "mid" : vector(-inner, 0 * meter), "end" : mirrorPoint(inner * gap) },
+                    { "start" : rootFillet.end, "mid" : rimCenter - vector(outer, 0 * meter), "end" : mirrorPoint(rootFillet.end) }
+                ]
+            ]);
+}
+
+/**
+ * The center of a retaining ring's hole above the X axis, in the middle of its lug.
+ */
+export function retainingRingHole(ring is map) returns Vector
+{
+    return (ring.innerDiameter / 2 + ring.lugRadius) / 2 * unitVector(ring.gapAngle) +
+        ring.lugWidth / 2 * unitVector(ring.gapAngle + 90 * degree);
 }
 
 function unitVector(angle is ValueWithUnits) returns Vector

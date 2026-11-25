@@ -14852,14 +14852,15 @@
         }
       ]
     },
-    "eClip": {
-      "feature": "fastenerEClip",
+    "retainer": {
+      "feature": "fastenerRetainer",
       "mateConnector": "mateConnector",
       "topMateConnector": "topMateConnector",
       "location": null,
       "records": [
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "GENERIC",
             "size": "MM_2"
           },
@@ -14868,6 +14869,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "GENERIC",
             "size": "IN_3_16"
           },
@@ -14876,6 +14878,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "GENERIC",
             "size": "IN_3_8"
           },
@@ -14884,6 +14887,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "GENERIC",
             "size": "IN_1_2"
           },
@@ -14892,6 +14896,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "MCMASTER",
             "size": "MM_2"
           },
@@ -14903,6 +14908,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "MCMASTER",
             "size": "IN_3_16"
           },
@@ -14914,6 +14920,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "MCMASTER",
             "size": "IN_3_8"
           },
@@ -14925,6 +14932,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "MCMASTER",
             "size": "IN_1_2"
           },
@@ -14936,6 +14944,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "WCP"
           },
           "name": "2 mm E-Clip",
@@ -14945,6 +14954,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "ANDYMARK",
             "size": "IN_3_16"
           },
@@ -14955,6 +14965,7 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "ANDYMARK",
             "size": "IN_3_8"
           },
@@ -14965,12 +14976,77 @@
         },
         {
           "values": {
+            "type": "E_CLIP",
             "vendor": "ANDYMARK",
             "size": "IN_1_2"
           },
           "name": "1/2 in E-Clip",
           "vendor": "AndyMark",
           "partNumber": "am-0206",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "GENERIC",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "GENERIC",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "MCMASTER",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97633A170",
+          "url": "https://www.mcmaster.com/97633A170/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "MCMASTER",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97633A200",
+          "url": "https://www.mcmaster.com/97633A200/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "WCP",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "vendor": "WCP",
+          "partNumber": "WCP-0228",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "type": "RETAINING_RING",
+            "vendor": "WCP",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "vendor": "WCP",
+          "partNumber": "WCP-0229",
           "material": "Carbon Steel"
         }
       ]

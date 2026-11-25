@@ -7085,8 +7085,8 @@
         }
       ]
     },
-    "eClip": {
-      "feature": "fastenerEClip",
+    "retainer": {
+      "feature": "fastenerRetainer",
       "mateConnector": "mateConnector",
       "topMateConnector": "topMateConnector",
       "location": null,

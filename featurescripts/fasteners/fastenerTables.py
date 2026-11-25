@@ -1,4 +1,4 @@
-"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, nuts, and e-clips for FRC, and FTC's metric ones
+"""FRCDesign's library fasteners, generated for FRCDesignApp: screws, washers, nuts, and retainers for FRC, and FTC's metric ones
 (`FTC`, whose Part Studios ftcFastenerTables.py configures as a part set of their own). Run `uv run fs gen` after
 editing.
 
@@ -1002,7 +1002,10 @@ WASHERS = {**WASHERS, **METRIC_WASHERS}
 WasherType = Enum("WasherType", list(_WASHER_TYPES), _WASHER_TYPES)
 
 
-# E-clips, named for the shaft each goes on: FRC's are FRCDesign's E-Clip's (in its Shaft & Bearing Accessories document),
+# Retainers: e-clips and retaining rings, named for the shaft each goes on
+
+
+# E-clips: FRC's are FRCDesign's E-Clip's (in its Shaft & Bearing Accessories document),
 # in each of its flat sizes and vendors, measured from the models it's made of, McMaster-Carr's; FTC's are the ones goBILDA's
 # REX shafts come with (docs/ftc-fasteners.md)
 
@@ -1069,8 +1072,49 @@ METRIC_E_CLIPS = {
     **{(vendor, size): clip for vendor in ("GENERIC", "GOBILDA") for size, clip in _GOBILDA_E_CLIPS.items()},
     ("MCMASTER", "MM_8"): _mcmaster_rex_e_clip(11.8, 5.26, 0.7),
 }
-EClipSize = Enum(
-    "EClipSize",
+METRIC_E_CLIP_SIZES = {size for _, size in METRIC_E_CLIPS}
+
+
+def e_clip_dimensions(vendor: str, size: str) -> EClip:
+    return METRIC_E_CLIPS[(vendor, size)] if size in METRIC_E_CLIP_SIZES else E_CLIPS[size]
+
+
+# Retaining rings: FRCDesign's External Retaining Ring's (in the same document), measured from the models it's made of,
+# McMaster-Carr's
+
+
+@dataclasses.dataclass(frozen=True)
+class RetainingRing:
+    # Where it sits in its groove
+    inner_diameter: float
+    # Its rim's, about a center `rim_offset` from its inner diameter's, away from its gap
+    outer_diameter: float
+    rim_offset: float
+    thickness: float
+    # How far from the shaft's center its lugs reach
+    lug_radius: float
+    # Along a lug's top, square to its side of the gap, to its outer side's line
+    lug_width: float
+    # Its lugs' outer sides', from the gap's centerline
+    lug_angle: float
+    # Of its lugs' corners, and where they meet the rim
+    fillet: float
+    # A hole in the middle of each lug
+    hole_diameter: float
+    # Each side of its gap's, from its centerline, through the shaft's center
+    gap_angle: float = 1
+
+
+RETAINING_RINGS = {
+    "IN_3_8": RetainingRing(0.338, 0.417172, 0.010414, 0.025, 0.257, 0.066, 19.394359, 0.031, 0.041),
+    "IN_1_2": RetainingRing(0.461, 0.56446, 0.01327, 0.035, 0.3385, 0.081, 23.0524, 0.0355, 0.047),
+}
+RetainerType = Enum(
+    "RetainerType", ["E_CLIP", "RETAINING_RING"], {"E_CLIP": "E-clip", "RETAINING_RING": "Retaining ring"}
+)
+RETAINER_NAMES = {"E_CLIP": "E-Clip", "RETAINING_RING": "Retaining Ring"}
+RetainerSize = Enum(
+    "RetainerSize",
     ["MM_2", "IN_3_16", "IN_3_8", "IN_1_2", "MM_8", "MM_12"],
     {
         "MM_2": "2 mm",
@@ -1081,49 +1125,57 @@ EClipSize = Enum(
         "MM_12": "12 mm",
     },
 )
-METRIC_E_CLIP_SIZES = {size for _, size in METRIC_E_CLIPS}
-
-
-def e_clip_dimensions(vendor: str, size: str) -> EClip:
-    return METRIC_E_CLIPS[(vendor, size)] if size in METRIC_E_CLIP_SIZES else E_CLIPS[size]
 
 
 # As FRCDesign's and McMaster-Carr's are; the table defines its constant
 CARBON_STEEL = Material("Carbon Steel", "CARBON_STEEL")
 
 
-def _mcmaster_e_clip(part: str) -> Stock:
+def _mcmaster_retainer(part: str) -> Stock:
     return Stock(part, mcmaster_url(part), CARBON_STEEL)
 
 
-# By vendor and size: FRCDesign's "FRC Vendor (AM/WCP)" is WCP for 2 mm, and AndyMark for the rest. goBILDA sells its
-# clips only on its shafts, so they have no part number. Generic has every size
-E_CLIP_STOCK = {
-    **{("GENERIC", size): Stock(material=CARBON_STEEL) for size in EClipSize.values},
-    ("MCMASTER", "MM_2"): _mcmaster_e_clip("98543A060"),
-    ("MCMASTER", "IN_3_16"): _mcmaster_e_clip("97431A280"),
-    ("MCMASTER", "IN_3_8"): _mcmaster_e_clip("97431A320"),
-    ("MCMASTER", "IN_1_2"): _mcmaster_e_clip("97431A340"),
-    ("MCMASTER", "MM_8"): _mcmaster_e_clip("98543A114"),
-    ("GOBILDA", "MM_8"): Stock(material=CARBON_STEEL),
-    ("GOBILDA", "MM_12"): Stock(material=CARBON_STEEL),
-    ("WCP", "MM_2"): Stock("WCP-0227", material=CARBON_STEEL),
-    ("ANDYMARK", "IN_3_16"): Stock("am-1155", material=CARBON_STEEL),
-    ("ANDYMARK", "IN_3_8"): Stock("am-1124", material=CARBON_STEEL),
-    ("ANDYMARK", "IN_1_2"): Stock("am-0206", material=CARBON_STEEL),
+def _retainer(part: str | None = None) -> Stock:
+    return Stock(part, material=CARBON_STEEL)
+
+
+# By type, vendor, and size. FRCDesign's "FRC Vendor (AM/WCP)" e-clips are WCP's for 2 mm, and AndyMark's for the rest.
+# goBILDA sells its e-clips only on its shafts, so they have no part number. Generic has every size
+RETAINER_STOCK = {
+    **{
+        ("E_CLIP", "GENERIC", size): _retainer()
+        for size in RetainerSize.values
+        if size in E_CLIPS or size in METRIC_E_CLIP_SIZES
+    },
+    ("E_CLIP", "MCMASTER", "MM_2"): _mcmaster_retainer("98543A060"),
+    ("E_CLIP", "MCMASTER", "IN_3_16"): _mcmaster_retainer("97431A280"),
+    ("E_CLIP", "MCMASTER", "IN_3_8"): _mcmaster_retainer("97431A320"),
+    ("E_CLIP", "MCMASTER", "IN_1_2"): _mcmaster_retainer("97431A340"),
+    ("E_CLIP", "MCMASTER", "MM_8"): _mcmaster_retainer("98543A114"),
+    ("E_CLIP", "GOBILDA", "MM_8"): _retainer(),
+    ("E_CLIP", "GOBILDA", "MM_12"): _retainer(),
+    ("E_CLIP", "WCP", "MM_2"): _retainer("WCP-0227"),
+    ("E_CLIP", "ANDYMARK", "IN_3_16"): _retainer("am-1155"),
+    ("E_CLIP", "ANDYMARK", "IN_3_8"): _retainer("am-1124"),
+    ("E_CLIP", "ANDYMARK", "IN_1_2"): _retainer("am-0206"),
+    **{("RETAINING_RING", "GENERIC", size): _retainer() for size in RETAINING_RINGS},
+    ("RETAINING_RING", "MCMASTER", "IN_3_8"): _mcmaster_retainer("97633A170"),
+    ("RETAINING_RING", "MCMASTER", "IN_1_2"): _mcmaster_retainer("97633A200"),
+    ("RETAINING_RING", "WCP", "IN_3_8"): _retainer("WCP-0228"),
+    ("RETAINING_RING", "WCP", "IN_1_2"): _retainer("WCP-0229"),
 }
 
 # Their own, as finishes are, so the feature's dialog offers no vendor without any
-EClipVendor = Enum(
-    "EClipVendor",
-    [vendor for vendor in FastenerVendor.values if any(key[0] == vendor for key in E_CLIP_STOCK)],
+RetainerVendor = Enum(
+    "RetainerVendor",
+    [vendor for vendor in FastenerVendor.values if any(key[1] == vendor for key in RETAINER_STOCK)],
     FastenerVendor.names,
 )
 
 
-def e_clip_name(size: str) -> str:
-    """e.g. `1/2 in E-Clip`."""
-    return f"{EClipSize.names[size]} E-Clip"  # type: ignore[index]
+def retainer_name(type: str, size: str) -> str:
+    """e.g. `1/2 in E-Clip`, or `1/2 in Retaining Ring`."""
+    return f"{RetainerSize.names[size]} {RETAINER_NAMES[type]}"  # type: ignore[index]
 
 
 # What each part is called and sold as: the features set these, and FRCDesignApp indexes the same records
@@ -1228,7 +1280,7 @@ class Defaults:
     screw: tuple[str, str, str, str, str]
     nut: tuple[str, str, str, str]
     washer: tuple[str, str, str, str]
-    e_clip: tuple[str, str]
+    retainer: tuple[str, str, str]
 
 
 class Catalog:
@@ -1250,7 +1302,9 @@ class Catalog:
         self.nuts = {key: stock for key, stock in NUTS.items() if key[1] in sizes}
         self.washers = {key: washer for key, washer in WASHERS.items() if key[1] in sizes}
         # Their sizes are shafts', not the threads `sizes` are
-        self.e_clips = {key: stock for key, stock in E_CLIP_STOCK.items() if (key[1] in METRIC_E_CLIP_SIZES) == (sizes == METRIC)}
+        self.retainers = {
+            key: stock for key, stock in RETAINER_STOCK.items() if (key[2] in METRIC_E_CLIP_SIZES) == (sizes == METRIC)
+        }
         self.screw_finishes = screw_finishes
         self.finishes = finishes
         self.screw_table = LookupTable(
@@ -1264,7 +1318,7 @@ class Catalog:
         )
         self.nut_table = LookupTable(("vendor", "size", "type", "finish"), list(self.nuts))
         self.washer_table = LookupTable(("vendor", "size", "type", "finish"), list(self.washers))
-        self.e_clip_table = LookupTable(("vendor", "size"), list(self.e_clips))
+        self.retainer_table = LookupTable(("type", "vendor", "size"), list(self.retainers))
         self.studios = {
             # Nearly every length is in one finish, so Length's conditions are smallest split by finish first
             "screw": ConfiguredStudio(
@@ -1282,11 +1336,10 @@ class Catalog:
                 mate_connector="mateConnector",
                 top_mate_connector="topMateConnector",
             ),
-            "eClip": ConfiguredStudio(
-                "eClip",
-                "fastenerEClip",
-                self._e_clip_inputs(defaults.e_clip),
-                tab="E-Clip",
+            "retainer": ConfiguredStudio(
+                "retainer",
+                "fastenerRetainer",
+                self._retainer_inputs(defaults.retainer),
                 mate_connector="mateConnector",
                 top_mate_connector="topMateConnector",
             ),
@@ -1295,7 +1348,7 @@ class Catalog:
             "screw": self._screw_records(),
             "nut": self._nut_records(),
             "washer": self._washer_records(),
-            "eClip": self._e_clip_records(),
+            "retainer": self._retainer_records(),
         }
 
     def _screw_inputs(self, defaults: tuple[str, str, str, str, str]) -> list[Input]:
@@ -1345,12 +1398,13 @@ class Catalog:
             table.input(_list("finish", "Finish", WasherFinish, "finish", finish, self.finishes)),
         ]
 
-    def _e_clip_inputs(self, defaults: tuple[str, str]) -> list[Input]:
-        vendor, size = defaults
-        table = self.e_clip_table
+    def _retainer_inputs(self, defaults: tuple[str, str, str]) -> list[Input]:
+        type, vendor, size = defaults
+        table = self.retainer_table
         return [
-            table.input(_list("vendor", "Vendor", EClipVendor, "vendor", vendor)),
-            table.input(_list("size", "Shaft size", EClipSize, "size", size)),
+            table.input(_list("type", "Type", RetainerType, "retainerType", type)),
+            table.input(_list("vendor", "Vendor", RetainerVendor, "vendor", vendor)),
+            table.input(_list("size", "Shaft size", RetainerSize, "size", size)),
         ]
 
     def _screw_records(self) -> dict[tuple[str, str, str, str, str, bool], Record]:
@@ -1402,10 +1456,12 @@ class Catalog:
             for (vendor, size, type, finish), washer in self.washers.items()
         }
 
-    def _e_clip_records(self) -> dict[tuple[str, str], Record]:
+    def _retainer_records(self) -> dict[tuple[str, str, str], Record]:
         return {
-            (vendor, size): Record(self.e_clip_table.shown((vendor, size)), e_clip_name(size), vendor, stock)
-            for (vendor, size), stock in self.e_clips.items()
+            (type, vendor, size): Record(
+                self.retainer_table.shown((type, vendor, size)), retainer_name(type, size), vendor, stock
+            )
+            for (type, vendor, size), stock in self.retainers.items()
         }
 
     def washer_finishes(self, vendor: str, size: str, type: str) -> list[str]:
@@ -1426,7 +1482,7 @@ FRC = Catalog(
         ("MCMASTER", "NO_10_32", "NYLOCK", FRC_NUT_FINISH),
         ("MCMASTER", "NO_10_32", "OD_7_16_X_0_03", "STAINLESS"),
         # FRCDesign's E-Clip's size
-        ("GENERIC", "IN_1_2"),
+        ("E_CLIP", "GENERIC", "IN_1_2"),
     ),
 )
 # FTC's, from what's inserted most from ConfigLib (docs/ftc-fasteners.md): M4 socket heads, nylocks and washers, from the
@@ -1439,7 +1495,7 @@ FTC = Catalog(
         # Type shows only for goBILDA's, which makes two: its 8 mm one is its usual
         ("GENERIC", "M4", "MM_8_X_1", METRIC_FINISHES[0]),
         # goBILDA's usual shaft
-        ("GENERIC", "MM_8"),
+        ("E_CLIP", "GENERIC", "MM_8"),
     ),
     METRIC_SCREW_FINISHES,
     METRIC_FINISHES,
@@ -1571,8 +1627,26 @@ def _washer_fields(item: tuple[Washer, Record]) -> str:
     )
 
 
-def _e_clip_fields(item: tuple[EClip, Record]) -> str:
-    clip, record = item
+def _retainer_fields(item: tuple[tuple[str, str, str], Record]) -> str:
+    (type, vendor, size), record = item
+    if type == "RETAINING_RING":
+        ring = RETAINING_RINGS[size]
+        return _fields(
+            {
+                "innerDiameter": _in(ring.inner_diameter),
+                "outerDiameter": _in(ring.outer_diameter),
+                "rimOffset": _in(ring.rim_offset),
+                "thickness": _in(ring.thickness),
+                "lugRadius": _in(ring.lug_radius),
+                "lugWidth": _in(ring.lug_width),
+                "lugAngle": f"{ring.lug_angle} * degree",
+                "filletRadius": _in(ring.fillet),
+                "holeDiameter": _in(ring.hole_diameter),
+                "gapAngle": f"{ring.gap_angle} * degree",
+                **record.fields(),
+            }
+        )
+    clip = e_clip_dimensions(vendor, size)
     fields = {
         "outerDiameter": _length(clip.outer_diameter, clip.unit),
         "innerDiameter": _length(clip.inner_diameter, clip.unit),
@@ -1605,8 +1679,9 @@ CONTENTS = [
     NutFinish,
     NutType,
     WasherType,
-    EClipVendor,
-    EClipSize,
+    RetainerType,
+    RetainerVendor,
+    RetainerSize,
     Constant("FASTENER_SIZES", _map([(FastenerSize[size.id], _size_fields(size)) for size in SIZES + METRIC_SIZES], 8)),
     Constant(
         "SCREW_HEADS",
@@ -1662,17 +1737,20 @@ CONTENTS = [
         ),
     ),
     _documented(
-        "Which part set each e-clip size is in, as FASTENER_SIZES says of its sizes.",
-        "E_CLIP_SIZES",
-        _map([(EClipSize[id], _fields({"metric": str(id in METRIC_E_CLIP_SIZES).lower()})) for id in EClipSize.values], 8),
+        "Which part set each retainer size is in, as FASTENER_SIZES says of its sizes.",
+        "RETAINER_SIZES",
+        _map(
+            [(RetainerSize[id], _fields({"metric": str(id in METRIC_E_CLIP_SIZES).lower()})) for id in RetainerSize.values],
+            8,
+        ),
     ),
     Constant("CARBON_STEEL", 'material("Carbon Steel", 0.284 * pound / inch ^ 3)'),
     Constant(
-        "E_CLIPS",
+        "RETAINERS",
         _nested(
-            {key: (e_clip_dimensions(*key), record) for key, record in ALL_RECORDS["eClip"].items()},
-            [EClipVendor, EClipSize],
-            _e_clip_fields,
+            {key: (key, record) for key, record in ALL_RECORDS["retainer"].items()},
+            [RetainerType, RetainerVendor, RetainerSize],
+            _retainer_fields,
         ),
     ),
 ]
