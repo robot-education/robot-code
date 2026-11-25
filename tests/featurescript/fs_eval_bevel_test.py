@@ -19,7 +19,7 @@ FLANK_SAMPLES = 40
 def bevel_form(teeth: int, mate_teeth: int, shaft_degrees: float, pressure_degrees: float = 20, offset_mm: float = 0):
     """The gear's cones, depths, and form, and its flank: its tooth's half angle at radii from the top of its root's
     radial line (`gearRoot`'s `lineTop`, where the involute starts) to its tip."""
-    definition = ('{ "gearType" : GearType.BEVEL, "bevelProfile" : BevelProfile.EXACT, "pitch" : GearPitch.CUSTOM, '
+    definition = ('{ "gearType" : GearType.BEVEL, "pitch" : GearPitch.CUSTOM, '
                   f'"pressureAngle" : {pressure_degrees} * degree, "mateTeeth" : {mate_teeth}, "shaftAngle" : {shaft_degrees} * degree, '
                   f'"addProfileOffset" : {"true" if offset_mm else "false"}, "profileOffsetDistance" : {abs(offset_mm)} * millimeter, '
                   f'"profileOffsetOppositeDirection" : {"true" if offset_mm < 0 else "false"} }}')
@@ -164,7 +164,7 @@ def test_spherical_bevel_gap_is_one_closed_loop(teeth, mate_teeth, shaft_degrees
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
     form = f"""(function() {{
-        const definition = {{ "bevelProfile" : BevelProfile.EXACT, "pitch" : GearPitch.DP_10, "mateTeeth" : {mate_teeth}, "addProfileOffset" : false }};
+        const definition = {{ "pitch" : GearPitch.DP_10, "mateTeeth" : {mate_teeth}, "addProfileOffset" : false }};
         const cones = bevelPairCones(inch / 10, {teeth}, {mate_teeth}, {shaft_degrees} * degree);
         const depths = bevelDepths(definition, inch / 10, {teeth}, cones);
         var form = sphericalBevelForm(inch / 10, {teeth}, cones.gear, cones.mate.pitchAngle, 20 * degree, depths.thickness, depths.addendum,
@@ -187,7 +187,7 @@ def test_router_bit_slots_where_it_cant_reach_the_root(bit_mm, expected):
     # A 13T pinion's gap, at 0.6 of its back's size: a small bit reaches its fillets, a bigger one cuts a slot down its
     # middle, and one so big its slot meets the flanks above the pitch cone is too large
     expression = f"""(function() {{
-        const definition = {{ "bevelProfile" : BevelProfile.EXACT, "pitch" : GearPitch.CUSTOM, "pressureAngle" : 20 * degree,
+        const definition = {{ "pitch" : GearPitch.CUSTOM, "pressureAngle" : 20 * degree,
             "mateTeeth" : 31, "addProfileOffset" : false }};
         const cones = bevelPairCones(millimeter, 13, 31, 90 * degree);
         const depths = bevelDepths(definition, millimeter, 13, cones);

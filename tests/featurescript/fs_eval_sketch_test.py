@@ -282,21 +282,25 @@ def test_no_root_fillet_leaves_a_sharp_corner():
     assert {round(arc.radius, 9) for arc in arcs} == {round(form["rootRadius"], 9), round(form["tipRadius"], 9)}
 
 
-INTERNAL_FORM = "getInternalGearForm(inch / 20, {teeth}, {pressure_degrees} * degree, {fillet}, {offset_mm} * millimeter)"
+INTERNAL_FORM = ("getInternalGearForm(inch / 20, {teeth}, {mate_teeth}, {pressure_degrees} * degree, {fillet}, "
+                 "{offset_mm} * millimeter)")
 
 
-def internal_gear_profile(teeth: int, pressure_degrees: float = 20, fillet: str = "1", offset_mm: float = 0.0):
-    """A 20 DP internal gear's profile, its ring's outside a module per tooth out (twice its pitch radius), and form."""
+def internal_gear_profile(teeth: int, pressure_degrees: float = 20, fillet: str = "1", offset_mm: float = 0.0,
+                          mate_teeth: int = 12):
+    """A 20 DP internal gear's profile (meshing with a 12T pinion, unless `mate_teeth` says otherwise), its ring's
+    outside a module per tooth out (twice its pitch radius), and form."""
     evaluator = shared_evaluator()
     context = evaluator.eval("newContext()")
-    form = INTERNAL_FORM.format(teeth=teeth, pressure_degrees=pressure_degrees, fillet=fillet, offset_mm=offset_mm)
+    form = INTERNAL_FORM.format(teeth=teeth, mate_teeth=mate_teeth, pressure_degrees=pressure_degrees, fillet=fillet,
+                                offset_mm=offset_mm)
     form = f'mergeMaps({form}, {{ "outsideRadius" : {teeth} * inch / 20 }})'
     evaluator.eval(f'sketchInternalGearProfile(context, newId() + "profile", XY_PLANE, {form})', "released/gear/gearCommon.fs", context=context)
     return recorded_sketch(context, "profile"), to_python(evaluator.eval(form, "released/gear/gearCommon.fs"))
 
 
 def internal_root(teeth: int, fillet: str, pressure_degrees: float = 20) -> dict:
-    form = INTERNAL_FORM.format(teeth=teeth, pressure_degrees=pressure_degrees, fillet=fillet, offset_mm=0)
+    form = INTERNAL_FORM.format(teeth=teeth, mate_teeth=12, pressure_degrees=pressure_degrees, fillet=fillet, offset_mm=0)
     return to_python(shared_evaluator().eval(f"internalRoot({form})", "released/gear/gearCommon.fs"))
 
 
@@ -344,15 +348,28 @@ def test_internal_gear_profile(teeth, pressure_degrees, fillet):
             assert abs(out[0] * into[1] - out[1] * into[0]) < 1e-6, f"{before.id} and {after.id} aren't tangent"
 
 
-def test_internal_gear_tips_stop_at_the_base_circle():
-    # A 40T 14.5° internal gear's tips would be a module inside its pitch circle, below its base circle, where there's
-    # no involute: they're on the base circle instead
-    _, form = internal_gear_profile(40, 14.5)
-    assert form["tipRadius"] == pytest.approx(form["baseRadius"], abs=1e-12)
-    assert form["tipRadius"] > form["pitchRadius"] - 0.0254 / 20
-    # A 100T 20° gear's are a module inside it
-    _, form = internal_gear_profile(100, 20)
+@pytest.mark.parametrize("teeth,mate_teeth,pressure_degrees", [(60, 10, 20), (40, 12, 14.5), (200, 10, 14.5)])
+def test_internal_gear_tips_stop_at_the_pinions_interference_point(teeth, mate_teeth, pressure_degrees):
+    # A module inside its pitch circle, its tips would hit a small pinion below its base circle: they stop where the
+    # line of action touches it, √(r_b² + (a sin α)²) from the gear's center, outside its own base circle
+    _, form = internal_gear_profile(teeth, pressure_degrees, mate_teeth=mate_teeth)
+    module, alpha = 0.0254 / 20, math.radians(pressure_degrees)
+    between = (teeth - mate_teeth) * module / 2
+    assert form["tipRadius"] == pytest.approx(math.hypot(form["baseRadius"], between * math.sin(alpha)), abs=1e-12)
+    assert form["tipRadius"] > form["pitchRadius"] - module
+    assert form["tipRadius"] > form["baseRadius"]
+
+
+def test_internal_gear_tips_are_a_module_in_for_a_large_pinion():
+    # A 100T 20° gear's, with a 60T pinion, are a module inside its pitch circle
+    _, form = internal_gear_profile(100, 20, mate_teeth=60)
     assert form["tipRadius"] == pytest.approx(form["pitchRadius"] - 0.0254 / 20, abs=1e-12)
+
+
+@pytest.mark.parametrize("teeth,mate_teeth", [(14, 10), (12, 12), (12, 20)])
+def test_internal_gear_with_too_large_a_pinion(teeth, mate_teeth):
+    with pytest.raises(FSError, match="Mating gear teeth is too large for an internal gear"):
+        internal_gear_profile(teeth, mate_teeth=mate_teeth)
 
 
 def internal_root_arcs(teeth: int, fillet: str):
@@ -406,14 +423,18 @@ def test_internal_router_bit_too_wide_for_the_root_cuts_a_slot():
     assert not slot["tooLarge"] and slot["exitRadius"] > form["pitchRadius"]
 
 
-def test_internal_router_bit_too_wide_for_the_gap_at_the_pitch_circle():
-    # A 1/8 in. bit's slots cut a 20 DP internal gear's flanks inside its pitch circle (its gaps are about 0.08 in. wide
-    # there)
-    slot = internal_root(40, "inch / 16")["slot"]
-    assert slot["tooLarge"] and slot["exitRadius"] < 40 * 0.0254 / 40
-    # Its profile still closes, for showing what the slots cut
-    sketch, _ = internal_gear_profile(40, fillet="inch / 16")
-    assert all(loop.closed for loop in sketch.loops())
+@pytest.mark.parametrize("teeth,fillet", [(40, "inch / 16"), (72, "inch / 8"), (72, "inch / 4"), (72, "inch")])
+def test_internal_router_bit_too_wide_for_the_gap_at_the_pitch_circle(teeth, fillet):
+    # 1/8 in. bits and wider cut a 20 DP internal gear's flanks inside its pitch circle (its gaps are about 0.08 in. wide
+    # there), however much wider: its slots' sides, or its round end, reaching in past the tips
+    assert internal_root(teeth, fillet)["slot"]["tooLarge"]
+
+
+@pytest.mark.parametrize("fillet", ["inch / 16", "inch / 8", "inch / 4", "inch"])
+def test_router_bit_too_wide_for_the_gap_at_the_pitch_circle(fillet):
+    # Likewise a 60T 20 DP gear's, whose slots cross each other's from 3/16 in. (0.15 in. between gaps at its root)
+    form = f"getGearForm(inch / 20, 60, 14.5 * degree, {fillet}, 0 * meter)"
+    assert to_python(shared_evaluator().eval(f"gearRoot({form}).slot.tooLarge", "released/gear/gearCommon.fs"))
 
 
 def test_internal_gear_profile_offset_grows_its_teeth():
@@ -626,6 +647,39 @@ def test_rack_roots_are_a_slot_when_the_floor_is_too_narrow():
     assert not rack_bit_too_large(0.2)
 
 
+def rack_slot(radius_mm: float, face_height: str = "1 * millimeter"):
+    """A bit's slot in a module 1 rack's gap at x = 2 mm, for showing a bit too large: sketched, and its one loop."""
+    evaluator = shared_evaluator()
+    context = evaluator.eval("newContext()")
+    form = RACK_FORM.format(fillet=f"{radius_mm} * millimeter", offset=0)
+    region = f"rackSlotRegion({form}, {face_height}, 2 * millimeter)"
+    evaluator.eval(f'sketchRackCut(context, newId() + "profile", XY_PLANE, [{region}])', "released/gear/gearCommon.fs", context=context)
+    (loop,) = recorded_sketch(context, "profile").loops()
+    return loop
+
+
+def test_rack_slot_runs_from_the_root_to_the_face():
+    # A 1.5 mm radius bit (too large): its round end on the root (2.25 mm below a face at the tips), its sides up to it
+    assert rack_bit_too_large(1.5)
+    loop = rack_slot(1.5)
+    assert loop.closed
+    (end,) = [curve for curve in loop.curves if curve.kind == "arc"]
+    assert end.radius == pytest.approx(0.0015, abs=1e-12)
+    assert end.center == pytest.approx((0.002, -0.00225 + 0.0015), abs=1e-12)
+    points = [point for curve in loop.curves for point in (curve.start, curve.end)]
+    assert max(y for _, y in points) == pytest.approx(0, abs=1e-12)
+    # Its sides the bit's radius from the gap's middle
+    assert sorted({round(x, 9) for x, _ in points}) == pytest.approx([0.0005, 0.0035], abs=1e-9)
+
+
+def test_rack_slot_wider_than_the_teeth_are_high_is_its_round_end():
+    # A 3 mm radius bit's round end reaches past the face: it's shown whole
+    loop = rack_slot(3)
+    assert loop.closed
+    assert [curve.kind for curve in loop.curves] == ["arc", "arc"]
+    assert all(arc.radius == pytest.approx(0.003, abs=1e-12) for arc in loop.curves)
+
+
 def test_rack_full_round_fillets_meet_in_the_floors_middle():
     sketch = rack_cut("0 * meter", 10 * math.pi, fillet="1")
     loops = sketch.loops()
@@ -716,12 +770,11 @@ def bevel_cones(teeth: int, mate_teeth: int, shaft_degrees: float = 90, module_m
 
 
 def test_bevel_cones():
-    # A miter pair: 45 degree pitch cones, and a back cone sqrt(2) times the pitch radius
+    # A miter pair: 45 degree pitch cones, and a cone distance sqrt(2) times the pitch radius
     cones = bevel_cones(20, 20)
     assert cones["pitchAngle"] == pytest.approx(math.pi / 4)
     assert cones["pitchRadius"] == pytest.approx(0.010)
     assert cones["coneDistance"] == pytest.approx(0.010 * math.sqrt(2))
-    assert cones["virtualTeeth"] == pytest.approx(20 * math.sqrt(2))
     # At right angles, the pinion's and gear's pitch angles add up to the shaft angle, and their cone distances match
     pinion, gear = bevel_cones(15, 45), bevel_cones(45, 15)
     assert pinion["pitchAngle"] + gear["pitchAngle"] == pytest.approx(math.pi / 2)
@@ -781,8 +834,8 @@ def test_spline_xs_bores_are_the_shaft_offset_by_their_fit(fit, clearance_in):
             assert angle == pytest.approx(expected, abs=1e-9)
 
 
-@pytest.mark.parametrize("face_at, modules", [("PITCH", 1), ("OUTSIDE", 0), ("BASE", 2.25)])
+@pytest.mark.parametrize("face_at, modules", [("PITCH", 1), ("TIP", 0), ("ROOT", 2.25)])
 def test_rack_face_is_moved_out_to_the_tips(face_at, modules):
     # At the base (the root line), the teeth are added on the face: it's moved out their whole depth
-    depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : RackFaceAt.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
+    depth = shared_evaluator().eval(f'rackFaceDepth({{ "rackFaceAt" : MeasuredFrom.{face_at} }}, inch / 20)', "released/gear/robotGear.fs")
     assert to_python(depth) == pytest.approx(modules * 0.0254 / 20, abs=1e-12)

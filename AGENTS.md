@@ -21,6 +21,10 @@ The Python runs on Windows too: write files that are checked in or pushed with `
 `\r\n`), print paths with `as_posix()`, and don't use Unix-only modules (like `fcntl`). `tests/conftest.py` makes
 tests' `write_text` write `\n`.
 
+What the tooling writes to Onshape (file tabs like manifests, and generated Feature Studios) is formatted for people
+reading it there: JSON indented (`json.dumps(..., indent=4)`), code laid out as by hand. Only for what's written from
+now on: don't rewrite what Onshape already holds just to reformat it.
+
 Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
 sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval` beside
 them; see `docs/testing.md`. `uv run pytest tests/featurescript` runs them, after changing only FeatureScript; after

@@ -523,7 +523,9 @@ function pulleyBore(definition is map) returns Bore
                 "splineType" : definition.splineType,
                 "clearance" : fitClearance(definition, across),
                 "fit" : definition.fit,
-                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined
+                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined,
+                "parameters" : ["boreType", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"],
+                "chamferParameters" : ["chamferDistance"]
             } as Bore;
 }
 
@@ -532,7 +534,12 @@ function addBores(context is Context, id is Id, definition is map, pulleyDefinit
     cutBores(context, id, pulleyBore(definition),
         mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.plane; }),
         mapArray(pulleyDefinitions, function(pulleyDefinition) { return pulleyDefinition.identity; }),
-        pulleys);
+        pulleys,
+        // The pulleys again, if the bore uses them up, to show
+        function(errorId is Id)
+        {
+            createPulleys(context, errorId, definition, pulleyDefinitions);
+        });
 }
 
 function addText(context is Context, id is Id, definition is map, pulleyDefinitions is array, pulleys is array)

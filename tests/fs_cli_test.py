@@ -1276,6 +1276,8 @@ def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
     assert name == "parts.parts.json"
     screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
     assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "elementId": screw}}}
+    # Indented, to read in Onshape
+    assert data.startswith(b'{\n    "studios": {\n')
 
     # The next is numbered from the backend's versions
     assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0

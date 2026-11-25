@@ -249,7 +249,10 @@ def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dic
         for key, studio in manifest.get("studios", {}).items():
             studio.pop("location", None)
             studio["elementId"] = built[key].element_id
-        manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = json.dumps(manifest).encode()
+        # Indented, for people reading it in Onshape
+        manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = (
+            json.dumps(manifest, indent=4) + "\n"
+        ).encode()
     return manifests
 
 
