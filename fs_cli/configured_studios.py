@@ -143,6 +143,10 @@ class ConfiguredStudio:
         return self.tab or self.name.capitalize()
 
     def __post_init__(self) -> None:
+        ids = [input.id for input in self.inputs]
+        # Vendor is always the first choice (docs/featurescript-style.md)
+        if "vendor" in ids and ids[0] != "vendor":
+            raise ValueError(f"{self.name}: its vendor input is after {ids[0]}; vendor goes first")
         defaults: dict[str, str] = {}
         earlier: dict[str, Input] = {}
         for input in self.inputs:

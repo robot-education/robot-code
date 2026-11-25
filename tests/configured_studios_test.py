@@ -62,6 +62,14 @@ def test_options_show_only_with_earlier_inputs():
         ConfiguredStudio("s", "f", [size, length([{"size": "B"}])])
 
 
+def test_vendor_is_the_first_input():
+    size = Input("size", "Size", "size", [Option("A", "A", "A")], enum_name="Size")
+    vendor = Input("vendor", "Vendor", "vendor", [Option("WCP", "WCP", "WCP")], enum_name="Vendor")
+    ConfiguredStudio("s", "f", [vendor, size])
+    with pytest.raises(ValueError, match="vendor goes first"):
+        ConfiguredStudio("s", "f", [size, vendor])
+
+
 def test_a_default_must_show_with_its_parents_default():
     with pytest.raises(ValueError, match="default"):
         ConfiguredStudio(

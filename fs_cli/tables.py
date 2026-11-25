@@ -94,12 +94,30 @@ class Node:
         return dataclasses.replace(self, entries=entries)
 
 
+VENDOR = "vendor"
+
+
+def _nodes(node: Node) -> list[Node]:
+    """A node and every node below it."""
+    found = [node]
+    for entry in node.entries:
+        if entry.next is not None:
+            found.extend(_nodes(entry.next))
+    return found
+
+
 @dataclasses.dataclass
 class Table:
     """An exported constant holding a lookup table."""
 
     name: str
     node: Node
+
+    def __post_init__(self) -> None:
+        # Vendor is always the first choice, in a table as in a feature's dialog (docs/featurescript-style.md)
+        for node in _nodes(self.node):
+            if node is not self.node and node.name == VENDOR:
+                raise ValueError(f"{self.name}: its vendor is a level below its first; vendor goes first")
 
     def render(self) -> str:
         lines = [f"export const {self.name} = {{"]
