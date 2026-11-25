@@ -150,7 +150,7 @@ There are no `try`s.
 ## Issues found
 
 - E-clips are tried in Onshape (in a scratch document, from the feature's dialog): every vendor, size, and type
-  regenerates as one part, named. Not yet tried: their studio's configuration.
+  regenerates as one part, named.
 - A bowed e-clip's opening's sides are within 0.003 in of McMaster-Carr's model. AndyMark's and WCP's are modeled as
   McMaster-Carr's, as FRCDesign's are, and have no links.
 - Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
