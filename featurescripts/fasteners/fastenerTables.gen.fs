@@ -318,6 +318,8 @@ export enum EClipVendor
     GENERIC,
     annotation { "Name" : "McMaster-Carr" }
     MCMASTER,
+    annotation { "Name" : "goBILDA" }
+    GOBILDA,
     annotation { "Name" : "WCP" }
     WCP,
     annotation { "Name" : "AndyMark" }
@@ -2921,5 +2923,9 @@ export const E_CLIPS = {
                 EClipSize.IN_3_16 : { "outerDiameter" : 0.335 * inch, "innerDiameter" : 0.145 * inch, "pocketDiameter" : 0.247742 * inch, "thickness" : 0.025 * inch, "filletRadius" : 0.0175 * inch, "prongFilletRadius" : 0.00875 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/16 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1155", "material" : CARBON_STEEL, "appearance" : BLACK },
                 EClipSize.IN_3_8 : { "outerDiameter" : 0.66 * inch, "innerDiameter" : 0.3 * inch, "pocketDiameter" : 0.495484 * inch, "thickness" : 0.035 * inch, "filletRadius" : 0.0245 * inch, "prongFilletRadius" : 0.01225 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "3/8 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-1124", "material" : CARBON_STEEL, "appearance" : BLACK },
                 EClipSize.IN_1_2 : { "outerDiameter" : 0.8 * inch, "innerDiameter" : 0.392 * inch, "pocketDiameter" : 0.615226 * inch, "thickness" : 0.042 * inch, "filletRadius" : 0.0294 * inch, "prongFilletRadius" : 0.0147 * inch, "prongAngle" : 18.434949 * degree, "openingAngle" : 17.347577 * degree, "opening" : 0.8, "pocketAngle" : 0 * degree, "name" : "1/2 in E-Clip", "vendor" : "AndyMark", "partNumber" : "am-0206", "material" : CARBON_STEEL, "appearance" : BLACK }
+            },
+            EClipVendor.GOBILDA : {
+                EClipSize.MM_8 : { "outerDiameter" : 12.3 * millimeter, "innerDiameter" : 6 * millimeter, "pocketDiameter" : 8.8052 * millimeter, "thickness" : 0.7 * millimeter, "filletRadius" : 0.42 * millimeter, "prongFilletRadius" : 0 * millimeter, "prongAngle" : 20.7058 * degree, "openingAngle" : 38.5 * degree, "opening" : 0.6926, "pocketAngle" : 0 * degree, "endFilletRadius" : 0.6393 * millimeter, "name" : "8 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK },
+                EClipSize.MM_12 : { "outerDiameter" : 18 * millimeter, "innerDiameter" : 9.1 * millimeter, "pocketDiameter" : 14.2 * millimeter, "thickness" : 1 * millimeter, "filletRadius" : 0.8 * millimeter, "prongFilletRadius" : 0.5 * millimeter, "prongAngle" : 16.9998 * degree, "openingAngle" : 16.2496 * degree, "opening" : 0.90336, "pocketAngle" : -17.0175 * degree, "name" : "12 mm E-Clip", "vendor" : "goBILDA", "material" : CARBON_STEEL, "appearance" : BLACK }
             }
         };

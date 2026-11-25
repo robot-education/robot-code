@@ -303,7 +303,7 @@ export function testEClipsMatchMcMasterCarrsModels()
 
 export function testEClipsMatchGobildasModels()
 {
-    const clips = E_CLIPS[EClipVendor.GENERIC];
+    const clips = E_CLIPS[EClipVendor.GOBILDA];
     const tolerance = 0.001 * millimeter;
     // Vertices of its models of 2106-4008-0560's and 2109-4012-1040's e-clips: the pockets' ends, the opening's sides',
     // and where its ends' fillets meet its rim

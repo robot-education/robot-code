@@ -111,10 +111,10 @@ locker does the job on an FTC robot.
 ## E-clips
 
 goBILDA's REX shafts with an e-clip come with it: goBILDA sells it no other way, REV has none, and ConfigLib has no
-e-clip. The shafts' STEP models hold theirs, which Generic's are measured from, with no part number. McMaster-Carr's
-is the phosphate-coated DIN 6799 one for the same groove, for replacing one.
+e-clip. The shafts' STEP models hold theirs, which goBILDA's and Generic's are measured from, with no part number.
+McMaster-Carr's is the phosphate-coated DIN 6799 one for the same groove, for replacing one.
 
-| Shaft | Groove | Generic (goBILDA's model) | McMaster-Carr |
+| Shaft | Groove | goBILDA and Generic | McMaster-Carr |
 | --- | --- | --- | --- |
 | 8 mm REX | 6 | 12.3 outside, 6 inside, 0.7 thick (2106-4008-0560) | 98543A114: 11.8 outside, 0.7 thick |
 | 12 mm REX | 9 | 18 outside, 9.1 inside, 1 thick (2109-4012-1040, where it's 2824-0002-0091) | — |

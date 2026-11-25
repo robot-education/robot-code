@@ -1051,19 +1051,22 @@ E_CLIPS = {
 }
 
 
-# FTC's, for goBILDA's grooves of 6 mm on its 8 mm REX and 9 mm on its 12 mm. Generic's are measured from goBILDA's models
-# of its shafts; McMaster-Carr's, from its table's outside diameter and thickness and DIN 6799's inside diameter
+# FTC's, for goBILDA's grooves of 6 mm on its 8 mm REX and 9 mm on its 12 mm. goBILDA's, and Generic's, are measured from
+# its models of its shafts; McMaster-Carr's, from its table's outside diameter and thickness and DIN 6799's inside diameter
 def _mcmaster_rex_e_clip(outer: float, inner: float, thickness: float) -> EClip:
     two = E_CLIPS["MM_2"]
     reach = (two.pocket_diameter - two.inner_diameter) / (two.outer_diameter - two.inner_diameter)
     return _metric_e_clip(outer, inner, round(inner + reach * (outer - inner), 4), thickness)
 
 
-METRIC_E_CLIPS = {
-    ("GENERIC", "MM_8"): EClip(
+_GOBILDA_E_CLIPS = {
+    "MM_8": EClip(
         12.3, 6, 8.8052, 0.7, 0.42, 0, 20.7058, 38.5, 0.6926, end_fillet=0.6393, unit="mm"
     ),
-    ("GENERIC", "MM_12"): EClip(18, 9.1, 14.2, 1, 0.8, 0.5, 16.9998, 16.2496, 0.90336, pocket_angle=-17.0175, unit="mm"),
+    "MM_12": EClip(18, 9.1, 14.2, 1, 0.8, 0.5, 16.9998, 16.2496, 0.90336, pocket_angle=-17.0175, unit="mm"),
+}
+METRIC_E_CLIPS = {
+    **{(vendor, size): clip for vendor in ("GENERIC", "GOBILDA") for size, clip in _GOBILDA_E_CLIPS.items()},
     ("MCMASTER", "MM_8"): _mcmaster_rex_e_clip(11.8, 5.26, 0.7),
 }
 EClipSize = Enum(
@@ -1094,7 +1097,7 @@ def _mcmaster_e_clip(part: str) -> Stock:
 
 
 # By vendor and size: FRCDesign's "FRC Vendor (AM/WCP)" is WCP for 2 mm, and AndyMark for the rest. goBILDA sells its
-# clips only on its shafts, so FTC's are Generic. Generic has every size
+# clips only on its shafts, so they have no part number. Generic has every size
 E_CLIP_STOCK = {
     **{("GENERIC", size): Stock(material=CARBON_STEEL) for size in EClipSize.values},
     ("MCMASTER", "MM_2"): _mcmaster_e_clip("98543A060"),
@@ -1102,6 +1105,8 @@ E_CLIP_STOCK = {
     ("MCMASTER", "IN_3_8"): _mcmaster_e_clip("97431A320"),
     ("MCMASTER", "IN_1_2"): _mcmaster_e_clip("97431A340"),
     ("MCMASTER", "MM_8"): _mcmaster_e_clip("98543A114"),
+    ("GOBILDA", "MM_8"): Stock(material=CARBON_STEEL),
+    ("GOBILDA", "MM_12"): Stock(material=CARBON_STEEL),
     ("WCP", "MM_2"): Stock("WCP-0227", material=CARBON_STEEL),
     ("ANDYMARK", "IN_3_16"): Stock("am-1155", material=CARBON_STEEL),
     ("ANDYMARK", "IN_3_8"): Stock("am-1124", material=CARBON_STEEL),

@@ -7116,6 +7116,24 @@
           "partNumber": "98543A114",
           "url": "https://www.mcmaster.com/98543A114/",
           "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GOBILDA",
+            "size": "MM_8"
+          },
+          "name": "8 mm E-Clip",
+          "vendor": "goBILDA",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GOBILDA",
+            "size": "MM_12"
+          },
+          "name": "12 mm E-Clip",
+          "vendor": "goBILDA",
+          "material": "Carbon Steel"
         }
       ]
     }
