@@ -1059,8 +1059,12 @@ EClipSize = Enum(
 EClipType = Enum("EClipType", ["FLAT", "BOWED"], {"FLAT": "Flat", "BOWED": "Bowed"})
 
 
+# As FRCDesign's are; the table defines its constant
+CARBON_STEEL = Material("Carbon Steel", "CARBON_STEEL")
+
+
 def _mcmaster_e_clip(part: str) -> Stock:
-    return Stock(part, f"https://www.mcmaster.com/{part}/")
+    return Stock(part, mcmaster_url(part), CARBON_STEEL)
 
 
 # By vendor, size, and type: FRCDesign's "FRC Vendor (AM/WCP)" is WCP for 2 mm, and AndyMark for the rest
@@ -1070,11 +1074,11 @@ E_CLIP_STOCK = {
     ("MCMASTER", "IN_3_8", "FLAT"): _mcmaster_e_clip("97431A320"),
     ("MCMASTER", "IN_1_2", "FLAT"): _mcmaster_e_clip("97431A340"),
     ("MCMASTER", "IN_1_2", "BOWED"): _mcmaster_e_clip("98398A138"),
-    ("WCP", "MM_2", "FLAT"): Stock("WCP-0227"),
-    ("ANDYMARK", "IN_3_16", "FLAT"): Stock("am-1155"),
-    ("ANDYMARK", "IN_3_8", "FLAT"): Stock("am-1124"),
-    ("ANDYMARK", "IN_1_2", "FLAT"): Stock("am-0206"),
-    ("ANDYMARK", "IN_1_2", "BOWED"): Stock("am-1540"),
+    ("WCP", "MM_2", "FLAT"): Stock("WCP-0227", material=CARBON_STEEL),
+    ("ANDYMARK", "IN_3_16", "FLAT"): Stock("am-1155", material=CARBON_STEEL),
+    ("ANDYMARK", "IN_3_8", "FLAT"): Stock("am-1124", material=CARBON_STEEL),
+    ("ANDYMARK", "IN_1_2", "FLAT"): Stock("am-0206", material=CARBON_STEEL),
+    ("ANDYMARK", "IN_1_2", "BOWED"): Stock("am-1540", material=CARBON_STEEL),
 }
 
 
@@ -1616,6 +1620,7 @@ CONTENTS = [
             _washer_fields,
         ),
     ),
+    Constant("CARBON_STEEL", 'material("Carbon Steel", 0.284 * pound / inch ^ 3)'),
     Constant(
         "E_CLIPS",
         _nested(

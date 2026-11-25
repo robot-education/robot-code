@@ -32,7 +32,6 @@ const NYLOCK_CHAMFER_ANGLE = 25 * degree;
 // How far a nylock's nylon insert sits below the top of its dome
 const NYLON_RECESS = 0.009 * inch;
 const NYLON_COLOR = color(1, 1, 1);
-const E_CLIP_CREDIT = "<br><br>FeatureScript by Alex Kempen/Ethan Adler.";
 
 annotation { "Feature Type Name" : "Screw",
         "Feature Type Description" : "A standard screw from FRCDesign's library, seated at the origin." ~ CREDIT }
@@ -362,7 +361,7 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
  */
 annotation { "Feature Type Name" : "E-clip",
         "Editing Logic Function" : "eClipEditLogic",
-        "Feature Type Description" : "An e-clip from FRCDesign's library, from the origin up." ~ E_CLIP_CREDIT }
+        "Feature Type Description" : "An e-clip from FRCDesign's library, from the origin up." ~ CREDIT }
 export const fastenerEClip = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
