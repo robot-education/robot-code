@@ -1,6 +1,7 @@
 # Makes the releases main asks for in releases/: each pushes what it releases over Onshape's, as it is on main, then
 # versions it (see docs/fs-cli.md#branches). Spends the API allocation of the account whose keys are in the
-# ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY secrets.
+# ONSHAPE_ACCESS_KEY and ONSHAPE_SECRET_KEY secrets, and pushes what releasing commits to main with the deploy key in
+# DEPLOY_KEY (see docs/fs-cli.md#the-onshape-workflow).
 name: Onshape
 
 on:
@@ -19,6 +20,8 @@ permissions:
 
 jobs:
   onshape:
+    # Not for what a run of it pushed (which a deploy key's push starts again): it releases nothing new
+    if: github.event.head_commit.author.name != 'github-actions[bot]'
     runs-on: ubuntu-latest
     env:
       API_ACCESS_KEY: ${{ secrets.ONSHAPE_ACCESS_KEY }}
@@ -29,6 +32,9 @@ jobs:
         with:
           # fs recognizes Onshape's code in git history
           fetch-depth: 0
+          # Pushes with the deploy key in DEPLOY_KEY, which main's ruleset lets bypass its pull requests (the
+          # workflow's own token can't be); without it, with the token
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - run: uv run pytest -q
