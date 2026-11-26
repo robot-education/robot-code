@@ -1,7 +1,7 @@
 from onshape_api.api.api_base import Api
 from onshape_api.paths.api_path import api_path
 from onshape_api.paths.paths import DocumentPath, InstancePath
-from onshape_api.types import DocumentContents, DocumentElement, ElementType
+from onshape_api.types import DocumentContents, DocumentElement, DocumentInfo, ElementType
 
 
 def get_document_elements(
@@ -26,9 +26,15 @@ def get_document_elements(
     )
 
 
+def get_document(api: Api, document_path: DocumentPath) -> DocumentInfo:
+    """A document's information: whether it's public, and the workspace it opens to (1 call, even for public
+    documents)."""
+    return api.get(api_path("documents", document_path, DocumentPath, skip_document_d=True))
+
+
 def get_default_workspace(api: Api, document_path: DocumentPath) -> InstancePath:
     """The workspace a document opens to."""
-    document = api.get(api_path("documents", document_path, DocumentPath, skip_document_d=True))
+    document = get_document(api, document_path)
     return InstancePath(document_path.document_id, document["defaultWorkspace"]["id"])
 
 

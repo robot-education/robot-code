@@ -50,6 +50,7 @@ uv run fs push robotFrame    # push one FeatureScript, by name...
 uv run fs push featurescripts/Robot   # ...or by file or folder
 uv run fs push --dry-run     # show what would be pushed
 uv run fs push --no-commit   # push without committing
+uv run fs push robotFrame --to URL   # push one FeatureScript (and what it imports) to a test document instead
 ```
 
 A file is pushed after the files it imports that are pushed with it, naming the versions they were just given:
@@ -81,6 +82,40 @@ import(path : "core/myNewUtils.fs", version : "");
 FeatureScripts named `*.local.fs`, like another lighten feature kept for reference, stay in the repo too: they
 aren't synced with tabs, and `fs check` and `fs format` skip them unless they're named (`fs check
 featurescripts/released/lighten/partLighten.local.fs`).
+
+### Pushing to another document
+
+`fs push --to URL` pushes the FeatureScripts named, and every studio and image they import from the repo (directly or
+not, by element id or by path), to another document, like a test document of your own, instead of the backend:
+
+```
+uv run fs push robotFrame --to https://cad.onshape.com/documents/<id>   # robotFrame and what it imports
+uv run fs push robotFrame robotGear --to <url>                          # several, sharing their imports
+uv run fs push featurescripts/Robot --to <url> --dry-run                # a folder's; show what would be pushed
+```
+
+This is the way to try out a change in Onshape: push just the FeatureScripts you're testing to a test document,
+rather than everything to the backend (with plain `fs push`), unless the test needs every FeatureScript in one document.
+It leaves the backend, the local files, `fs-studios.json`, and git as they are (nothing is committed), so it can be
+run as often as you like from any branch.
+
+- The target's tabs are matched with files by name (`robotFrame.fs`, or `robotFrame`): a tab of the same name is
+  overwritten, without checking whether it changed in Onshape, and a missing one is created at the top level. Nothing
+  in the target is deleted, and its other tabs are left alone.
+- Imports are pointed at the target's tabs, at the versions just pushed, as each is pushed after what it imports; the
+  local files keep importing the backend's tabs (or by path).
+- A url naming a workspace (`/w/<id>`) pushes to that workspace; otherwise, the document's default one. Versions can't
+  be pushed to, and the backend, frontend, and part sets' main documents are refused (push to the backend with plain
+  `fs push`; the others are written only by releases).
+- The target must be **public**: fs lists a document's tabs and their microversions with anonymous requests (see
+  [API usage](#api-usage)), which only work for public documents, so `fs push --to` checks first (1 call), and refuses
+  a document which isn't public before changing anything. Make a test document public in its Share dialog, on the
+  Public tab.
+- The API keys' account must be able to edit the target.
+
+It costs 1 call to check the document, then 1 per studio and image pushed, and 1 per tab created; listing the
+target's tabs (once, then again after each round of studios pushed, for their new microversions) and downloading its
+images of the same names (to skip uploading those already the same) are anonymous.
 
 ### Images
 
@@ -178,6 +213,8 @@ count:
 - Images: 1 anonymous call to list them (which `fs push` skips when the repo has none), 1 anonymous call per image
   downloaded (only when its microversion changed), and 1 per image uploaded, plus 1 anonymous call to list their
   new microversions afterwards.
+- `fs push --to`: 1 call to check the target is public, then as pushing, but without the downloads (see
+  [Pushing to another document](#pushing-to-another-document)).
 - `fs tabs` and `fs link`: just the anonymous listing. `fs tabs --rename`: 1 more per tab renamed (plus an anonymous
   one to read its metadata).
 - `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous), and up to 7 more for FRCDesignApp's side

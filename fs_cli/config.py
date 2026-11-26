@@ -145,6 +145,12 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
 _DOCUMENT_URL = re.compile(r"/documents/([0-9a-f]{24})(?:/|$)")
 
 
+def document_id_in(url: str) -> str | None:
+    """The id of the document an Onshape url names, if it names one."""
+    found = _DOCUMENT_URL.search(url)
+    return found.group(1) if found else None
+
+
 def _part_set(name: str, entry: dict) -> PartSet:
     where = f"[tool.fs.parts.{name}]"
     main = _DOCUMENT_URL.search(str(entry.get("main", "")))

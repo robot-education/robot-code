@@ -100,6 +100,16 @@ class Version:
 
 
 @dataclasses.dataclass
+class RemoteDocument:
+    """A document, as `fs push --to` checks it before writing to it."""
+
+    name: str
+    # Whether anyone can open it; fs lists tabs anonymously, which only works for public documents
+    public: bool
+    default_workspace: InstancePath
+
+
+@dataclasses.dataclass
 class RemoteWorkspace:
     """A workspace (a branch) of a document."""
 
@@ -148,6 +158,10 @@ class Remote(Protocol):
     def latest_std_version(self) -> str: ...
 
     def default_workspace(self, document_id: str) -> InstancePath: ...
+
+    def document(self, document_id: str) -> RemoteDocument:
+        """Whether a document is public, and the workspace it opens to (1 call)."""
+        ...
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         """Lists the images (blob elements holding SVGs or PNGs) in a document, with their microversions."""
@@ -271,6 +285,14 @@ class OnshapeRemote:
 
     def default_workspace(self, document_id: str) -> InstancePath:
         return documents.get_default_workspace(self.api, DocumentPath(document_id))
+
+    def document(self, document_id: str) -> RemoteDocument:
+        info = documents.get_document(self.api, DocumentPath(document_id))
+        return RemoteDocument(
+            info.get("name", ""),
+            bool(info.get("public")),
+            InstancePath(document_id, info["defaultWorkspace"]["id"]),
+        )
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)

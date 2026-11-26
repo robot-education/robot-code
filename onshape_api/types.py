@@ -53,6 +53,20 @@ class ElementGroup(TypedDict):
     groups: list[ElementGroup | ElementReference]
 
 
+class WorkspaceReference(TypedDict):
+    id: str
+
+
+class DocumentInfo(TypedDict):
+    """GET /documents/{did}. BTDocumentInfo."""
+
+    id: str
+    name: str
+    # Whether anyone can open it, signed in or not; Onshape answers anonymous requests about public documents only
+    public: bool
+    defaultWorkspace: WorkspaceReference
+
+
 class DocumentContents(TypedDict):
     """GET /documents/d/{did}/{wvm}/{wvmid}/contents. BTDocumentContentsInfo."""
 

@@ -14,7 +14,7 @@ import pytest
 from fs_cli import cli, workspace
 from fs_cli.configured_studios import Built
 from fs_cli.frontend import FrontendTab
-from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
+from fs_cli.remote import RemoteDocument, RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
@@ -54,6 +54,8 @@ class FakeOnshape:
         self.files: dict[tuple[str, str], dict[str, tuple[str, bytes]]] = {}
         # (target workspace id, source workspace id, strategy) of each merge
         self.merges: list[tuple[str, str, str]] = []
+        # Documents which aren't public (see `document`)
+        self.private: set[str] = set()
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -198,6 +200,10 @@ class FakeOnshape:
     def default_workspace(self, document_id):
         self.calls["default_workspace"] += 1
         return InstancePath(document_id, "lw")
+
+    def document(self, document_id):
+        self.calls["document"] += 1
+        return RemoteDocument(f"Document {document_id}", document_id not in self.private, InstancePath(document_id, "lw"))
 
     def list_images(self, instance):
         self.calls["list_images"] += 1
@@ -1158,8 +1164,114 @@ def test_push_release_pushes_only_what_a_release_needs(repo, onshape, capsys):
     assert run(onshape, "push", "--release") == 2
     assert "Name the FeatureScripts" in capsys.readouterr().err
 
-
 MAIN = "abcdef0123456789abcdef01"
+TEST_DOCUMENT = "0123456789abcdef01234567"
+TEST_URL = f"https://cad.onshape.com/documents/{TEST_DOCUMENT}"
+
+
+def writes(onshape: FakeOnshape) -> int:
+    return sum(onshape.calls[call] for call in ("push", "create", "upload_image", "update_image", "delete"))
+
+
+def test_push_to_pushes_a_script_and_what_it_imports_to_another_document(repo, onshape, capsys):
+    utils = onshape.add("utils.fs", "FeatureScript 1;\nutils\n")
+    icon = onshape.add_image("robotIcon.svg", b"<svg/>")
+    onshape.add("other.fs", "other")
+    frame = (
+        f'import(path : "{utils}", version : "{"a" * 24}");\n'
+        f'Icon::import(path : "{icon}", version : "{"b" * 24}");\n'
+        'import(path : "core/helper.fs", version : "");\nframe\n'
+    )
+    onshape.add("robotFrame.fs", frame)
+    run(onshape, "pull")
+    write(repo, "core/helper.fs", "helper")
+    local(repo, "utils.fs").write_text("FeatureScript 1;\nutils 2\n")
+    backend = copy.deepcopy(onshape.studios())
+    studios_json = (repo / "fs-studios.json").read_text()
+    capsys.readouterr()
+
+    assert run(onshape, "push", "robotFrame", "--to", TEST_URL) == 0
+    out = capsys.readouterr().out
+    assert "core/helper.fs (new)" in out and "other.fs" not in out
+    target = onshape.studios(TEST_DOCUMENT, "lw")
+    by_name = {studio["name"]: (element_id, studio) for element_id, studio in target.items()}
+    assert sorted(by_name) == ["helper.fs", "robotFrame.fs", "utils.fs"]
+    assert by_name["utils.fs"][1]["code"] == "FeatureScript 1;\nutils 2\n"
+    pushed_frame = by_name["robotFrame.fs"][1]["code"]
+    # Imports of the target's tabs, at the versions they were pushed as
+    target_utils, target_helper = by_name["utils.fs"][0], by_name["helper.fs"][0]
+    assert f'import(path : "{target_utils}", version : "{by_name["utils.fs"][1]["mv"]}")' in pushed_frame
+    assert f'import(path : "{target_helper}", version : "{by_name["helper.fs"][1]["mv"]}")' in pushed_frame
+    [(target_icon, image)] = onshape.images(TEST_DOCUMENT, "lw").items()
+    assert image["name"] == "robotIcon.svg"
+    assert f'Icon::import(path : "{target_icon}", version : "{image["mv"]}")' in pushed_frame
+    # Nothing local, and nothing in the backend, changed
+    assert onshape.studios() == backend
+    assert 'import(path : "core/helper.fs", version : "")' in local(repo, "robotFrame.fs").read_text()
+    assert (repo / "fs-studios.json").read_text() == studios_json
+
+    # Again: the tabs of the same names are updated, and the unchanged image isn't uploaded
+    local(repo, "utils.fs").write_text("FeatureScript 1;\nutils 3\n")
+    before = dict(onshape.calls)
+    assert run(onshape, "push", "robotFrame", "--to", f"{TEST_URL}/w/lw/e/{target_utils}") == 0
+    assert onshape.calls["create"] == before["create"]
+    assert onshape.calls["upload_image"] == before["upload_image"]
+    assert onshape.calls["update_image"] == before.get("update_image", 0)
+    assert len(onshape.studios(TEST_DOCUMENT, "lw")) == 3
+    assert onshape.code("utils.fs", TEST_DOCUMENT, "lw") == "FeatureScript 1;\nutils 3\n"
+    assert "1 image already the same" in capsys.readouterr().out
+
+
+def test_push_to_dry_run_changes_nothing(repo, onshape, capsys):
+    onshape.add("robotFrame.fs", "frame")
+    run(onshape, "pull")
+    assert run(onshape, "push", "robotFrame", "--to", TEST_URL, "--dry-run") == 0
+    assert "Would push" in capsys.readouterr().out
+    assert onshape.studios(TEST_DOCUMENT, "lw") == {}
+
+
+def test_push_to_refuses_documents_which_are_not_public(repo, onshape, capsys):
+    onshape.add("robotFrame.fs", "frame")
+    run(onshape, "pull")
+    onshape.private.add(TEST_DOCUMENT)
+    pushes = writes(onshape)
+    assert run(onshape, "push", "robotFrame", "--to", TEST_URL) == 2
+    assert "isn't public" in capsys.readouterr().err
+    assert writes(onshape) == pushes
+    assert onshape.calls["list_studios"] == 1  # Just the pull's: the target isn't listed
+
+
+BACK_HEX, FRONT_HEX = "b" * 24, "f" * 24
+
+
+@pytest.mark.parametrize(
+    "url, error",
+    [
+        (f"https://cad.onshape.com/documents/{BACK_HEX}/w/{"1" * 24}", "the backend document"),
+        (f"https://cad.onshape.com/documents/{FRONT_HEX}", "the frontend document"),
+        (f"https://cad.onshape.com/documents/{MAIN}", "part set's main document"),
+        (f"{TEST_URL}/v/{"a" * 24}", "a version"),
+        ("https://example.com", "isn't an Onshape document"),
+    ],
+)
+def test_push_to_refuses_the_repos_documents_and_versions(repo, onshape, capsys, url, error):
+    (repo / "pyproject.toml").write_text(
+        f'[tool.fs]\nbackend = "https://cad.onshape.com/documents/{BACK_HEX}/w/{"1" * 24}"\n'
+        f'frontend = "https://cad.onshape.com/documents/{FRONT_HEX}/w/{"2" * 24}"\n'
+    )
+    with_part_set(repo)
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "robotFrame", "--to", url) == 2
+    assert error in capsys.readouterr().err
+    assert writes(onshape) == 0
+    assert onshape.calls["document"] == 0
+
+
+def test_push_to_needs_scripts(repo, onshape, capsys):
+    assert run(onshape, "push", "--to", TEST_URL) == 2
+    assert "Name the FeatureScripts" in capsys.readouterr().err
+
+
 
 
 def with_part_set(repo: pathlib.Path) -> None:

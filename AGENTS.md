@@ -49,6 +49,12 @@ where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix
 FeatureScript-backed parts (FRCDesign's fasteners) are part sets, tried and released by `fs parts`, never `fs release`;
 see `docs/parts.md`.
 
+To try a change in Onshape, push just the FeatureScripts being tested (they bring what they import) to a test
+document with `fs push NAME --to URL`, rather than everything to the backend with plain `fs push`, unless the test
+needs every FeatureScript in one document; see `docs/fs-cli.md#pushing-to-another-document`. It needs the user's
+yes like any push, and the URL of a public document (fs refuses others: it lists tabs anonymously, which only works
+for public documents); ask the user for one if none is given.
+
 Every git branch pushes to the backend's main workspace. Releases are asked for in `releases/` files, which the Onshape
 workflow runs on main once they're merged: each pushes what it releases over Onshape's, as it is on GitHub, then
 versions it (see `docs/fs-cli.md#branches`).

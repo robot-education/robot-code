@@ -104,6 +104,7 @@ whole files. `fs ui` (screenshots of a feature's dialog) needs Chrome, Edge, or 
 
 ```
 uv run fs push               # push local changes to the backend document (and commit them)
+uv run fs push NAME --to URL # push a FeatureScript, with what it imports, to a (public) test document
 uv run fs status             # what differs between the repo and Onshape
 uv run fs pull               # bring changes made in Onshape into the repo
 uv run fs check              # find problems in the FeatureScripts (--fix fixes the obvious ones)

@@ -149,6 +149,12 @@ def make_parser() -> argparse.ArgumentParser:
         help="the targets are FeatureScripts to release (robotFrame): push each, and every studio and image it imports, "
         "over Onshape's (as --force), deleting nothing",
     )
+    push.add_argument(
+        "--to",
+        metavar="URL",
+        help="push the targets (FeatureScripts), and every studio and image they import, to this public document "
+        "instead, like a test document: tabs are matched by name, and nothing local changes or is committed",
+    )
     dry_run(push)
     yes_to_deletes(push)
 
@@ -703,6 +709,8 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
+    if getattr(args, "to", None):
+        return push_to(workspace, args)
     releasing = getattr(args, "release", False)
     if releasing:
         if not args.targets:
@@ -767,6 +775,33 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
     if not args.dry_run and not args.no_commit:
         commit_pushed(workspace, [*to_push, *images_to_push], to_delete, updated)
     return pushed or not_deleted or not_recreated or skipped
+
+
+def push_to(workspace: Workspace, args: argparse.Namespace) -> int:
+    """`fs push --to URL`: the targets, with what they import, to another document (see fs_cli/push_to.py)."""
+    from fs_cli.push_to import plan_push_to, run_push_to
+
+    if not args.targets:
+        raise UsageError("Name the FeatureScripts to push, e.g. `fs push robotFrame --to URL`.")
+    if getattr(args, "release", False):
+        raise UsageError("--release pushes to the backend document, so it doesn't go with --to.")
+    config = workspace.config
+    scripts = [module.path for module in _select_modules(_project(config), args.targets)]
+    plan = plan_push_to(config, workspace.remote, args.to, scripts)
+    verb = "Would push" if args.dry_run else "Pushing"
+    print(f"{verb} to {plan.document_name or 'the document'} ({plan.url}):")
+    unchanged = [image.path for image in plan.unchanged_images]
+    for tab in [*plan.images, *plan.studios]:
+        if tab.path not in unchanged:
+            print(f"  {tab.path}{'' if tab.element_id else ' (new)'}")
+    if unchanged:
+        print(f"  ({_plural(len(unchanged), 'image')} already the same: {', '.join(unchanged)})")
+    if args.dry_run:
+        return 0
+    run_push_to(workspace.remote, plan)
+    pushed = len(plan.studios) + len(plan.images) - len(unchanged)
+    print(f"Pushed {_plural(pushed, 'tab')} to {plan.url}.")
+    return 0
 
 
 def ask_to_overwrite(mismatched: list[Studio | Image], dry_run: bool) -> bool:
