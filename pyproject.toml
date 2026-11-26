@@ -99,6 +99,15 @@ title = "FTC Bearings"
 folder = "bearings"
 definition = "ftcBearingTables.py"
 
+[tool.fs.parts.bushings]
+title = "Bushings"
+folder = "bushings"
+definition = "bushingTables.py"
+main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
+
+[tool.fs.parts.bushings.targets]
+test = "https://cad.onshape.com/documents/b82fec8aded5d7a705a3d658"   # FRCDesignLib Test Document, for a local FRCDesignApp
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]

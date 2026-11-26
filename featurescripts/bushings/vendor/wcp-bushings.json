@@ -1,0 +1,168 @@
+{
+ "source": "FRCDesignLib's Flanged Bushing (document 836cd26e60025118646fa104, version 012dfd9839386d9ff4af51d2), measured at each WCP configuration by evaluating FeatureScript: each cylindrical face's diameter, and where it starts and ends along its axis, in inches",
+ "bushings": [
+  {
+   "partNumber": "WCP-0999",
+   "name": "13.75mm ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.5413,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.75,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 0.875,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-0997",
+   "name": "10.25mm ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.4035,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.625,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 0.75,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-0995",
+   "name": "0.25\" ID Flanged Bronze Bushing (0.5\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.25,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.5,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 0.625,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-0567",
+   "name": "0.375\" ID Flanged Bronze Bushing (1/2\" Hex OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.375,
+     "from": -0.1563,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.625,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-0996",
+   "name": "0.375\" ID Flanged Bronze Bushing (0.625\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.375,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.625,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 0.75,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-0998",
+   "name": "0.5\" ID Flanged Bronze Bushing (0.75\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.5,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.75,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 0.875,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-1000",
+   "name": "0.75\" ID Flanged Bronze Bushing (0.875\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 0.75,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 0.875,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 1.0,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  },
+  {
+   "partNumber": "WCP-1004",
+   "name": "1\" ID Flanged Bronze Bushing (1.125\" OD, 0.313\" WD)",
+   "cylinders": [
+    {
+     "diameter": 1.0,
+     "from": -0.1562,
+     "to": 0.1562
+    },
+    {
+     "diameter": 1.125,
+     "from": -0.1562,
+     "to": 0.0937
+    },
+    {
+     "diameter": 1.25,
+     "from": 0.0937,
+     "to": 0.1562
+    }
+   ]
+  }
+ ]
+}
