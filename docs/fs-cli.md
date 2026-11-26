@@ -326,7 +326,14 @@ any more (another push came after it) fails its releases, and the next run makes
 - The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend
   and the frontend documents, whose allocation a run spends only on releases (a release's calls, plus one a studio it
   pushes). A frontend document with `keys` needs those too, set in the workflow's environment.
-- Its commits pushed to main past branch protection: the workflow's `github-actions[bot]` allowed to bypass it.
+- Its commits pushed to main past main's ruleset, which requires a pull request: the workflow's own token can't
+  bypass a repository ruleset (GitHub Actions isn't offered in its bypass list), so it pushes with a deploy key. Make
+  a key pair (`ssh-keygen -t ed25519 -f onshape-deploy -N "" -C "Onshape workflow"`), add `onshape-deploy.pub` under
+  the repo's Settings, Deploy keys, with Allow write access, put `onshape-deploy` (the private key) in the secret
+  `DEPLOY_KEY`, add Deploy keys to the ruleset's bypass list (Always allow), and delete both files. Without it, a run's
+  releases are made, and only its push fails (GH013), leaving their files on main; delete them in a pull request, and
+  the import versions the releases took are taken from Onshape again at the next push. A deploy key's push starts the
+  workflow again, so runs skip commits it made.
 
 ## Checking and navigating
 
