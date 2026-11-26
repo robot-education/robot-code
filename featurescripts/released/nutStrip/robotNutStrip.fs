@@ -76,7 +76,8 @@ function getNutStrip(definition is map) returns Stock
 
 /**
  * @internal
- * The editing logic function for robot nut strip. Each end's offset defaults to its distance to the closest hole.
+ * The editing logic function for robot nut strip. Along an edge, each end's offset defaults to its distance to the
+ * closest hole; between holes, to extending it by its pattern of holes (see `stockEditLogic`).
  */
 export function robotNutStripEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -88,6 +89,6 @@ export function robotNutStripEditLogic(context is Context, id is Id, oldDefiniti
     const changed = oldDefinition.program != definition.program ||
         oldDefinition.frcNutStrip != definition.frcNutStrip ||
         oldDefinition.ftcNutStrip != definition.ftcNutStrip;
-    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies,
-        getNutStrip(definition).tieStart, changed);
+    const nutStrip = getNutStrip(definition);
+    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, nutStrip, nutStrip.tieStart, changed);
 }

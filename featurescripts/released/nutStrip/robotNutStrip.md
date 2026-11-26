@@ -43,9 +43,10 @@ Its holes are tapped holes (hole attributes and cosmetic threads), with the thre
 
 1. **Precondition**: Program; the Nut strip group with FRC's or FTC's table; linear stock's groups.
 2. **Editing logic** (`robotNutStripEditLogic`): nothing when the feature is created. Otherwise, calls
-   `stockEditLogic` with the nut strip's `tieStart` as the default offset, and whether the program or nut strip
-   changed: turning on an end's offset (or changing the nut strip) sets the offset to the distance from the end to the
-   closest hole, unless it's been set.
+   `stockEditLogic` with the nut strip, its `tieStart` as the default offset, and whether the program or nut strip
+   changed: turning on an end's offset (or changing the nut strip) sets the offset, unless it's been set, along an edge
+   to the distance from the end to the closest hole, and between holes to extend that end by the strip's pattern of
+   holes (1/2 in. for WCP's, an X hole and a Y hole).
 3. **Body**: `getNutStrip` builds the `Stock`, and `placeStock` places it.
 4. **Manipulator change**: `stockManipulatorChange` (linear stock's).
 

@@ -16,7 +16,9 @@ import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
  *
  * Stock with holes is built as the regular length at least `length` long (see `regularLength`), so its holes are all
  * whole while they're cut, and is then cut to `length`, cutting through any holes the end crosses, as cutting it from
- * longer stock would. Ends can be slanted (like miters): `ends` has the `startPlane` and `endPlane` they're on, which
+ * longer stock would. Stock between holes with its start moved (see `holePlacement`) is built from `ends.lead` before
+ * its start, where its pattern of holes starts as it's sold (see `holePositions`), and is then cut at its start too, so
+ * its holes stay where they were. Ends can be slanted (like miters): `ends` has the `startPlane` and `endPlane` they're on, which
  * are inside its length, and other `cuts` to make (see `trimCuts`); it's cut to each (see `trimBeyond`), and the face
  * each cut leaves is a frame's cap. Then it's trimmed to `ends.parts` (see `partTrims`): each part is subtracted from
  * it, and of the pieces left, the one with its other end is kept, as std's Frame trims to parts.
@@ -41,9 +43,15 @@ export const buildCutStock = function(context is Context, id is Id, definition i
     const tie = getTie(definition, stock.tieStart, stock.tieUnit);
     const hasHoles = stock.xRows != [] || stock.yRows != [];
     const across = acrossSign(definition);
-    const built = hasHoles ? regularLength(length, tie) : length;
+    // Its holes are laid out from `ends.lead` before its start (see `holePositions`), so it's built from there, as
+    // `laidOut` long, and its start is cut with its end
+    const lead = hasHoles ? ends.lead : 0 * meter;
+    var from = location;
+    from.origin -= location.zAxis * lead;
+    const laidOut = length + lead;
+    const built = hasHoles ? regularLength(laidOut, tie) : length;
     const profileId = id + "profile";
-    const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(location) });
+    const sketch = newSketchOnPlane(context, profileId, { "sketchPlane" : plane(from) });
     sketchProfile(sketch, stock, across);
     skSolve(sketch);
     const stockId = id + "stock";
@@ -61,7 +69,7 @@ export const buildCutStock = function(context is Context, id is Id, definition i
         tagExtrudeAsFrame(context, stockId);
     }
 
-    const groups = seedGroups(stock, location, length, tie, across);
+    const groups = seedGroups(stock, from, laidOut, tie, across, lead);
     for (var i, group in groups)
     {
         cutHoles(context, id + ("holes" ~ i), group, body, stock.holeDiameter);
@@ -69,14 +77,15 @@ export const buildCutStock = function(context is Context, id is Id, definition i
 
     // Cut to its ends and trims (after its holes are cut, so they're cut through like the stock it's cut from)
     var cuts = ends.cuts;
-    if (ends.endPlane != undefined || !tolerantEquals(built, length))
+    if (ends.endPlane != undefined || !tolerantEquals(built, laidOut))
     {
         const endPlane = ends.endPlane ?? plane(location.origin + location.zAxis * length, location.zAxis);
         cuts = append(cuts, { "plane" : endPlane, "away" : location.zAxis });
     }
-    if (ends.startPlane != undefined)
+    if (ends.startPlane != undefined || !tolerantEqualsZero(lead))
     {
-        cuts = append(cuts, { "plane" : ends.startPlane, "away" : -location.zAxis });
+        const startPlane = ends.startPlane ?? plane(location.origin, location.zAxis);
+        cuts = append(cuts, { "plane" : startPlane, "away" : -location.zAxis });
     }
     // The faces at each end: its caps, and the faces the cuts and trims there leave
     var startFaces = [qCapEntity(stockId, CapType.START, EntityType.FACE)];
@@ -234,18 +243,21 @@ export function holeInstances(positions is array) returns map
  * same instance names; see `holeInstances`), which are cut and patterned together, in fewer operations. Holes which
  * cross, like those of a solid nut strip's rows which line up, have to be.
  *
+ * @param location : Where its holes are laid out from, `lead` before its start (see `holePositions`).
+ * @param length : Its length from there.
  * @returns {array} : Maps of each group's `step` between holes, its instances' `names`, whether its seeds are tied
  *          (`seedTied`), the names of its tied instances (`tiedNames`), and its `seeds`: maps of the `face` (see
  *          `stockFaces`) and row `shapes` they cut, and their `position` along the stock.
  */
-export function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number) returns array
+export function seedGroups(stock is Stock, location is CoordSystem, length is ValueWithUnits, tie is map, across is number,
+    lead is ValueWithUnits) returns array
 {
     var groups = [];
     for (var face in stockFaces(stock, location, across))
     {
         for (var row in face.rows)
         {
-            const positions = holePositions(row, rowExtent(row, stock.holeDiameter), length, tie);
+            const positions = holePositions(row, rowExtent(row, stock.holeDiameter), length, tie, lead);
             if (positions == [])
             {
                 continue;

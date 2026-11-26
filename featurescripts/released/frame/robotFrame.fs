@@ -386,7 +386,8 @@ function noRows(definition is map, rowsKey is string, addKey is string) returns 
  * @internal
  * The editing logic function for robot frame. Sets Custom size (`isCustomSizeFrame`), No top holes
  * (`isNoTopHolesFrame`), and No side holes (`isNoSideHolesFrame`), and when the frame changes
- * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
+ * (or the feature is created), its hole diameter to the frame's, unless it's been set larger. Then linear stock's
+ * (`stockEditLogic`): between holes, an end's offset turned on extends it by the frame's pattern of holes.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -395,7 +396,7 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
     definition.noTopHoles = isNoTopHolesFrame(definition);
     definition.noSideHoles = isNoSideHolesFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
-    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
+    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, getFrame(definition), undefined, false);
 }
 
 /**

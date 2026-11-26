@@ -38,8 +38,10 @@ hidden; the manipulator sets it. On a face or holes, the three point manipulator
 | Selected holes are not a multiple of `<pitch>` apart. | warning | Holes: their distance isn't a whole number of the aligned row's pitch, so the far hole misses | `startHole`, `endHole` | none |
 | Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` | std's form |
 | Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge | none (std's wording) |
+| The `<name>` has no length. | error | Holes: the offsets add up to its length or more | `startHole`, `endHole`, `edgeStartOffset`, `edgeEndOffset` and their Opposite directions | none |
 | The selected face does not intersect the `<name>`. | error | Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face | `MOVE_CURVE_BOUNDARY_TRIM_NO_INTERSECTION` |
 | The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start | `depth`, `endBound`, `secondDirectionBound` | none |
+| The holes' pattern doesn't repeat. | error | Holes: its rows' pitches have no common multiple within 100 of the longest (`holePatternPeriod`; no table's do) | | none |
 | std's `EXTRUDE_SELECT_START_OFFSET_ENTITY` | error | Face, Holes, Point: Starting offset up to an entity, nothing selected | `startOffsetEntity` | itself |
 | The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face | none |
 | std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) | itself |
@@ -73,11 +75,14 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
 ### Execution order
 
 1. **Precondition**: the feature's parameters, then `stockLocationPredicate` (the Position group: Edge, Face, Holes, or
-   Point, and their options, Point's extrude options being std's, from `core/stdExtrude.fs`; then, but for Point, the
-   Trim ends group) and `tieHolesPredicate`.
-2. **Editing logic** (the feature's, which calls `stockEditLogic`): nothing when the feature is created. On edge
-   placement, turning an offset on (or changing the part, if the feature says so) sets it to the feature's default
-   offset, unless it's been set. On face and hole placement, nothing. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the
+   Point, and their options, Point's extrude options being std's, from `core/stdExtrude.fs`, and along an edge or
+   between holes, an Ends group in it with Start offset and End offset, apart from the starting offset; then, but for
+   Point, the Trim ends group) and `tieHolesPredicate`.
+2. **Editing logic** (the feature's, which calls `stockEditLogic` with its `Stock`): nothing when the feature is
+   created. Turning an offset on (or changing the part, if the feature says so) sets it, unless it's been set: on edge
+   placement to the feature's default offset (moving the end in), and between holes to extend that end by its pattern
+   of holes (`holePatternPeriod`, with Opposite direction), so its holes go on to the new end as on stock as it's
+   sold. On face placement, nothing. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the
    extrude at what it's up to and its second direction away from its first, as std's extrude does, along the axis
    from the selected point.
 3. **Body**: the feature builds its `Stock` and calls `placeStock`:
@@ -86,7 +91,8 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
       point placement, the `startPlane` and `endPlane` its ends are on if they're slanted. Face and hole placement also
       give the `normal` its top is toward, and have already put its top, middle, or bottom (Face at, Holes at) on the
       face or holes' plane (`selectionShift`), then moved it off them by the starting offset (`startingOffset`), which
-      they give as `startingOffset`; hole placement warns if the holes are off its hole pattern.
+      they give as `startingOffset`; hole placement warns if the holes are off its hole pattern, and gives the `lead`
+      before its start its holes are laid out from, which the builder is given with its ends.
    2. Along an edge or from a point, the chosen nine point is moved onto the edge or point (`stockPointOffsets`). Then
       `stockSpan` stretches the length to reach the farthest corner of each slanted end, as an extrude up to a slanted
       face reaches it.
@@ -97,14 +103,15 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
    6. Along an edge or from a point, the nine point manipulator is added; on a face or holes, the three point
       manipulator (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it) and,
       for a blind starting offset, its manipulator (`addStartingOffsetManipulator`, along the normal from where the
-      chosen side would be without it). Then the flip manipulator (and, by `edgePlacement`, the offset manipulators;
-      by `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
+      chosen side would be without it). Then the flip manipulator (and, by `edgePlacement` and `holePlacement`, the
+      offset manipulators; by `extrudePlacement`, std's depth and flip manipulators, from the point moved by the
+      starting offset).
    7. Tied holes are shown, then a warning if it's longer than it's sold, or else info if it isn't a regular length.
 4. **Manipulator change** (`stockManipulatorChange`): the nine point and flip manipulators set their parameters; on a
    face or holes, the three point manipulator sets Face at or Holes at (its points in `SELECTION_AT_POINTS`' order),
-   and the starting offset's sets its depth (dragged back past them, Opposite direction); along an edge, the offset
-   manipulators set the offsets; from a point, std's extrude manipulators set depth
-   and direction (`extrudeManipulatorChange`).
+   and the starting offset's sets its depth (dragged back past them, Opposite direction); along an edge or between
+   holes, the offset manipulators set the offsets (dragged past where its end is without them, Opposite direction);
+   from a point, std's extrude manipulators set depth and direction (`extrudeManipulatorChange`).
 
 ### Placing
 
@@ -150,13 +157,21 @@ sketch region is a face):
 3. The hole it lines up by (`alignedHole`): of those rows' holes, the one nearest the middle of its face, then the
    nearest its start (MAXSpline cutouts aren't holes). That hole is on the start hole (flipped, on the end hole): the
    stock's start is its `position` back from it, and it's moved across by its `offset`.
-4. It's `2 * position` longer than the distance between the holes, as far past each as its first hole is from its
-   start, so a whole number of that row's pitch apart, the far hole lines up too, and it's a regular length when the
-   hole is at `tieStart`. Otherwise a warning says the holes aren't a multiple of the pitch apart.
-5. Holes at puts its top (the side the holes face), middle, or bottom (the default: it sits on the holes, on the side
+4. Its end (`holeEnds`): the shortest regular length that reaches `tieStart` past the end hole (as far past it as the
+   holes which count start from its start), so it ends as stock does as it's sold, whichever row the aligned hole is
+   in. A nut strip whose rows alternate (WCP's: 1/4 in. and 1/2 in.), lined up by the row starting 1/2 in. in, starts
+   1/2 in. before the start hole but ends 1/4 in. past the end hole: with holes 1 in. apart, 1.75 in. long, with 3
+   holes in the other row (2 lined up by the other row, 1.5 in. long). With the holes a whole number of that row's
+   pitch apart, the far hole lines up too; otherwise a warning says they aren't.
+5. Start offset and End offset (the edge's parameters, in the Ends group) move its ends in from there, or out past
+   them, as along an edge, with manipulators from where its ends are without them. Its holes stay on the selected
+   holes: they're laid out from where its pattern of holes starts as it's sold (`holePatternPeriod`: the shortest
+   length every row's pitch and `tieUnit` go into), at or before its start, `lead` before it, so moved out, the
+   extension has every hole of every row that stock as it's sold would, and moved in, the holes stay where they were
+   (the start cuts through any it crosses).
+6. Holes at puts its top (the side the holes face), middle, or bottom (the default: it sits on the holes, on the side
    they face) on the start hole's plane, as Face at does on a face.
-6. The starting offset moves it off the holes along their axis, as on a face (for spacers between it and the part).
-   Its ends aren't offset: Trim ends shortens it.
+7. The starting offset moves it off the holes along their axis, as on a face (for spacers between it and the part).
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
@@ -195,16 +210,18 @@ Frames and nut strips are built this way:
 
 1. The profile is sketched (`sketchProfile`: a rectangle, tube, angle, channel, bore, or a `profile` sketch) and
    extruded. Stock with holes is built as the shortest regular length at least as long (`regularLength`), so every
-   hole is whole while it's cut.
+   hole is whole while it's cut, from `ends.lead` before its start (between holes, where its pattern of holes starts;
+   otherwise its start).
 2. Frames are tagged as frames.
-3. Holes are cut. Each row's holes go at `holePositions`; booleans are slow, so each row has one seed (a tool for its
+3. Holes are cut. Each row's holes go at `holePositions` (from the lead, leaving out those which don't reach past
+   it); booleans are slow, so each row has one seed (a tool for its
    first hole), seeds patterned the same way are grouped (`seedGroups`), and each group is cut with one boolean and
    face patterned along the stock (`cutHoles`). A pattern's instances are named (`holeInstances`): by each hole's count
    from the start, or for tied holes, from the end (`e0` is the last), so tied holes' identities count from the end,
    with no seed or pattern of their own. When every hole is tied, the seed is the last hole, patterned back toward the
    start.
 4. It's cut to its ends and trims (`trimBeyond`: subtracting a block beyond each plane): its slanted ends, its end (if
-   it was built longer for its holes), and each trim. Then it's trimmed to each part (`partTrims`, above). Frames' cut
+   it was built longer for its holes), its start (if it was built from before it), and each trim. Then it's trimmed to each part (`partTrims`, above). Frames' cut
    and trimmed faces are tagged as their caps, and then the body it ended up as with its profile (a boolean splitting a
    body keeps its attributes on only one of the pieces).
 5. Tapped stock (nut strips) gets hole attributes and cosmetic threads on its remaining holes
@@ -216,7 +233,8 @@ Holes are counted from the stock's start, so things attached to the holes near t
 the length changes. Tying them to the end (`getTie`, `firstTiedHole`) counts those holes from the end instead: the
 half of the holes nearest the end (Half), those within Length from end, or Tied holes many. A part's holes that count
 are `tieUnit` apart from `tieStart`; a length is regular when it's `2 * tieStart` more than a multiple of `tieUnit`,
-so both ends have the same margin (`isRegularLength`).
+so both ends have the same margin (`isRegularLength`). Between holes with a lead, the holes which count before its
+start aren't counted for Half.
 
 ### Error handling
 
@@ -240,7 +258,11 @@ There are no fallbacks.
 - In Point placement, the extrude's opposite direction is labeled "Flip primary axis".
 - "Sketch point to place `<name>`" also takes circles and mate connectors.
 - Cutting the end to length (stock with holes is built longer) replaces the extrude's end cap with the cut's face, so
-  references to the end face follow the cut, not the extrude.
+  references to the end face follow the cut, not the extrude; so does cutting the start between holes with a lead.
+- Between holes, the offsets keep the edge's direction (positive moves an end in), though they're mostly for extending
+  it; turning one on sets it to extend the end (Opposite direction), and its manipulator shows which way it goes.
+- A start moved out by part of a pattern can cut through a hole of the row it lands on (like 1/4 in. out on WCP's nut
+  strip), as cutting it there would; the info about its length doesn't say so.
 - On a face as wide as neither of the stock's sides (a wrong size of frame, say), the stock is centered on it and
   nothing says so; a warning would also show for every nut strip placed on a tube's inside face.
 - Holes are picked by their edges (or sketch points), not their cylindrical faces, which are easier to click: a

@@ -91,9 +91,10 @@ const OFFSET_BOUNDS = {
 
 /**
  * Where stock goes, in a Position group: along an edge, with the offsets of its ends; on a face, as one of its sides,
- * with which of its sides is on the face; between two holes, with which of its sides is on them; or extruded from a
- * point, with the extrude's options (see `isEdgePlacement` and the others). On a face or holes, std's extrude's starting
- * offset moves it off them (see `startingOffset`). Then, unless it's extruded from a point, a Trim
+ * with which of its sides is on the face; between two holes, with which of its sides is on them and the offsets of its
+ * ends; or extruded from a point, with the extrude's options (see `isEdgePlacement` and the others). On a face or holes,
+ * std's extrude's starting offset moves it off them (see `startingOffset`); the offsets of its ends are in an Ends
+ * group of their own, so they aren't taken for it. Then, unless it's extruded from a point, a Trim
  * ends group of faces and parts to trim its ends to (like miters, or coped ends). Either way, `flip` (Flip `<name>`
  * ends, and a flip manipulator) draws it from the other end (see `acrossSign`), and a button rotates it in 90 degree
  * increments. Along an edge or from a point, a nine point manipulator chooses which point of its profile is on the edge
@@ -159,11 +160,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
 
         ninePointManipulatorPredicate(definition);
 
-        if (isEdgePlacement(definition))
-        {
-            stockOffsetsPredicate(definition);
-        }
-        else if (isPointPlacement(definition))
+        if (isPointPlacement(definition))
         {
             stockBoundsPredicate(definition);
             extrudeDirectionPredicate(definition);
@@ -178,6 +175,15 @@ export predicate stockLocationPredicate(definition is map, name is string)
         if (isPointPlacement(definition))
         {
             newExtrudeSecondEndPredicate(definition);
+        }
+        // Along an edge or between holes, its ends' offsets, in a group of their own, apart from the starting offset
+        // (which moves it off the holes, not along them)
+        if (isEdgePlacement(definition) || isHolePlacement(definition))
+        {
+            annotation { "Group Name" : "Ends", "Collapsed By Default" : false }
+            {
+                stockOffsetsPredicate(definition);
+            }
         }
     }
 
@@ -202,8 +208,9 @@ export predicate stockLocationPredicate(definition is map, name is string)
 }
 
 /**
- * The offsets of the ends of stock on edges: each moves its end in from the end of the edge, or out past it when it's
- * negative; its Opposite direction reverses it, as std's offsets' do (see `edgeOffset`).
+ * The offsets of the ends of stock on edges (and between holes): each moves its end in from the end of the edge (or
+ * where it ends between holes, see `holePlacement`), or out past it when it's negative; its Opposite direction reverses
+ * it, as std's offsets' do (see `edgeOffset`).
  */
 export predicate stockOffsetsPredicate(definition is map)
 {
@@ -235,8 +242,8 @@ export predicate stockOffsetsPredicate(definition is map)
 }
 
 /**
- * How far an end of stock on an edge is moved in from the end of the edge (`"Start"` or `"End"`), or out past it when
- * negative: its offset, negated by its Opposite direction, or 0 without one.
+ * How far an end of stock on an edge (or between holes) is moved in from the end of the edge (`"Start"` or `"End"`), or
+ * out past it when negative: its offset, negated by its Opposite direction, or 0 without one.
  */
 function edgeOffset(definition is map, end is string) returns ValueWithUnits
 {
@@ -415,15 +422,16 @@ export function getTie(definition is map, start is ValueWithUnits, unit is Value
 
 /**
  * The first of the `spacings + 1` holes which count on stock `length` long (see `regularSpacings`) which is tied to the
- * end, by its number from the start; `spacings + 1` if none are.
+ * end, by its number from the start; `spacings + 1` if none are. The first `before` of them are before its start (see
+ * `holePositions`' `lead`), so they aren't counted as half of them.
  */
-function firstTiedHole(length is ValueWithUnits, spacings is number, tie is map) returns number
+function firstTiedHole(length is ValueWithUnits, spacings is number, before is number, tie is map) returns number
 {
     var first = spacings + 1;
     if (tie.by == TieHolesBy.HALF)
     {
         // The middle hole of an odd number stays with the start
-        first = spacings + 1 - floor((spacings + 1) / 2);
+        first = spacings + 1 - floor((spacings + 1 - before) / 2);
     }
     else if (tie.by == TieHolesBy.COUNT)
     {
@@ -474,14 +482,25 @@ export function regularLength(length is ValueWithUnits, tie is map) returns Valu
  * the end (see `getTie`), in order from the start. Holes are laid out on the regular length at least `length` long (see
  * `regularLength`), and those which start before its end are kept, so the last of them may be cut through by the end.
  *
+ * Stock between holes with its start moved (see `holePlacement`) is laid out the same way from `lead` before its
+ * start, where its pattern of holes starts as it's sold, so its holes stay where they were: `length` is from there, and
+ * the holes which don't reach past `lead` are left out, so the first of them may be cut through by its start.
+ *
  * @param extent : How far each hole reaches along the stock from its position, e.g. its radius.
+ * @param lead : How far before stock's start its holes are laid out from; 0 for most stock.
  */
-export function holePositions(row is HoleRow, extent is ValueWithUnits, length is ValueWithUnits, tie is map) returns array
+export function holePositions(row is HoleRow, extent is ValueWithUnits, length is ValueWithUnits, tie is map, lead is ValueWithUnits) returns array
 {
     const built = regularLength(length, tie);
     const spacings = regularSpacings(built, tie);
+    // The holes which count that are before the start (the lead is less than a pattern's length, so there are few)
+    var before = 0;
+    while (before <= spacings && tolerantLessThan(tie.start + before * tie.unit, lead))
+    {
+        before += 1;
+    }
     // Holes are tied if they're around the holes which count that are
-    const firstTied = firstTiedHole(length, spacings, tie);
+    const firstTied = firstTiedHole(length, spacings, before, tie);
     var positions = [];
     for (var position = row.start; spacings >= 0 && tolerantLessThanOrEqual(position + extent, built); position += row.pitch)
     {
@@ -490,10 +509,58 @@ export function holePositions(row is HoleRow, extent is ValueWithUnits, length i
             // Wholly past the end
             break;
         }
+        if (tolerantLessThanOrEqual(position + extent, lead))
+        {
+            // Wholly before the start
+            continue;
+        }
         const spacing = round((position - tie.start) / tie.unit);
         positions = append(positions, { "position" : position, "tied" : spacing >= firstTied });
     }
     return positions;
+}
+
+/**
+ * How far stock's whole pattern of holes takes to repeat: the shortest length every row's pitch, and the unit of the
+ * holes which count (see `getTie`), go into a whole number of times, e.g. 1/2 in. for a nut strip whose rows' holes are
+ * 1/2 in. apart, alternating every 1/4 in. Stock from the start of a pattern has its holes where stock any whole number
+ * of patterns longer does. Throws if the pitches have no common multiple of up to 100 of the longest.
+ */
+export function holePatternPeriod(stock is Stock) returns ValueWithUnits
+{
+    var pitches = [stock.tieUnit];
+    for (var row in concatenateArrays([stock.xRows, stock.yRows]))
+    {
+        pitches = append(pitches, row.pitch);
+    }
+    var longest = stock.tieUnit;
+    for (var pitch in pitches)
+    {
+        longest = max(longest, pitch);
+    }
+    for (var count = 1; count <= 100; count += 1)
+    {
+        const period = count * longest;
+        var whole = true;
+        for (var pitch in pitches)
+        {
+            whole = whole && tolerantEquals(period, round(period / pitch) * pitch);
+        }
+        if (whole)
+        {
+            return period;
+        }
+    }
+    throw regenError("The holes' pattern doesn't repeat.");
+}
+
+/**
+ * `value` less the multiple of `step` which leaves it at least 0 and less than `step`.
+ */
+export function positiveRemainder(value is ValueWithUnits, step is ValueWithUnits) returns ValueWithUnits
+{
+    const remainder = value - floor(value / step) * step;
+    return tolerantEquals(remainder, step) ? 0 * meter : remainder;
 }
 
 /**
@@ -741,7 +808,8 @@ const SELECTION_AT_POINTS = [SelectionAt.TOP, SelectionAt.MIDDLE, SelectionAt.BO
  * @param build : Builds it, from (context, id, definition, stock, location, length, ends): `buildCutStock`
  *          (`core/cutStock.fs`). `location` is the middle of its start, with
  *          Z along it and its width along X, and `ends` has the `startPlane` and `endPlane` slanted ends are on (if
- *          they are), other `cuts` to make (see `trimCuts`), and `parts` to trim it to (see `partTrims`). It returns the
+ *          they are), other `cuts` to make (see `trimCuts`), `parts` to trim it to (see `partTrims`), and the `lead`
+ *          before its start its holes are laid out from (see `holePositions`; 0 but between holes). It returns the
  *          stock's `body`, its `endFace`, the faces of its `tiedHoles`, and its holes' `tie` (see `getTie`; `undefined`
  *          if it has none).
  */
@@ -786,8 +854,13 @@ export function placeStock(context is Context, id is Id, definition is map, part
     const trimmed = definition.trimEnds && !isPointPlacement(definition);
     const cuts = trimmed ? trimCuts(context, definition, stock, center, length, name) : [];
     const parts = trimmed ? partTrims(context, definition, center, length) : [];
-    const built = build(context, id, definition, stock, center, length,
-        { "startPlane" : placement.startPlane, "endPlane" : placement.endPlane, "cuts" : cuts, "parts" : parts });
+    const built = build(context, id, definition, stock, center, length, {
+                "startPlane" : placement.startPlane,
+                "endPlane" : placement.endPlane,
+                "cuts" : cuts,
+                "parts" : parts,
+                "lead" : placement.lead ?? 0 * meter
+            });
     if (cuts != [] || parts != [])
     {
         // Trimming shortens it
@@ -1118,12 +1191,14 @@ function faceDirection(context is Context, face is Query, facePlane is Plane, st
 /**
  * Where stock goes between the selected holes, lined up with them: along the line between them (in the start hole's
  * plane), with the holes through its walls facing their axis (X's, or rotated, Y's), and the first of them (see
- * `alignedHole`) on the start hole (or flipped, the end hole). It reaches as far past each hole as that hole is from its
- * start, so with the holes a whole number of its hole spacings apart, its holes line up with both; a warning says when
- * they don't. Holes at puts its top, middle, or bottom on the holes' plane (see `selectionShift`; its top faces the way
- * the holes do), and the starting offset moves it off them, along their normal (see `startingOffset`), as for spacers.
- * Returns the `location` its start is at (oriented by `orientStock`), its `length`, the holes' `normal`, and the
- * `startingOffset` it's moved by.
+ * `alignedHole`) on the start hole (or flipped, the end hole). It reaches as far before that hole as that hole is from
+ * its start, and past the other as stock ends as it's sold (see `holeEnds`), so with the holes a whole number of its
+ * hole spacings apart, its holes line up with both; a warning says when they don't. Start offset and End offset (the
+ * edge's parameters and manipulators) move its ends in from there, or out past them, as along an edge, with its holes
+ * staying on the selected holes. Holes at puts its top, middle, or bottom on the holes' plane (see `selectionShift`;
+ * its top faces the way the holes do), and the starting offset moves it off them, along their normal (see
+ * `startingOffset`), as for spacers. Returns the `location` its start is at (oriented by `orientStock`), its `length`,
+ * the `lead` before its start its holes are laid out from, the holes' `normal`, and the `startingOffset` it's moved by.
  */
 function holePlacement(context is Context, id is Id, definition is map, stock is Stock, name is string) returns map
 {
@@ -1154,8 +1229,14 @@ function holePlacement(context is Context, id is Id, definition is map, stock is
     const offsetDirection = facesX ? yAxis(location) : location.xAxis * acrossSign(definition);
     const first = isFlipped(definition) ? start.origin + between : start.origin;
     const offset = startingOffset(context, definition, first, start.normal, start.normal);
-    location.origin = first - location.zAxis * hole.position - offsetDirection * hole.offset +
+    // Where its start is without offsets
+    const defaultStart = first - location.zAxis * hole.position - offsetDirection * hole.offset +
         start.normal * (offset + selectionShift(definition.holesAt, profileThickness(stock, location, start.normal)));
+    const startOffset = edgeOffset(definition, "Start");
+    const endOffset = edgeOffset(definition, "End");
+    const ends = holeEnds(stock, hole.position, distance, startOffset, endOffset);
+    addOffsetManipulators(context, id, definition, defaultStart, location.zAxis, ends.defaultLength, startOffset, endOffset);
+    location.origin = defaultStart + location.zAxis * startOffset;
     if (!tolerantEquals(distance, round(distance / hole.pitch) * hole.pitch))
     {
         reportFeatureWarning(context, id, "Selected holes are not a multiple of " ~ lengthString(definition, hole.pitch) ~ " apart.",
@@ -1163,10 +1244,40 @@ function holePlacement(context is Context, id is Id, definition is map, stock is
     }
     return {
             "location" : location,
-            "length" : distance + 2 * hole.position,
+            "length" : ends.length,
+            "lead" : ends.lead,
             "normal" : start.normal,
             "startingOffset" : offset,
-            "errorParameters" : ["startHole", "endHole"]
+            "errorParameters" : ["startHole", "endHole", "edgeStartOffset", "edgeStartOffsetOppositeDirection", "edgeEndOffset",
+                    "edgeEndOffsetOppositeDirection"]
+        };
+}
+
+/**
+ * Where the ends of stock between holes are (see `holePlacement`), along it from its start without offsets, where its
+ * aligned hole (see `alignedHole`) is `position` from it, and the end hole `distance` past that.
+ *
+ * Without offsets, it's the shortest regular length (see `regularLength`) which reaches as far past the end hole as
+ * the holes which count start from its start (`tieStart`), so it ends as stock does as it's sold, whichever row its
+ * first hole is in: a nut strip whose rows alternate, with its first hole in the row which starts further in, has a
+ * longer margin at its start, but not at its end. Then `startOffset` and `endOffset` move its ends in, or out when
+ * they're negative (see `edgeOffset`), and its holes stay where they were: they're laid out from where its pattern of
+ * holes (see `holePatternPeriod`) starts as it's sold, at or before its start, `lead` before it (see `holePositions`).
+ *
+ * @returns {{
+ *      @field defaultLength {ValueWithUnits} : Its length without offsets.
+ *      @field length {ValueWithUnits}
+ *      @field lead {ValueWithUnits} : How far before its start its holes are laid out from, less than the pattern.
+ * }}
+ */
+export function holeEnds(stock is Stock, position is ValueWithUnits, distance is ValueWithUnits, startOffset is ValueWithUnits,
+    endOffset is ValueWithUnits) returns map
+{
+    const defaultLength = regularLength(position + distance + stock.tieStart, { "start" : stock.tieStart, "unit" : stock.tieUnit });
+    return {
+            "defaultLength" : defaultLength,
+            "length" : defaultLength - startOffset - endOffset,
+            "lead" : positiveRemainder(startOffset, holePatternPeriod(stock))
         };
 }
 
@@ -1676,11 +1787,10 @@ export function stockManipulatorChange(context is Context, definition is map, ne
             definition.startOffsetDistance = abs(offset.offset);
             definition.startOffsetOppositeDirection = offset.offset < 0 * meter;
         }
-        return definition;
     }
-    if (isEdgePlacement(definition))
+    if (isEdgePlacement(definition) || isHolePlacement(definition))
     {
-        // Dragged past the edge's end, an offset flips
+        // Dragged past its end (the edge's, or between holes, where it ends without offsets), an offset flips
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
         if (startOffset != undefined)
         {
@@ -1693,6 +1803,9 @@ export function stockManipulatorChange(context is Context, definition is map, ne
             definition.edgeEndOffset = abs(endOffset.offset);
             definition.edgeEndOffsetOppositeDirection = endOffset.offset < 0 * meter;
         }
+    }
+    if (!isPointPlacement(definition))
+    {
         return definition;
     }
     return extrudeManipulatorChange(context, definition, newManipulators);
@@ -1701,29 +1814,36 @@ export function stockManipulatorChange(context is Context, definition is map, ne
 /**
  * Call from the feature's editing logic function.
  *
- * @param defaultOffset : What each end's offset is set to when it's turned on (or when `partChanged`), unless it's been
- *          set; `undefined` to keep the bounds' default.
+ * Between holes, each end's offset is set to extend it by its pattern of holes (see `holePatternPeriod`) when it's
+ * turned on (or when `partChanged`), unless it's been set, so its holes go on to the new end as they would on stock as
+ * it's sold, rather than an end cutting through one.
+ *
+ * @param stock : The stock placed.
+ * @param defaultOffset : What each end's offset on an edge is set to when it's turned on (or when `partChanged`), unless
+ *          it's been set; `undefined` to keep the bounds' default.
  * @param partChanged : Whether the part has changed.
  */
 export function stockEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map,
-    hiddenBodies is Query, defaultOffset, partChanged is boolean) returns map
+    hiddenBodies is Query, stock is Stock, defaultOffset, partChanged is boolean) returns map
 {
     // Nothing to do when the feature is created
     if (oldDefinition == {})
     {
         return definition;
     }
-    if (isEdgePlacement(definition))
+    if (isEdgePlacement(definition) || isHolePlacement(definition))
     {
-        if (defaultOffset != undefined)
+        // Moved in along an edge, out between holes (as Opposite direction)
+        const offsetTo = isHolePlacement(definition) ? holePatternPeriod(stock) : defaultOffset;
+        if (offsetTo != undefined)
         {
             for (var offset in { "edgeStartOffset" : "hasStartOffset", "edgeEndOffset" : "hasEndOffset" })
             {
                 const turnedOn = definition[offset.value] && !(oldDefinition[offset.value] ?? false);
                 if ((turnedOn || partChanged) && !(specifiedParameters[offset.key] ?? false))
                 {
-                    definition[offset.key] = defaultOffset;
-                    definition[offset.key ~ "OppositeDirection"] = false;
+                    definition[offset.key] = offsetTo;
+                    definition[offset.key ~ "OppositeDirection"] = isHolePlacement(definition);
                 }
             }
         }
