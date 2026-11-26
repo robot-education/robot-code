@@ -14851,6 +14851,202 @@
           "material": "Steel"
         }
       ]
+    },
+    "retainer": {
+      "feature": "fastenerRetainer",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "E_CLIP",
+            "size": "MM_2"
+          },
+          "name": "2 mm E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "E_CLIP",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "E_CLIP",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "E_CLIP",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RETAINING_RING",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "type": "RETAINING_RING",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "E_CLIP",
+            "size": "MM_2"
+          },
+          "name": "2 mm E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98543A060",
+          "url": "https://www.mcmaster.com/98543A060/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "E_CLIP",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A280",
+          "url": "https://www.mcmaster.com/97431A280/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "E_CLIP",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A320",
+          "url": "https://www.mcmaster.com/97431A320/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "E_CLIP",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97431A340",
+          "url": "https://www.mcmaster.com/97431A340/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RETAINING_RING",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97633A170",
+          "url": "https://www.mcmaster.com/97633A170/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER",
+            "type": "RETAINING_RING",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "vendor": "McMaster-Carr",
+          "partNumber": "97633A200",
+          "url": "https://www.mcmaster.com/97633A200/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "E_CLIP"
+          },
+          "name": "2 mm E-Clip",
+          "vendor": "WCP",
+          "partNumber": "WCP-0227",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RETAINING_RING",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in Retaining Ring",
+          "vendor": "WCP",
+          "partNumber": "WCP-0228",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "WCP",
+            "type": "RETAINING_RING",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in Retaining Ring",
+          "vendor": "WCP",
+          "partNumber": "WCP-0229",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_16"
+          },
+          "name": "3/16 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1155",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_3_8"
+          },
+          "name": "3/8 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-1124",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "ANDYMARK",
+            "size": "IN_1_2"
+          },
+          "name": "1/2 in E-Clip",
+          "vendor": "AndyMark",
+          "partNumber": "am-0206",
+          "material": "Carbon Steel"
+        }
+      ]
     }
   },
   "vendors": [

@@ -268,7 +268,13 @@ def test_each_set_offers_its_own_sizes():
     assert {key[1] for key in DEFINITION["FRC"].screws} == DEFINITION["IMPERIAL"]
     assert {key[1] for key in DEFINITION["FTC"].screws} == DEFINITION["METRIC"]
     assert [size["id"] for size in FTC_MANIFEST["sizes"]] == ["M3", "M4"]
-    assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer"}
+    assert FTC_DEFINITION["STUDIOS"].keys() == {"screw", "nut", "washer", "retainer"}
+    retainers = {name: {key[1:] for key in DEFINITION[name.upper()].retainers} for name in CATALOGS}
+    assert retainers == {
+        "frc": {("E_CLIP", size) for size in ("MM_2", "IN_3_16", "IN_3_8", "IN_1_2")}
+        | {("RETAINING_RING", "IN_3_8"), ("RETAINING_RING", "IN_1_2")},
+        "ftc": {("E_CLIP", "MM_8"), ("E_CLIP", "MM_12")},
+    }
 
 
 def test_each_studio_keeps_to_the_configuration_rules():

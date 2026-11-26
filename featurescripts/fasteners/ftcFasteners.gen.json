@@ -7084,6 +7084,58 @@
           "material": "Stainless Steel"
         }
       ]
+    },
+    "retainer": {
+      "feature": "fastenerRetainer",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "MM_8"
+          },
+          "name": "8 mm E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GENERIC",
+            "size": "MM_12"
+          },
+          "name": "12 mm E-Clip",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "MCMASTER"
+          },
+          "name": "8 mm E-Clip",
+          "vendor": "McMaster-Carr",
+          "partNumber": "98543A114",
+          "url": "https://www.mcmaster.com/98543A114/",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GOBILDA",
+            "size": "MM_8"
+          },
+          "name": "8 mm E-Clip",
+          "vendor": "goBILDA",
+          "material": "Carbon Steel"
+        },
+        {
+          "values": {
+            "vendor": "GOBILDA",
+            "size": "MM_12"
+          },
+          "name": "12 mm E-Clip",
+          "vendor": "goBILDA",
+          "material": "Carbon Steel"
+        }
+      ]
     }
   },
   "vendors": [

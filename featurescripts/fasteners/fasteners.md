@@ -132,12 +132,26 @@ and where it's sold both ways needs several.
    a cosmetic thread up from the origin, to a nylock's insert.
 4. Adds the mate connector, deletes the sketches, names the part, and colors a nylock's insert white.
 
+`fastenerRetainer` makes e-clips and retaining rings, its Type, named for the shaft each goes on. FRC's e-clips are
+FRCDesign's E-Clip's: 2 mm, 3/16 in, 3/8 in, and 1/2 in, from McMaster-Carr and from WCP (2 mm) or AndyMark (the rest); its
+bowed one, unused, is left out. Its retaining rings are FRCDesign's External Retaining Ring's: 3/8 in and 1/2 in, from
+McMaster-Carr and WCP. Both are measured from the models FRCDesign's derive. FTC has e-clips alone, so its studio has no
+Type: goBILDA's REX shafts', 8 mm and 12 mm (docs/ftc-fasteners.md). Generic has every size.
+
+1. Extrudes its profile (`eClipProfile` or `retainingRingProfile`) up from the origin, opening along X, with a ring's holes
+   (`retainingRingHole`): its fillets are computed (`filletToCircle`), not solved or added after.
+2. Adds a mate connector on each side, as a washer's, deletes the sketch, and names the part.
+
 Threads are cosmetic: the parts are for fit and clearance.
 
 There are no `try`s.
 
 ## Issues found
 
+- Retainers are tried in Onshape (in a scratch document, from the feature's dialog): each vendor's sizes of each type
+  regenerate as one part, named.
+- AndyMark's, WCP's, and FRC's Generic retainers are modeled as McMaster-Carr's, as FRCDesign's are. AndyMark's and WCP's
+  have no links.
 - Tried in Onshape (FeatureScript 3095, in a scratch Part Studio, not yet in the released studios): each kind of
   screw, washer, and nut regenerates as one part with its mate connector at the origin pointing up, named, and with
   its part number.

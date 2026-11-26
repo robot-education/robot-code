@@ -9,7 +9,7 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "86033ffc9510cee8dd457b7f", version : "dc93869b7b02c4912063ab01");
 
 /**
- * FRCDesign's library fasteners: its screws, washers, and nuts, generated for FRCDesignApp, FRC's imperial and FTC's
+ * FRCDesign's library fasteners: its screws, washers, nuts, and retainers, generated for FRCDesignApp, FRC's imperial and FTC's
  * metric. Each is made in a Part Studio of its own, whose configuration sets every parameter and offers only what's
  * made (see fastenerTables.py), FRC's and FTC's studios each their own sizes, so these dialogs are rarely seen: each
  * is a flat list of enums, with no conditions, which the configuration filters.
@@ -356,6 +356,75 @@ export const fastenerNut = defineFeature(function(context is Context, id is Id, 
         }
     });
 
+/**
+ * A retainer, an e-clip or a retaining ring, from its bottom face at the origin up, opening along X.
+ */
+annotation { "Feature Type Name" : "Retainer",
+        "Feature Type Description" : "An e-clip or retaining ring from FRCDesign's library, from the origin up." ~ CREDIT }
+export const fastenerRetainer = defineFeature(function(context is Context, id is Id, definition is map)
+    precondition
+    {
+        annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.vendor is RetainerVendor;
+
+        annotation { "Name" : "Type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.retainerType is RetainerType;
+
+        annotation { "Name" : "Shaft size", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.size is RetainerSize;
+    }
+    {
+        const choices = resolveChoices(RETAINERS, definition, ["vendor", "retainerType", "size"]);
+        if (choices.unmade != undefined)
+        {
+            throw regenError("Selected vendor does not make this retainer for this shaft, change the shaft size.", ["size"]);
+        }
+        const retainer = choices.made;
+        const isRing = choices.definition.retainerType == RetainerType.RETAINING_RING;
+
+        // 1. Extrude its profile, and a ring's holes
+        const sketchId = id + "sketch";
+        const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : XY_PLANE });
+        for (var index, curve in isRing ? retainingRingProfile(retainer) : eClipProfile(retainer))
+        {
+            if (curve.mid == undefined)
+            {
+                skLineSegment(sketch, "line" ~ index, curve);
+            }
+            else
+            {
+                skArc(sketch, "arc" ~ index, curve);
+            }
+        }
+        if (isRing)
+        {
+            const hole = retainingRingHole(retainer);
+            skCircle(sketch, "hole", { "center" : hole, "radius" : retainer.holeDiameter / 2 });
+            skCircle(sketch, "mirroredHole", { "center" : mirrorPoint(hole), "radius" : retainer.holeDiameter / 2 });
+        }
+        skSolve(sketch);
+        opExtrude(context, id + "extrude", {
+                    "entities" : qSketchRegion(sketchId, true),
+                    "direction" : Z_DIRECTION,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : retainer.thickness
+                });
+        const body = qCreatedBy(id + "extrude", EntityType.BODY);
+
+        // 2. Seat it on either face, as a washer is
+        opMateConnector(context, id + "mateConnector", {
+                    "coordSystem" : coordSystem(WORLD_ORIGIN, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
+        opMateConnector(context, id + "topMateConnector", {
+                    "coordSystem" : coordSystem(WORLD_ORIGIN + retainer.thickness * Z_DIRECTION, X_DIRECTION, Z_DIRECTION),
+                    "owner" : body
+                });
+
+        cleanup(context, id + "deleteSketches", qCreatedBy(sketchId, EntityType.BODY));
+        setFastenerProperties(context, body, retainer);
+    });
+
 predicate vendorPredicate(definition is map)
 {
     annotation { "Name" : "Vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
@@ -403,7 +472,8 @@ export function resolve(entries is map, value)
     var only;
     for (var entry in entries)
     {
-        if (value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric)
+        if ((value is FastenerSize && FASTENER_SIZES[entry.key].metric != FASTENER_SIZES[value].metric) ||
+            (value is RetainerSize && RETAINER_SIZES[entry.key].metric != RETAINER_SIZES[value].metric))
         {
             continue;
         }
@@ -471,6 +541,165 @@ export function nylockDome(nut is map) returns map
             "mid" : center + radius * vector(cos(45 * degree), sin(45 * degree)),
             "end" : vector(flat - radius, nut.height)
         };
+}
+
+/**
+ * An e-clip's outline: its lines and arcs, opening along X and symmetric about it.
+ */
+export function eClipProfile(clip is map) returns array
+{
+    const outer = clip.outerDiameter / 2;
+    const inner = clip.innerDiameter / 2;
+    const pocket = clip.pocketDiameter / 2;
+    const fillet = clip.filletRadius;
+    const prongFillet = clip.prongFilletRadius;
+    const endFillet = clip.endFilletRadius == undefined ? fillet : clip.endFilletRadius;
+
+    // Above the X axis, the sides of its middle prong, its end prong, and its opening, each from the shaft out
+    const center = vector(0, 0) * meter;
+    const prong = { "origin" : center, "direction" : unitVector(180 * degree - clip.prongAngle) };
+    const wall = { "origin" : center, "direction" : unitVector(90 * degree - clip.pocketAngle) };
+    const corner = inner * vector(sqrt(1 - clip.opening ^ 2), clip.opening);
+    const opening = { "origin" : corner, "direction" : unitVector(clip.openingAngle) };
+
+    // Fillets from each side to the circle it meets: inside the pocket and the rim, and outside the shaft
+    const prongTip = filletToCircle(prong, true, inner, prongFillet, false);
+    const prongRoot = filletToCircle(prong, false, pocket, fillet, true);
+    const wallRoot = filletToCircle(wall, true, pocket, fillet, true);
+    const wallTip = filletToCircle(wall, false, inner, prongFillet, false);
+    const openingTip = filletToCircle(opening, true, inner, prongFillet, false);
+    const end = filletToCircle(opening, true, outer, endFillet, true);
+
+    var half = [
+        prongRoot,
+        wallRoot,
+        end,
+        { "start" : prongTip.start, "end" : prongRoot.start },
+        arcAboutCenter(prongRoot.end, wallRoot.end),
+        { "start" : wallRoot.start, "end" : wallTip.start },
+        arcAboutCenter(wallTip.end, openingTip.end),
+        { "start" : openingTip.start, "end" : end.start }
+    ];
+    if (prongFillet > TOLERANCE.zeroLength * meter)
+    {
+        half = concatenateArrays([half, [prongTip, wallTip, openingTip]]);
+    }
+    return concatenateArrays([
+                half,
+                mapArray(half, function(curve)
+                    {
+                        return mirrorCurve(curve);
+                    }),
+                [
+                    { "start" : prongTip.end, "mid" : vector(-inner, 0 * meter), "end" : mirrorPoint(prongTip.end) },
+                    { "start" : end.end, "mid" : vector(-outer, 0 * meter), "end" : mirrorPoint(end.end) }
+                ]
+            ]);
+}
+
+/**
+ * A retaining ring's outline, without its holes: its lines and arcs, its gap along X and symmetric about it.
+ */
+export function retainingRingProfile(ring is map) returns array
+{
+    const inner = ring.innerDiameter / 2;
+    const outer = ring.outerDiameter / 2;
+    const rimCenter = vector(-ring.rimOffset, 0 * meter);
+
+    // The lug above the X axis: up the gap, out along its top to its corner, and back down its outer side to the rim
+    const gap = unitVector(ring.gapAngle);
+    const top = unitVector(ring.gapAngle + 90 * degree);
+    const side = unitVector(180 * degree - ring.lugAngle);
+    const corner = ring.lugRadius * gap + ring.lugWidth * top;
+
+    const setback = ring.filletRadius * tan((90 * degree - ring.gapAngle - ring.lugAngle) / 2);
+    const cornerStart = corner - setback * top;
+    const cornerEnd = corner + setback * side;
+    const cornerCenter = cornerStart - ring.filletRadius * gap;
+    const cornerFillet = {
+            "start" : cornerStart,
+            "mid" : cornerCenter + ring.filletRadius * normalize(cornerStart + cornerEnd - 2 * cornerCenter),
+            "end" : cornerEnd
+        };
+    // About the rim's center, outward along the side
+    const root = filletToCircle({ "origin" : corner - rimCenter, "direction" : -side }, true, outer, ring.filletRadius, false);
+    const rootFillet = { "start" : root.start + rimCenter, "mid" : root.mid + rimCenter, "end" : root.end + rimCenter };
+
+    const half = [
+            { "start" : inner * gap, "end" : ring.lugRadius * gap },
+            { "start" : ring.lugRadius * gap, "end" : cornerStart },
+            cornerFillet,
+            { "start" : cornerEnd, "end" : rootFillet.start },
+            rootFillet
+        ];
+    return concatenateArrays([
+                half,
+                mapArray(half, function(curve)
+                    {
+                        return mirrorCurve(curve);
+                    }),
+                [
+                    { "start" : inner * gap, "mid" : vector(-inner, 0 * meter), "end" : mirrorPoint(inner * gap) },
+                    { "start" : rootFillet.end, "mid" : rimCenter - vector(outer, 0 * meter), "end" : mirrorPoint(rootFillet.end) }
+                ]
+            ]);
+}
+
+/**
+ * The center of a retaining ring's hole above the X axis, in the middle of its lug.
+ */
+export function retainingRingHole(ring is map) returns Vector
+{
+    return (ring.innerDiameter / 2 + ring.lugRadius) / 2 * unitVector(ring.gapAngle) +
+        ring.lugWidth / 2 * unitVector(ring.gapAngle + 90 * degree);
+}
+
+function unitVector(angle is ValueWithUnits) returns Vector
+{
+    return vector(cos(angle), sin(angle));
+}
+
+/**
+ * The fillet from a line (`side`) to a circle about the origin: an arc on the line's left or right, inside the circle or
+ * outside it. A fillet of no radius is where they meet.
+ */
+export function filletToCircle(side is map, isLeft is boolean, circleRadius is ValueWithUnits, radius is ValueWithUnits,
+    isInside is boolean) returns map
+{
+    const normal = (isLeft ? 1 : -1) * vector(-side.direction[1], side.direction[0]);
+    // Its center is `radius` from the line, and from the circle
+    const offset = side.origin + radius * normal;
+    const distance = isInside ? circleRadius - radius : circleRadius + radius;
+    const along = dot(offset, side.direction);
+    const center = offset + (sqrt(along ^ 2 - squaredNorm(offset) + distance ^ 2) - along) * side.direction;
+    const outward = normalize(center);
+    return {
+            "start" : center - radius * normal,
+            "mid" : center + radius * normalize((isInside ? outward : -outward) - normal),
+            "end" : circleRadius * outward
+        };
+}
+
+/**
+ * The shorter arc about the origin between two points on it.
+ */
+function arcAboutCenter(start is Vector, end is Vector) returns map
+{
+    return { "start" : start, "mid" : norm(start) * normalize(start + end), "end" : end };
+}
+
+function mirrorPoint(point is Vector) returns Vector
+{
+    return vector(point[0], -point[1]);
+}
+
+function mirrorCurve(curve is map) returns map
+{
+    for (var key, point in curve)
+    {
+        curve[key] = mirrorPoint(point);
+    }
+    return curve;
 }
 
 /**

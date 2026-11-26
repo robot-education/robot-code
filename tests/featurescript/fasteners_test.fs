@@ -254,8 +254,108 @@ export function testAHiddenSizeResolvesWithinItsOwnPartSet()
     const frc = resolveChoices(SCREWS, { "vendor" : FastenerVendor.REV, "size" : FastenerSize.NO_8_32, "head" : ScrewHead.SOCKET,
                 "finish" : ScrewFinish.BLACK, "length" : ScrewLength.IN_0_5 }, parameters);
     expectEqual(frc.definition.size, FastenerSize.NO_10_32);
+    // McMaster-Carr's e-clips come in four sizes for FRC, and one for FTC
+    const eClip = resolveChoices(RETAINERS, { "vendor" : RetainerVendor.MCMASTER, "retainerType" : RetainerType.E_CLIP,
+                "size" : RetainerSize.MM_12 }, ["vendor", "retainerType", "size"]);
+    expectEqual(eClip.definition.size, RetainerSize.MM_8);
     // Nothing of goBILDA's comes in #10-32
     const unmade = resolveChoices(NUTS, { "vendor" : FastenerVendor.GOBILDA, "size" : FastenerSize.NO_10_32,
                 "nutType" : NutType.NYLOCK, "finish" : NutFinish.ZINC_PLATED }, ["vendor", "size", "nutType", "finish"]);
     expectEqual(unmade.unmade, "size");
+}
+
+export function testRetainerOutlinesClose()
+{
+    for (var vendor, types in RETAINERS)
+    {
+        for (var retainerType, sizes in types)
+        {
+            for (var sizeId, retainer in sizes)
+            {
+                // Each curve's ends meet exactly one other's
+                const curves = retainerProfile(retainer);
+                for (var curve in curves)
+                {
+                    for (var point in [curve.start, curve.end])
+                    {
+                        var meeting = 0;
+                        for (var other in curves)
+                        {
+                            for (var end in [other.start, other.end])
+                            {
+                                if (norm(end - point) < 1e-9 * meter)
+                                {
+                                    meeting += 1;
+                                }
+                            }
+                        }
+                        expectEqual(meeting, 2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function retainerProfile(retainer is map) returns array
+{
+    return retainer.lugRadius == undefined ? eClipProfile(retainer) : retainingRingProfile(retainer);
+}
+
+export function testRetainingRingsMatchMcMasterCarrsModels()
+{
+    const rings = RETAINERS[RetainerVendor.MCMASTER][RetainerType.RETAINING_RING];
+    const tolerance = 2e-6 * inch;
+    // The ends of a lug's corner's and root's fillets, and of its side of the gap, in FRCDesign's
+    for (var point in [vector(0.256961, 0.004485), vector(0.235484, 0.077631), vector(0.183600, 0.095896), vector(0.167459, 0.108945)])
+    {
+        expectRetainerPoint(rings[RetainerSize.IN_3_8], point * inch, tolerance);
+    }
+    for (var point in [vector(0.338448, 0.005908), vector(0.230465, 0.004023), vector(0.337437, 0.063868), vector(0.315843, 0.095913),
+                vector(0.249062, 0.124332), vector(0.232099, 0.139456)])
+    {
+        expectRetainerPoint(rings[RetainerSize.IN_1_2], point * inch, tolerance);
+    }
+    // Its holes are 0.090918 in apart
+    expectNear(2 * retainingRingHole(rings[RetainerSize.IN_1_2])[1], 0.090918 * inch, tolerance);
+}
+
+export function testEClipsMatchMcMasterCarrsModels()
+{
+    const clips = RETAINERS[RetainerVendor.MCMASTER][RetainerType.E_CLIP];
+    // Where the opening's side meets its prong's fillet, in FRCDesign's 3/16 in and 1/2 in e-clips
+    expectRetainerPoint(clips[RetainerSize.IN_3_16], vector(0.047624, 0.059288) * inch, 1e-5 * inch);
+    expectRetainerPoint(clips[RetainerSize.IN_1_2], vector(0.124621, 0.158993) * inch, 1e-5 * inch);
+}
+
+export function testEClipsMatchGobildasModels()
+{
+    const clips = RETAINERS[RetainerVendor.GOBILDA][RetainerType.E_CLIP];
+    const tolerance = 0.001 * millimeter;
+    // Vertices of its models of 2106-4008-0560's and 2109-4012-1040's e-clips: the pockets' ends, the opening's sides',
+    // and where its ends' fillets meet its rim
+    for (var point in [vector(-0.4643, 4.378), vector(0, 3), vector(0, 3.9604), vector(-2.8062, 1.0607), vector(-3.7046, 1.4002),
+                vector(-3.9311, 1.9822), vector(2.1639, 2.0778), vector(4.0787, 3.6009), vector(4.1077, 4.577)])
+    {
+        expectRetainerPoint(clips[RetainerSize.MM_8], point * millimeter, tolerance);
+    }
+    for (var point in [vector(-4.8056, 1.4692), vector(-4.4615, 0.8929), vector(-5.9759, 1.827), vector(-6.4712, 2.9212),
+                vector(-2.9232, 6.4703), vector(-1.8289, 5.9754), vector(-1.4707, 4.8052), vector(-0.8943, 4.4612),
+                vector(1.7918, 4.1823), vector(2.1286, 4.1619), vector(5.81, 5.2349), vector(6.1311, 6.5886)])
+    {
+        expectRetainerPoint(clips[RetainerSize.MM_12], point * millimeter, tolerance);
+    }
+}
+
+/**
+ * Expects one of a retainer's outline's curves to end at `point`.
+ */
+function expectRetainerPoint(retainer is map, point is Vector, tolerance is ValueWithUnits)
+{
+    var nearest = 1 * meter;
+    for (var curve in retainerProfile(retainer))
+    {
+        nearest = min([nearest, norm(curve.start - point), norm(curve.end - point)]);
+    }
+    expectNear(nearest, 0 * meter, tolerance);
 }
