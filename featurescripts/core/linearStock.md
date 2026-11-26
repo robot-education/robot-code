@@ -80,8 +80,8 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
    Point, the Trim ends group) and `tieHolesPredicate`.
 2. **Editing logic** (the feature's, which calls `stockEditLogic` with its `Stock`): nothing when the feature is
    created. Turning an offset on (or changing the part, if the feature says so) sets it, unless it's been set: on edge
-   placement to the feature's default offset (moving the end in), and between holes to extend that end by its pattern
-   of holes (`holePatternPeriod`, with Opposite direction), so its holes go on to the new end as on stock as it's
+   placement to the feature's default offset with Opposite direction (moving the end in), and between holes to extend
+   that end by its pattern of holes (`holePatternPeriod`), so its holes go on to the new end as on stock as it's
    sold. On face placement, nothing. On point placement, `newExtrudeEditLogicAlong` (`core/stdExtrude.fs`) points the
    extrude at what it's up to and its second direction away from its first, as std's extrude does, along the axis
    from the selected point.
@@ -110,7 +110,7 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
 4. **Manipulator change** (`stockManipulatorChange`): the nine point and flip manipulators set their parameters; on a
    face or holes, the three point manipulator sets Face at or Holes at (its points in `SELECTION_AT_POINTS`' order),
    and the starting offset's sets its depth (dragged back past them, Opposite direction); along an edge or between
-   holes, the offset manipulators set the offsets (dragged past where its end is without them, Opposite direction);
+   holes, the offset manipulators set the offsets (dragged in past where its end is without them, Opposite direction);
    from a point, std's extrude manipulators set depth and direction (`extrudeManipulatorChange`).
 
 ### Placing
@@ -123,10 +123,8 @@ profile (`sketchProfile`), the offsets of holes through the walls facing Y (`sto
 
 `edgePlacement`: along the edge, from its start to its end as `evEdgeTangentLine` runs (`edgeCoordSystem`: Z along the
 edge; X along its sketch's normal, or any perpendicular for edges not in a sketch), between its offsets. Each offset
-moves its end in along the edge, or out past it with its Opposite direction (`edgeOffset`); dragging an offset's
-manipulator past the edge's end sets that. Each offset
-moves its end in from the end of the edge, or out past it when it's negative; its Opposite direction reverses it
-(`edgeOffset`), and dragging an offset's manipulator past the end of the edge flips it.
+moves its end out past the end of the edge, extending it, or in when it's negative; its Opposite direction reverses it
+(`edgeOffset`), and dragging an offset's manipulator (pointing out of the edge) in past the edge's end flips it.
 
 `facePlacement`: the face is one of the stock's sides, as a rectangle drawn in a sketch where a tube goes is (a
 sketch region is a face):
@@ -163,8 +161,8 @@ sketch region is a face):
    1/2 in. before the start hole but ends 1/4 in. past the end hole: with holes 1 in. apart, 1.75 in. long, with 3
    holes in the other row (2 lined up by the other row, 1.5 in. long). With the holes a whole number of that row's
    pitch apart, the far hole lines up too; otherwise a warning says they aren't.
-5. Start offset and End offset (the edge's parameters, in the Ends group) move its ends in from there, or out past
-   them, as along an edge, with manipulators from where its ends are without them. Its holes stay on the selected
+5. Start offset and End offset (the edge's parameters, in the Ends group) move its ends out from there, or in (Opposite
+   direction), as along an edge, with manipulators from where its ends are without them. Its holes stay on the selected
    holes: they're laid out from where its pattern of holes starts as it's sold (`holePatternPeriod`: the shortest
    length every row's pitch and `tieUnit` go into), at or before its start, `lead` before it, so moved out, the
    extension has every hole of every row that stock as it's sold would, and moved in, the holes stay where they were
@@ -259,8 +257,6 @@ There are no fallbacks.
 - "Sketch point to place `<name>`" also takes circles and mate connectors.
 - Cutting the end to length (stock with holes is built longer) replaces the extrude's end cap with the cut's face, so
   references to the end face follow the cut, not the extrude; so does cutting the start between holes with a lead.
-- Between holes, the offsets keep the edge's direction (positive moves an end in), though they're mostly for extending
-  it; turning one on sets it to extend the end (Opposite direction), and its manipulator shows which way it goes.
 - A start moved out by part of a pattern can cut through a hole of the row it lands on (like 1/4 in. out on WCP's nut
   strip), as cutting it there would; the info about its length doesn't say so.
 - On a face as wide as neither of the stock's sides (a wrong size of frame, say), the stock is centered on it and

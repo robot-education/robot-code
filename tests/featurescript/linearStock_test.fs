@@ -263,3 +263,22 @@ export function testHolePatternPeriod()
     max.xRows = [holeRow(1.5 * inch, 2 * inch)];
     expectNear(holePatternPeriod(max), 2 * inch, 1e-9 * meter);
 }
+
+export function testTurnedOnOffsetsDefaultToExtendingBetweenHolesAndInAlongAnEdge()
+{
+    const before = { "hasStartOffset" : false, "edgeStartOffset" : 0.25 * inch, "edgeStartOffsetOppositeDirection" : false,
+            "hasEndOffset" : false, "edgeEndOffset" : 0.25 * inch, "edgeEndOffsetOppositeDirection" : false };
+    const after = mergeMaps(before, { "hasStartOffset" : true });
+    // Between holes, out by the strip's pattern of holes
+    const holes = stockEditLogic(newContext(), newId(), mergeMaps(before, { "placement" : StockPlacement.HOLES }),
+        mergeMaps(after, { "placement" : StockPlacement.HOLES }), {}, qNothing(), wcpNutStrip(), 0.25 * inch, false);
+    expectNear(holes.edgeStartOffset, 0.5 * inch, 1e-9 * meter);
+    expectEqual(holes.edgeStartOffsetOppositeDirection, false);
+    // Along an edge, in by the default offset (Opposite direction)
+    const edge = stockEditLogic(newContext(), newId(), mergeMaps(before, { "placement" : StockPlacement.EDGE }),
+        mergeMaps(after, { "placement" : StockPlacement.EDGE }), {}, qNothing(), wcpNutStrip(), 0.25 * inch, false);
+    expectNear(edge.edgeStartOffset, 0.25 * inch, 1e-9 * meter);
+    expectEqual(edge.edgeStartOffsetOppositeDirection, true);
+    // The end's offset, still off, is left
+    expectEqual(edge.edgeEndOffsetOppositeDirection, false);
+}

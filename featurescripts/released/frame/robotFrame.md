@@ -17,6 +17,9 @@ writeup doesn't repeat.
 
 Since v1.2.0 (`fs changes robotFrame`).
 
+- Start offset and End offset (along an edge) extend the frame past the edge's ends, and move them in with Opposite
+  direction: the other way around from before, so an existing frame with an offset gets longer where it got shorter.
+  They're in an Ends group in Position.
 - Tied holes are cut by the same seeds and patterns as the rest, their pattern instances named by their count from the
   end, rather than by seeds and patterns of their own: fewer operations, but tied holes' faces have new identities, so
   references to them (and to the holes near the start) in existing documents need fixing once.
@@ -29,9 +32,8 @@ Since v1.2.0 (`fs changes robotFrame`).
   hole is from its start, and past the end hole as the frame ends as it's sold; a warning when the holes aren't a
   multiple of its hole spacing apart. Holes at (with a three point manipulator) puts its top, middle, or bottom on the
   holes, and Starting offset moves it off them (for spacers). Start offset and End offset, in an Ends group with their
-  manipulators, move its ends in or extend them (turned on, each extends its end by the frame's pattern of holes), its
-  holes staying on the selected holes and going on into an extended end.
-- Edge selection type: Start offset and End offset are in an Ends group.
+  manipulators, extend its ends (or move them in, with Opposite direction; turned on, each extends its end by the
+  frame's pattern of holes), its holes staying on the selected holes and going on into an extended end.
 - Trim frame ends has Parts to trim to, as std's Frame does: each part cuts off the end it's nearer (coping it, for a
   round tube), and Trim frame ends is offered on faces and between holes too.
 - Its description mentions faces and holes.

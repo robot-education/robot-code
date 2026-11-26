@@ -208,9 +208,9 @@ export predicate stockLocationPredicate(definition is map, name is string)
 }
 
 /**
- * The offsets of the ends of stock on edges (and between holes): each moves its end in from the end of the edge (or
- * where it ends between holes, see `holePlacement`), or out past it when it's negative; its Opposite direction reverses
- * it, as std's offsets' do (see `edgeOffset`).
+ * The offsets of the ends of stock on edges (and between holes): each moves its end out past the end of the edge (or
+ * where it ends between holes, see `holePlacement`), extending it, or in when it's negative; its Opposite direction
+ * reverses it, as std's offsets' do (see `edgeOffset`).
  */
 export predicate stockOffsetsPredicate(definition is map)
 {
@@ -243,7 +243,8 @@ export predicate stockOffsetsPredicate(definition is map)
 
 /**
  * How far an end of stock on an edge (or between holes) is moved in from the end of the edge (`"Start"` or `"End"`), or
- * out past it when negative: its offset, negated by its Opposite direction, or 0 without one.
+ * out past it when negative: its offset (which moves it out), negated, unless its Opposite direction moves it in; 0
+ * without one.
  */
 function edgeOffset(definition is map, end is string) returns ValueWithUnits
 {
@@ -251,7 +252,7 @@ function edgeOffset(definition is map, end is string) returns ValueWithUnits
     {
         return 0 * meter;
     }
-    return definition["edge" ~ end ~ "Offset"] * (definition["edge" ~ end ~ "OffsetOppositeDirection"] ? -1 : 1);
+    return definition["edge" ~ end ~ "Offset"] * (definition["edge" ~ end ~ "OffsetOppositeDirection"] ? 1 : -1);
 }
 
 // What stock is
@@ -1468,6 +1469,11 @@ function sentence(text is string) returns string
     return endsWith(text, ".") ? text : text ~ ".";
 }
 
+/**
+ * The offsets' manipulators, at the ends of the edge (or where stock ends between holes without offsets), pointing out
+ * of it, as a positive offset moves its end; `startOffset` and `endOffset` are how far each end is moved in (see
+ * `edgeOffset`).
+ */
 function addOffsetManipulators(context is Context, id is Id, definition is map, edgeStart is Vector, direction is Vector,
     edgeLength is ValueWithUnits, startOffset is ValueWithUnits, endOffset is ValueWithUnits)
 {
@@ -1476,8 +1482,8 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
         addManipulators(context, id, {
                     (START_OFFSET_MANIPULATOR) : linearManipulator({
                             "base" : edgeStart,
-                            "direction" : direction,
-                            "offset" : startOffset,
+                            "direction" : -direction,
+                            "offset" : -startOffset,
                             "primaryParameterId" : "edgeStartOffset"
                         })
                 });
@@ -1487,8 +1493,8 @@ function addOffsetManipulators(context is Context, id is Id, definition is map, 
         addManipulators(context, id, {
                     (END_OFFSET_MANIPULATOR) : linearManipulator({
                             "base" : edgeStart + direction * edgeLength,
-                            "direction" : -direction,
-                            "offset" : endOffset,
+                            "direction" : direction,
+                            "offset" : -endOffset,
                             "primaryParameterId" : "edgeEndOffset"
                         })
                 });
@@ -1790,7 +1796,7 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     }
     if (isEdgePlacement(definition) || isHolePlacement(definition))
     {
-        // Dragged past its end (the edge's, or between holes, where it ends without offsets), an offset flips
+        // Dragged in past its end (the edge's, or between holes, where it ends without offsets), an offset flips
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
         if (startOffset != undefined)
         {
@@ -1819,8 +1825,8 @@ export function stockManipulatorChange(context is Context, definition is map, ne
  * it's sold, rather than an end cutting through one.
  *
  * @param stock : The stock placed.
- * @param defaultOffset : What each end's offset on an edge is set to when it's turned on (or when `partChanged`), unless
- *          it's been set; `undefined` to keep the bounds' default.
+ * @param defaultOffset : How far each end's offset on an edge moves it in (with Opposite direction) when it's turned on
+ *          (or when `partChanged`), unless it's been set; `undefined` to keep the bounds' default (extending it).
  * @param partChanged : Whether the part has changed.
  */
 export function stockEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map,
@@ -1833,7 +1839,7 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
     }
     if (isEdgePlacement(definition) || isHolePlacement(definition))
     {
-        // Moved in along an edge, out between holes (as Opposite direction)
+        // Moved in along an edge (as Opposite direction), out between holes
         const offsetTo = isHolePlacement(definition) ? holePatternPeriod(stock) : defaultOffset;
         if (offsetTo != undefined)
         {
@@ -1843,7 +1849,7 @@ export function stockEditLogic(context is Context, id is Id, oldDefinition is ma
                 if ((turnedOn || partChanged) && !(specifiedParameters[offset.key] ?? false))
                 {
                     definition[offset.key] = offsetTo;
-                    definition[offset.key ~ "OppositeDirection"] = isHolePlacement(definition);
+                    definition[offset.key ~ "OppositeDirection"] = isEdgePlacement(definition);
                 }
             }
         }
