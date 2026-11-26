@@ -8,9 +8,9 @@ those FeatureScripts need. Nothing local changes: no file, fs-studios.json, or .
 is committed. Nothing in the target is deleted.
 
 A test document with keys of its own (an Onshape Enterprise's) is reached with them, on its own domain, and every
-request is signed. Otherwise it must be public: with the usual keys, tabs are listed with anonymous requests (see
-onshape_api/README.md#anonymous-requests), which only work for public documents. See
-docs/fs-cli.md#test-documents.
+request is signed. Otherwise anyone with its link must be able to open it (it's public or link-shared): with the
+usual keys, tabs are listed with anonymous requests (see onshape_api/README.md#anonymous-requests), which only work for
+those. See docs/fs-cli.md#test-documents.
 """
 
 from __future__ import annotations
@@ -66,17 +66,18 @@ class PushToPlan:
 
 
 def check_target(remote: Remote, target: PushTarget) -> str:
-    """Refuses a test document reached with the usual keys which isn't public (1 call); its name. One with keys of its
-    own is reached with them, and every request signed, so isn't checked."""
+    """Refuses a test document reached with the usual keys which anyone with its link can't open (with an anonymous
+    request, so free); its name. One with keys of its own is reached with them, and every request signed, so isn't
+    checked."""
     if target.keys is not None:
         return target.name
-    document = remote.document(target.instance.document_id)
-    if not document.public:
+    document = remote.shared_document(target.instance.document_id)
+    if document is None:
         raise UsageError(
-            f"{target.name} ({document.name}) isn't public, so `fs push --test` can't push to it with the usual keys: "
-            "fs lists a document's tabs (and their microversions) with anonymous requests, which only work for public "
-            "ones. Make it public in its Share dialog, on the Public tab, or give it keys of its own "
-            f"([tool.fs.test_documents.{target.name}] keys)."
+            f"{target.name} is neither public nor link-shared, so `fs push --test` can't push to it with the usual "
+            "keys: fs lists a document's tabs (and their microversions) with anonymous requests, which only work for "
+            "documents anyone with the link can open. Turn on link sharing in its Share dialog (or make it public), "
+            f"or give it keys of its own ([tool.fs.test_documents.{target.name}] keys)."
         )
     return document.name
 

@@ -54,7 +54,7 @@ class FakeOnshape:
         self.files: dict[tuple[str, str], dict[str, tuple[str, bytes]]] = {}
         # (target workspace id, source workspace id, strategy) of each merge
         self.merges: list[tuple[str, str, str]] = []
-        # Documents which aren't public (see `document`)
+        # Documents which anyone with the link can't open (see `shared_document`)
         self.private: set[str] = set()
 
     def _id(self, prefix: str) -> str:
@@ -201,9 +201,10 @@ class FakeOnshape:
         self.calls["default_workspace"] += 1
         return InstancePath(document_id, "lw")
 
-    def document(self, document_id):
-        self.calls["document"] += 1
-        return RemoteDocument(f"Document {document_id}", document_id not in self.private, InstancePath(document_id, "lw"))
+    def shared_document(self, document_id):
+        # Anonymous, so not counted against the API limits, but counted here to see it's checked
+        self.calls["shared_document"] += 1
+        return None if document_id in self.private else RemoteDocument(f"Document {document_id}", False)
 
     def list_images(self, instance):
         self.calls["list_images"] += 1
@@ -1234,13 +1235,13 @@ def test_push_test_pushes_a_script_and_what_it_imports_to_the_test_document(repo
     assert "1 image already the same" in capsys.readouterr().out
 
 
-def test_push_to_a_test_document_with_keys_of_its_own_does_not_check_it_is_public(repo, onshape, capsys):
+def test_push_to_a_test_document_with_keys_of_its_own_does_not_check_it_is_shared(repo, onshape, capsys):
     with_test_documents(repo)
     write(repo, "robotFrame.fs", "frame")
     onshape.private.add(ENTERPRISE_DOCUMENT)
     assert run(onshape, "push", "robotFrame", "--to", "enterprise") == 0
     assert onshape.code("robotFrame.fs", ENTERPRISE_DOCUMENT, "2" * 24) == "frame"
-    assert onshape.calls["document"] == 0
+    assert onshape.calls["shared_document"] == 0
 
 
 def test_a_test_documents_keys_reach_its_domain_signing_every_request(repo, monkeypatch):
@@ -1267,12 +1268,12 @@ def test_push_test_dry_run_changes_nothing(repo, onshape, capsys):
     assert writes(onshape) == 0
 
 
-def test_push_test_refuses_a_document_reached_with_the_usual_keys_which_is_not_public(repo, onshape, capsys):
+def test_push_test_refuses_a_document_reached_with_the_usual_keys_which_is_not_shared(repo, onshape, capsys):
     with_test_documents(repo)
     write(repo, "robotFrame.fs", "frame")
     onshape.private.add(TEST_DOCUMENT)
     assert run(onshape, "push", "robotFrame", "--test") == 2
-    assert "isn't public" in capsys.readouterr().err
+    assert "neither public nor link-shared" in capsys.readouterr().err
     assert writes(onshape) == 0
     assert onshape.calls["list_studios"] == 0
 

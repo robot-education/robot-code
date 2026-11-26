@@ -120,18 +120,19 @@ keys = "FRCDESIGN"   # its own API keys: FRCDESIGN_API_ACCESS_KEY and FRCDESIGN_
 
 - With `keys`, it's reached with keys of its own, from `<keys>_API_ACCESS_KEY` and `<keys>_API_SECRET_KEY` (in `.env`,
   like the usual keys), on its url's domain: an Enterprise's keys, for its documents, on its domain
-  (`frcdesign.onshape.com`). Every request is signed, so it needn't be public, and the calls count against the
+  (`frcdesign.onshape.com`). Every request is signed, so it needn't be shared, and the calls count against the
   Enterprise's API limits, not yours. Only these keys are needed: `fs push --test` doesn't touch the backend.
-- Without, it's reached with the usual keys, and must be **public**: fs lists a document's tabs and their
-  microversions with anonymous requests (see [API usage](#api-usage)), which only work for public documents, so it
-  checks first (1 call), and refuses a document which isn't public before changing anything.
+- Without, it's reached with the usual keys, and anyone with its link must be able to open it: it must be **public
+  or link-shared** (link sharing is enough). fs lists a document's tabs and their microversions with anonymous
+  requests (see [API usage](#api-usage)), which only work for those, so it checks first, with an anonymous request
+  (free), and refuses any other document before changing anything.
 - The backend, frontend, and part sets' main documents can't be test documents (push to the backend with plain
   `fs push`; the others are written only by releases). The keys' account must be able to edit it.
 
 It costs 1 call per studio and image pushed, and 1 per tab created. Listing the target's tabs (once, then again after
 each round of studios pushed, for their new microversions) and downloading its images of the same names (to skip
-uploading those already the same) cost 1 call each with keys of its own; with the usual keys they're anonymous, and
-checking the document is public costs 1.
+uploading those already the same) cost 1 call each with keys of its own; with the usual keys they're anonymous, as is
+checking the document can be opened by anyone with its link.
 
 ### Images
 
@@ -209,10 +210,10 @@ deleted or recreated (see [Releasing](#releasing)).
 
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 [API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum. Requests
-Onshape answers without credentials for public documents (listing tabs, downloading images, and reading a tab's
-metadata) are made anonymously, so they don't count (if a document isn't public, they fall back to signed calls,
-which do); see [the Onshape API](../onshape_api/README.md#anonymous-requests). The counts below are of the calls which
-count:
+Onshape answers without credentials for documents anyone with the link can open, public or link-shared (listing tabs,
+downloading images, and reading a tab's metadata), are made anonymously, so they don't count (for any other document,
+they fall back to signed calls, which do). The backend and frontend documents are public; see
+[the Onshape API](../onshape_api/README.md#anonymous-requests). The counts below are of the calls which count:
 
 - Listing the backend document's tabs: 1 anonymous call. Every command that talks to Onshape does this first, to
   get each tab's microversion.

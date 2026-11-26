@@ -26,10 +26,18 @@ def get_document_elements(
     )
 
 
-def get_document(api: Api, document_path: DocumentPath) -> DocumentInfo:
-    """A document's information: whether it's public, and the workspace it opens to (1 call, even for public
-    documents)."""
-    return api.get(api_path("documents", document_path, DocumentPath, skip_document_d=True))
+def get_document(api: Api, document_path: DocumentPath, fallback: bool = True) -> DocumentInfo:
+    """A document's information: whether it's public, and the workspace it opens to.
+
+    Anonymous for documents anyone with the link can open (see `Api._request`), public or link-shared.
+
+    Args:
+        fallback: False to raise Onshape's refusal of the anonymous request (an ApiError: 401, 403, or 404) for a
+            document which isn't one of those, rather than ask again with credentials (see `Api._request`).
+    """
+    return api.get(
+        api_path("documents", document_path, DocumentPath, skip_document_d=True), anonymous=True, fallback=fallback
+    )
 
 
 def get_default_workspace(api: Api, document_path: DocumentPath) -> InstancePath:

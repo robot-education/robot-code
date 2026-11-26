@@ -19,6 +19,7 @@ from onshape_api.endpoints import (
     versions,
     workspaces,
 )
+from onshape_api.api.key_api import ANONYMOUS_REFUSALS
 from onshape_api.exceptions import ApiError
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
@@ -101,12 +102,12 @@ class Version:
 
 @dataclasses.dataclass
 class RemoteDocument:
-    """A document, as `fs push --test` checks it before writing to it."""
+    """A document anyone with its link can open (public or link-shared), as `fs push --test` checks it before writing
+    to it: fs lists tabs anonymously, which only works for those."""
 
     name: str
-    # Whether anyone can open it; fs lists tabs anonymously, which only works for public documents
+    # Whether it's public, rather than only link-shared
     public: bool
-    default_workspace: InstancePath
 
 
 @dataclasses.dataclass
@@ -159,8 +160,9 @@ class Remote(Protocol):
 
     def default_workspace(self, document_id: str) -> InstancePath: ...
 
-    def document(self, document_id: str) -> RemoteDocument:
-        """Whether a document is public, and the workspace it opens to (1 call)."""
+    def shared_document(self, document_id: str) -> RemoteDocument | None:
+        """The document, if anyone with its link can open it (it's public or link-shared); None if not (anonymous, so
+        free)."""
         ...
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
@@ -286,13 +288,14 @@ class OnshapeRemote:
     def default_workspace(self, document_id: str) -> InstancePath:
         return documents.get_default_workspace(self.api, DocumentPath(document_id))
 
-    def document(self, document_id: str) -> RemoteDocument:
-        info = documents.get_document(self.api, DocumentPath(document_id))
-        return RemoteDocument(
-            info.get("name", ""),
-            bool(info.get("public")),
-            InstancePath(document_id, info["defaultWorkspace"]["id"]),
-        )
+    def shared_document(self, document_id: str) -> RemoteDocument | None:
+        try:
+            info = documents.get_document(self.api, DocumentPath(document_id), fallback=False)
+        except ApiError as error:
+            if error.status_code in ANONYMOUS_REFUSALS:
+                return None
+            raise
+        return RemoteDocument(info.get("name", ""), bool(info.get("public")))
 
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)

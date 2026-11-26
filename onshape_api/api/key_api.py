@@ -83,8 +83,12 @@ class KeyApi(Api):
         headers: dict[str, str] = {},
         anonymous: bool = False,
         raw: bool = False,
+        fallback: bool = True,
     ):
         document_id = _document_id(path)
+        if anonymous and not fallback:
+            # Only anonymously, even for a document refused before or keys which sign everything
+            return self._send(method, path, query, body, headers, signed=False, raw=raw)
         if anonymous and self._anonymous and document_id not in self._private_documents:
             try:
                 return self._send(method, path, query, body, headers, signed=False, raw=raw)
@@ -176,7 +180,7 @@ class KeyApi(Api):
             return res
 
 
-# Statuses Onshape answers anonymous requests about documents which aren't public with
+# Statuses Onshape answers anonymous requests about documents which aren't public or link-shared with
 ANONYMOUS_REFUSALS = (http.HTTPStatus.UNAUTHORIZED, http.HTTPStatus.FORBIDDEN, http.HTTPStatus.NOT_FOUND)
 
 

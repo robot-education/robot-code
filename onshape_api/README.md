@@ -31,15 +31,24 @@ folder).
 
 ## Anonymous requests
 
-Onshape answers some requests about public documents without credentials, and those don't count against the API
-limits of the keys' owner. Endpoints which can pass `anonymous=True` to `api.get`: `KeyApi` sends the request
-unsigned, and if the document isn't public (401, 403, or 404), sends it again signed, and signs every later request
-about that document from the start.
+Onshape answers some requests without credentials about documents anyone with the link can open, and those don't
+count against the API limits of the keys' owner. That's a **public** document or a **link-shared** one: link sharing
+is enough. Onshape reports both with `"permission": "ANONYMOUS_ACCESS"` to an anonymous `GET /documents/{did}`, a
+public one with `"public": true` and a link-shared one with `"public": false`. As of November 2026 the backend and
+frontend documents are public, and FRCDesign's Enterprise test document (`fs push --test`'s) is link-shared, which
+answered an anonymous tab listing just the same.
 
-Tested in October 2026 (API v16), on public documents:
+Endpoints which can pass `anonymous=True` to `api.get`: `KeyApi` sends the request unsigned, and if the document is
+neither (401, 403, or 404), sends it again signed, and signs every later request about that document from the start.
+With `fallback=False` too, it raises the refusal instead, to find out for free whether anyone can open a document
+(`documents.get_document`, which `fs push --test` checks a test document with).
+
+Tested in October 2026 (API v16), on public documents (and `GET /documents/{did}` and the elements listing in
+November 2026, on a link-shared one too):
 
 | Endpoint | Anonymous | Used by |
 | --- | --- | --- |
+| `GET /documents/{did}` | Yes | `documents.get_document` |
 | `GET /documents/d/{did}/{wvm}/{wvmid}/elements` | Yes | `documents.get_document_elements` |
 | `GET /metadata/d/{did}/{wvm}/{wvmid}/e/{eid}` | Yes | `metadata.get_element_metadata` |
 | `GET /blobelements/d/{did}/{wvm}/{wvmid}/e/{eid}` | Yes | `blob_elements.download_file` |
@@ -52,8 +61,9 @@ Tested in October 2026 (API v16), on public documents:
 | `GET /parts/d/{did}/{wvm}/{wvmid}/e/{eid}` | No (401) | |
 
 `make_key_api(prefix=..., base_url=..., anonymous=False)` makes an `Api` of other keys (an Onshape Enterprise's,
-from `<prefix>_API_ACCESS_KEY` and `<prefix>_API_SECRET_KEY`) on their own domain, which signs every request: an
-Enterprise's documents aren't public, so anonymous requests about them are only refused.
+from `<prefix>_API_ACCESS_KEY` and `<prefix>_API_SECRET_KEY`) on their own domain, which signs every request (but
+those with `fallback=False`): an Enterprise's documents usually aren't shared, so anonymous requests about them would
+only be refused, and the Enterprise's API limits are its own.
 
 Anything that changes a document always needs credentials. To check an endpoint, request it with `curl` and no
 credentials (e.g. `curl -sS "https://cad.onshape.com/api/v16/documents/d/{did}/w/{wid}/elements"`); when one

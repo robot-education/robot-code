@@ -54,8 +54,9 @@ To try a change in Onshape, push just the FeatureScripts being tested (they brin
 document with `fs push NAME --test`, rather than everything to the backend with plain `fs push`, unless the test
 needs every FeatureScript in one document; see `docs/fs-cli.md#test-documents`. It needs the user's yes like any
 push. The test documents are the ones in `[tool.fs.test_documents]` (FRCDesign's Enterprise document, with its own
-keys, is `--test`'s); don't push to other documents. One reached with the usual keys must be public, as fs refuses
-others (it lists tabs anonymously, which only works for public documents).
+keys, is `--test`'s); don't push to other documents. One reached with the usual keys must be public or link-shared
+(link sharing is enough), as fs refuses others: it lists tabs anonymously, which only works for documents anyone with
+the link can open.
 
 Every git branch pushes to the backend's main workspace. Releases are asked for in `releases/` files, which the Onshape
 workflow runs on main once they're merged: each pushes what it releases over Onshape's, as it is on GitHub, then
