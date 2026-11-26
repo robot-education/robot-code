@@ -28,7 +28,7 @@ from concurrent import futures
 from typing import Callable, Iterable, TypeVar
 
 from fs_cli import git
-from fs_cli.config import Config
+from fs_cli.config import Config, Document
 from fs_cli.renames import most_similar
 from fs_cli.remote import Remote, RemoteStudio, file_name_for, image_type, is_local, relative_path_for
 from onshape_api.exceptions import ApiError
@@ -146,21 +146,45 @@ class Workspace:
         state: State,
         remote: Remote,
         use_git: bool = True,
-        instance: InstancePath | None = None,
+        connect: Callable[[Document], Remote] | None = None,
     ) -> None:
         """Args:
-        instance: The backend workspace it syncs with: the main one, or a git branch's (see fs_cli/branches.py).
+        remote: Reaches the backend document, and every other document reached the same way.
+        connect: Makes a remote reaching a document another way (with its own keys, or on another domain); None to
+            reach every document with `remote`, as tests do.
         """
         self.config = config
         self.state = state
         self.remote = remote
         self.use_git = use_git
-        self.instance = instance or config.backend
+        self.instance = config.backend
+        self._connect = connect
+        self._remotes: dict[tuple[str | None, str], Remote] = {}
+        self._instances: dict[str, InstancePath] = {}
         self.listed_microversions: dict[str, str] = {}
         # Every tab, as of the last listing
         self.listed_studios: list[RemoteStudio] = []
         # The element ids of tabs whose imports were just pointed at new versions locally (see `push_studios`)
         self.updated_imports: set[str] = set()
+
+    def remote_for(self, document: Document) -> Remote:
+        """What reaches a document: the backend's remote, unless it's reached another way (its own keys, or another
+        domain)."""
+        backend = self.config.backend_document
+        way = (document.keys, document.base_url)
+        if self._connect is None or way == (backend.keys, backend.base_url):
+            return self.remote
+        if way not in self._remotes:
+            self._remotes[way] = self._connect(document)
+        return self._remotes[way]
+
+    def instance_of(self, document: Document) -> InstancePath:
+        """A document's workspace: the one its url names, else its default workspace (a call, once)."""
+        if document.instance is not None:
+            return document.instance
+        if document.name not in self._instances:
+            self._instances[document.name] = self.remote_for(document).default_workspace(document.document_id)
+        return self._instances[document.name]
 
     def resolve_targets(self, args: Iterable[str]) -> Targets | None:
         """Resolves command line arguments into Targets, or None for everything.

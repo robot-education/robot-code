@@ -9,7 +9,7 @@ the chosen size and head. A whole input can be shown only for some, too; hidden,
 option is fixed: it's left out of the configuration, and its parameter set to that option when the feature's inserted.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
-(`fs parts`, see docs/parts.md), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
+(`fs build` and `fs release`, see docs/parts.md), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
 List input an enum (`<input id>_conf`) whose values are its option ids.
 """
 
@@ -125,6 +125,8 @@ class ConfiguredStudio:
             manifest says it.
         top_mate_connector: The id its feature gives a second mate connector, on its top, where another part sits on
             it, as a screw sits on a washer. Named as `mate_connector` is.
+        bottom_mate_connector: The id its feature gives a mate connector on its bottom, where it sits on another part,
+            as a bearing's far face does. Named as `mate_connector` is.
     """
 
     name: str
@@ -134,12 +136,17 @@ class ConfiguredStudio:
     factor_first: Sequence[str] = ()
     mate_connector: str | None = None
     top_mate_connector: str | None = None
+    bottom_mate_connector: str | None = None
 
     @property
     def tab_name(self) -> str:
         return self.tab or self.name.capitalize()
 
     def __post_init__(self) -> None:
+        ids = [input.id for input in self.inputs]
+        # Vendor is always the first choice (docs/featurescript-style.md)
+        if "vendor" in ids and ids[0] != "vendor":
+            raise ValueError(f"{self.name}: its vendor input is after {ids[0]}; vendor goes first")
         defaults: dict[str, str] = {}
         earlier: dict[str, Input] = {}
         for input in self.inputs:
@@ -242,6 +249,7 @@ class ConfiguredStudio:
             "feature": self.feature,
             **({"mateConnector": self.mate_connector} if self.mate_connector else {}),
             **({"topMateConnector": self.top_mate_connector} if self.top_mate_connector else {}),
+            **({"bottomMateConnector": self.bottom_mate_connector} if self.bottom_mate_connector else {}),
         }
 
     def _factor_order(self) -> list[str]:

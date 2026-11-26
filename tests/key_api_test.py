@@ -78,3 +78,14 @@ def test_json_files_download_as_bytes(sent, monkeypatch):
     monkeypatch.setattr(key_api.requests, "request", lambda *args, **kwargs: Response(200, stored))
     path = ElementPath("00dd11dabe44da2db458f898", "6c20cd994b174cc99668701f", "0123456789abcdef01234567")
     assert blob_elements.download_file(key_api.KeyApi("access", "secret"), path) == stored.encode()
+
+
+def test_anonymous_only_requests_raise_refusals_without_credentials(sent):
+    api = key_api.KeyApi("access", "secret", anonymous=False)
+    with pytest.raises(ApiError) as error:
+        api.get(OTHER, anonymous=True, fallback=False)
+    assert error.value.status_code == http.HTTPStatus.UNAUTHORIZED
+    # Even with keys which sign everything else
+    api.get(DOCUMENT, anonymous=True, fallback=False)
+    api.get(DOCUMENT, anonymous=True)
+    assert sent == [(OTHER, False), (DOCUMENT, False), (DOCUMENT, True)]

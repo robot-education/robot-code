@@ -26,10 +26,11 @@ the user's say-so).
    It has the dialog, which works: its dropdowns, checkboxes, tabs, lookup table levels, and typed values show what
    each choice shows (a long press shows a parameter's tooltip by touch), in any combination: the page compiles the
    precondition's conditions to JavaScript and draws the dialog itself. Setting a parameter back to its default unsets it. Array items can't be added there;
-   `uv run fs ui <file> --set name=value` renders any state as a PNG.
+   `uv run fs ui <file> --set name=value` renders any state as a PNG. For a part set's Feature Studio (fasteners,
+   bearings), it shows each of its Part Studios' configuration panels instead, as Onshape will (see docs/parts.md).
 
 The page also lists every option of each lookup table the feature's parameters use (a row per path through its
-levels, without values), to glance through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> -n <table> --md`
+levels, without values), to glance through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> --name <table> --md`
 prints one as Markdown.
 
 Say in the reply what wasn't checked: nothing here runs the feature in Onshape, so its geometry, and whether its

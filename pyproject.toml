@@ -26,36 +26,78 @@ onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
 [tool.fs]
 # Folder the backend document's Feature Studios are mirrored to (Onshape folders become subfolders).
 path = "featurescripts"
-# The backend document: the source code of every FeatureScript. `fs push`/`fs pull` sync it with `path`.
-backend = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
-# The public document `fs release` publishes released FeatureScripts to. Not mirrored locally.
-frontend = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
+# The backend document synced with `path` (`fs push`/`fs pull`), which every release's version is made in.
+backend = "backend"
+# The frontend document FeatureScripts are released to (`fs release`). Not mirrored locally.
+frontend = "frontend"
 # The repo on GitHub: released FeatureScripts link to it.
 github = "https://github.com/robot-education/robot-code"
-# The git branch the backend's main workspace holds, changed only by merging (`fs sync-main`, which the Onshape workflow
-# runs): every other branch pushes to a workspace of its own (see docs/fs-cli.md#branches).
+# The git branch releases to frontend documents run on, once it's what GitHub has (see docs/fs-cli.md#branches).
 main_branch = "main"
 # The icon (in `path`) FRCDesignApp shows for a released feature with no icon of its own: the robot icon.
 default_icon = "core/robotIcon.svg"
 
+# The documents fs works with (see docs/fs-cli.md#documents). Each has a role:
+# - backend: FeatureScripts' and part sets' source, to try them out in. `backend` above is synced with `path`; `fs push
+#   NAME --to DOC` pushes copies of FeatureScripts to another, and `fs build SET --to DOC` builds a part set there.
+# - library: for loading into a test FRCDesignApp. `fs release NAME --to DOC` releases there, unnumbered, from any branch.
+# - frontend: user facing. Releases go there, numbered, from main: FeatureScripts' to `frontend` above, and each part
+#   set's to its own.
+# `keys` names the variables holding a document's own API keys (`<keys>_API_ACCESS_KEY` and `<keys>_API_SECRET_KEY`, in
+# .env), like an Enterprise's, which reach it on its url's domain; without, it's reached with the usual keys.
+[tool.fs.documents.backend]
+role = "backend"
+url = "https://cad.onshape.com/documents/00dd11dabe44da2db458f898/w/6c20cd994b174cc99668701f"
+
+[tool.fs.documents.enterprise]   # FRCDesign's Enterprise, to try FeatureScripts out there
+role = "backend"
+url = "https://frcdesign.onshape.com/documents/d52352ee99ffad3a0b87c80c/w/7f19e94456b15d1e8ca5715c"
+keys = "FRCDESIGN"
+
+[tool.fs.documents.library]   # FRCDesignLib Test Document, for a local FRCDesignApp
+role = "library"
+url = "https://cad.onshape.com/documents/b82fec8aded5d7a705a3d658"
+
+[tool.fs.documents.frontend]   # The public document people import FeatureScripts from
+role = "frontend"
+url = "https://cad.onshape.com/documents/9cffa92db8b62219498f89af/w/06b332ccabc9d2e0aa0abf88"
+
+[tool.fs.documents.frcdesignlib-fasteners]   # FRCDesignLib's fasteners
+role = "frontend"
+url = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
+
+[tool.fs.documents.configlib-fasteners]   # ConfigLib's (FTC's) fasteners
+role = "frontend"
+url = "https://cad.onshape.com/documents/d67349e2db0a99ac62c57a10"
+
 # Part sets: Part Studios built from a definition in `folder`, whose FeatureScript is in the backend document but only
-# they use. `fs parts <set> --test` builds them there as `<Part> (TEST)`; `fs parts <set> --release` releases them into `main`, the
-# FRCDesignLib document people insert them from (see docs/parts.md)
+# they use. `fs build SET` builds them there as `<Part> (TEST)`; `fs release SET` releases them into their `frontend`,
+# the document people insert them from (see docs/parts.md)
 [tool.fs.parts.fasteners]
 title = "Fasteners"
 folder = "fasteners"
 definition = "fastenerTables.py"
-main = "https://cad.onshape.com/documents/77461d97ef7c9d816f0c7351"
-
-[tool.fs.parts.fasteners.targets]
-test = "https://cad.onshape.com/documents/b82fec8aded5d7a705a3d658"   # FRCDesignLib Test Document, for a local FRCDesignApp
+frontend = "frcdesignlib-fasteners"
 
 # FTC's metric fasteners: the same Feature Studio and tables, configured by their own definition, released into ConfigLib
 [tool.fs.parts.ftcFasteners]
 title = "FTC Fasteners"
 folder = "fasteners"
 definition = "ftcFastenerTables.py"
-main = "https://cad.onshape.com/documents/d67349e2db0a99ac62c57a10"
+frontend = "configlib-fasteners"
+
+# FRCDesign's flanged and radial bearings. Not released yet: give it its FRCDesignLib document as its frontend.
+[tool.fs.parts.bearings]
+title = "Bearings"
+folder = "bearings"
+definition = "bearingTables.py"
+
+# FTC's goBILDA bearings: the same Feature Studio and tables, configured by their own definition. Not released yet: give
+# it its ConfigLib document as its frontend.
+[tool.fs.parts.ftcBearings]
+title = "FTC Bearings"
+folder = "bearings"
+definition = "ftcBearingTables.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]

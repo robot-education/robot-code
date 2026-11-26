@@ -112,7 +112,7 @@ def test_a_definition_configuring_studios_alone_writes_its_exports_alone(tmp_pat
 
 def test_gen_tables_command(tmp_path, monkeypatch, capsys):
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts" / "belt"
     code_dir.mkdir(parents=True)
@@ -237,3 +237,10 @@ def test_generate_rejects_exported_feature_studios(tmp_path):
     (tmp_path / "tables.py").write_text("CONTENTS = []\nEXPORTS = {'other.fs': ''}\n")
     with pytest.raises(GenerateError, match="Feature Studio"):
         generate(tmp_path, "2960")
+
+
+def test_a_tables_vendor_is_its_first_level():
+    sizes = Node("size", [Value("1/2 in", {"x": "1"})])
+    Table("t", Node("vendor", [Value("WCP", next=sizes)]))
+    with pytest.raises(ValueError, match="vendor goes first"):
+        Table("t", Node("size", [Value("1/2 in", next=Node("vendor", [Value("WCP", {"x": "1"})]))]))

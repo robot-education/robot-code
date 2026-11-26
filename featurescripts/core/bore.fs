@@ -2,12 +2,12 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
 // Exports Fit and SplineType, parameter types
-export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
+export import(path : "926d933eb33b11a3452660fd", version : "4283a0cea8f16367032c5114");
 export import(path : "6e24956e9977116c79280620", version : "4bf61c29c6573723844585f5");
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 import(path : "eb11a2948f8123134339137f", version : "2209aff42808fb5a7c367b91");
 // SplineXS bores at each standard fit
-import(path : "35acc10879cd067431ae1122", version : "d6247ba8d64267eb0851d9fc");
+import(path : "35acc10879cd067431ae1122", version : "ad6db8d328f9066cba1a5714");
 
 /**
  * Bores through parts on a shaft (sprockets, gears, and the like): a hex, round, or spline bore, and optionally an
@@ -120,6 +120,74 @@ export predicate borePredicate(definition is map)
 }
 
 /**
+ * Whether the mating gear's own bore (`mateBorePredicate`) has a fit, as `boreHasFit`.
+ */
+export predicate mateBoreHasFit(definition is map)
+{
+    definition.mateBoreShape != BoreShape.ROUND;
+    definition.mateBoreShape != BoreShape.HEX || definition.mateBoreHexSize != BoreHexSize.CUSTOM;
+}
+
+/**
+ * A second bore, as `borePredicate`'s, for a feature's second part: a gear pair's mating gear, when it has its own.
+ * Its parameters are `borePredicate`'s, with `mate` before them (`mateAddBore`, `mateBoreShape`, ...), its fit's too
+ * (`mateBoreFitPredicate`).
+ */
+export predicate mateBorePredicate(definition is map)
+{
+    annotation { "Name" : "Add bore", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+    definition.mateAddBore is boolean;
+
+    if (definition.mateAddBore)
+    {
+        annotation { "Group Name" : "Add bore", "Collapsed By Default" : false, "Driving Parameter" : "mateAddBore" }
+        {
+            annotation { "Name" : "Bore", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.mateBoreShape is BoreShape;
+
+            if (definition.mateBoreShape == BoreShape.HEX)
+            {
+                annotation { "Name" : "Hex size", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.mateBoreHexSize is BoreHexSize;
+
+                if (definition.mateBoreHexSize == BoreHexSize.CUSTOM)
+                {
+                    annotation { "Name" : "Width", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"], "Description" : "Across the hex's flats." }
+                    isLength(definition.mateHexWidth, HEX_WIDTH_BOUNDS);
+                }
+            }
+            else if (definition.mateBoreShape == BoreShape.ROUND)
+            {
+                annotation { "Name" : "Diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                isLength(definition.mateBoreDiameter, ROUND_DIAMETER_BOUNDS);
+            }
+            else
+            {
+                annotation { "Name" : "Spline type", "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+                definition.mateSplineType is SplineType;
+            }
+
+            if (mateBoreHasFit(definition))
+            {
+                mateBoreFitPredicate(definition);
+            }
+
+            annotation { "Name" : "Entrance chamfer", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+            definition.mateEntranceChamfer is boolean;
+
+            if (definition.mateEntranceChamfer)
+            {
+                annotation { "Group Name" : "Entrance chamfer", "Collapsed By Default" : false, "Driving Parameter" : "mateEntranceChamfer" }
+                {
+                    annotation { "Name" : "Chamfer distance", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    isLength(definition.mateChamferDistance, ENTRANCE_CHAMFER_BOUNDS);
+                }
+            }
+        }
+    }
+}
+
+/**
  * A bore's shape and size: what `cutBores` cuts.
  *
  * @type {{
@@ -131,6 +199,8 @@ export predicate borePredicate(definition is map)
  *      @field fit {Fit} : @optional The fit its clearance is for: a SplineXS bore at a standard fit is sketched with it
  *              (`SPLINE_XS_BORES`), rather than offset.
  *      @field chamfer {ValueWithUnits} : @optional Its entrance chamfer's distance, if it has one.
+ *      @field parameters {array} : The parameters which set it, for errors: its shape's, size's, and fit's.
+ *      @field chamferParameters {array} : Its entrance chamfer's.
  * }}
  */
 export type Bore typecheck canBeBore;
@@ -144,6 +214,8 @@ export predicate canBeBore(value)
     isLength(value.clearance);
     value.fit == undefined || value.fit is Fit;
     value.chamfer == undefined || isLength(value.chamfer);
+    value.parameters is array;
+    value.chamferParameters is array;
 }
 
 /**
@@ -167,18 +239,51 @@ export function definitionBore(definition is map)
                 "splineType" : definition.splineType,
                 "clearance" : hasFit ? fitClearance(definition, across) : 0 * meter,
                 "fit" : hasFit ? definition.fit : Fit.NONE,
-                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined
+                "chamfer" : definition.entranceChamfer ? definition.chamferDistance : undefined,
+                "parameters" : BORE_PARAMETERS,
+                "chamferParameters" : ["chamferDistance"]
             } as Bore;
 }
 
 export const BORE_PARAMETERS = ["boreShape", "boreHexSize", "hexWidth", "boreDiameter", "splineType", "fit", "fitClearance"];
 
 /**
+ * The parameters of the mating gear's own bore (`mateBorePredicate`), as `BORE_PARAMETERS`.
+ */
+export const MATE_BORE_PARAMETERS = ["mateBoreShape", "mateBoreHexSize", "mateHexWidth", "mateBoreDiameter", "mateSplineType", "mateFit", "mateFitClearance"];
+
+/**
+ * The bore `mateBorePredicate` declares, or `undefined` without one, as `definitionBore`.
+ */
+export function definitionMateBore(definition is map)
+{
+    var bore = definitionBore({
+                "addBore" : definition.mateAddBore,
+                "boreShape" : definition.mateBoreShape,
+                "boreHexSize" : definition.mateBoreHexSize,
+                "hexWidth" : definition.mateHexWidth,
+                "boreDiameter" : definition.mateBoreDiameter,
+                "splineType" : definition.mateSplineType,
+                "fit" : definition.mateFit,
+                "fitClearance" : definition.mateFitClearance,
+                "entranceChamfer" : definition.mateEntranceChamfer,
+                "chamferDistance" : definition.mateChamferDistance
+            });
+    if (bore != undefined)
+    {
+        bore.parameters = MATE_BORE_PARAMETERS;
+        bore.chamferParameters = ["mateChamferDistance"];
+    }
+    return bore;
+}
+
+/**
  * Cuts `bore` through each of `targets` (the parts), centered on its plane in `planes` (along its normal), with
  * `identities` (queries, or undefined) to disambiguate them. If the cut or its chamfer fails, the parts are shown in
- * blue, with what failed in red.
+ * blue, with what failed in red. If the bore's bigger than a part, the cut uses it up, so `reconstructOp` (a function
+ * of an `Id`) builds the parts again under the id it's given, to show in blue.
  */
-export function cutBores(context is Context, id is Id, bore is Bore, planes is array, identities is array, targets is array)
+export function cutBores(context is Context, id is Id, bore is Bore, planes is array, identities is array, targets is array, reconstructOp is function)
 {
     const tools = boreTools(context, id, bore, planes, identities);
     // The bore's edges inside the parts, to tell its entrance edges from
@@ -195,14 +300,16 @@ export function cutBores(context is Context, id is Id, bore is Bore, planes is a
     {
         // A failed boolean changes nothing, so the bores and the parts are still there to show
         addDebugEntities(context, qUnion(targets), DebugColor.BLUE);
-        throw regenError("Failed to cut bore.", BORE_PARAMETERS, tools);
+        throw regenError("Failed to cut bore.", bore.parameters, tools);
     }
     for (var target in targets)
     {
         if (isQueryEmpty(context, target))
         {
             // The bore's bigger than the part: the cut used it up, with the bores, so they're made again to show
-            throw regenError("The bore is bigger than the part.", BORE_PARAMETERS, boreTools(context, id + "error", bore, planes, identities));
+            reconstructOp(id + "errorParts");
+            addDebugEntities(context, qCreatedBy(id + "errorParts", EntityType.BODY)->qBodyType(BodyType.SOLID), DebugColor.BLUE);
+            throw regenError("The bore is bigger than the part.", bore.parameters, boreTools(context, id + "error", bore, planes, identities));
         }
     }
 
@@ -221,7 +328,7 @@ export function cutBores(context is Context, id is Id, bore is Bore, planes is a
         {
             // The parts, bored
             addDebugEntities(context, qUnion(targets), DebugColor.BLUE);
-            throw regenError("Failed to chamfer bore.", ["chamferDistance"], entranceEdges);
+            throw regenError("Failed to chamfer bore.", bore.chamferParameters, entranceEdges);
         }
     }
 }

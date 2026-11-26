@@ -106,7 +106,7 @@ export const LENGTH_BOUNDS =
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts"
     (code_dir / "core").mkdir(parents=True)

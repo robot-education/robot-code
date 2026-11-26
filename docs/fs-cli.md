@@ -3,13 +3,72 @@
 How `fs` syncs `featurescripts/` with the Onshape documents, checks and navigates FeatureScript, generates files,
 and releases features. Every command takes `--help`. For tests and the evaluator, see [testing.md](testing.md).
 
+## Documents
+
+`fs` works with a few Onshape documents, named in `[tool.fs.documents]` in `pyproject.toml`. Each has a role:
+
+- **backend**: the source of FeatureScripts and part sets, to try them out in. The backend (`[tool.fs] backend`) is
+  synced with `featurescripts/` (`fs push`, `fs pull`), and holds every release's version. Another, like FRCDesign's
+  Enterprise document, holds copies of what's pushed to it (`fs push NAME --to DOC`, see
+  [Pushing to another backend](#pushing-to-another-backend)) and part sets built there (`fs build SET --to DOC`).
+- **library**: for loading into a test FRCDesignApp. `fs release NAME --to DOC` releases a FeatureScript or a part set
+  there, from any branch, unnumbered (see [Releasing](#releasing)).
+- **frontend**: user facing. Releases go there, numbered, from main: FeatureScripts' to `[tool.fs] frontend`, and each
+  part set's to its own (`[tool.fs.parts.<set>] frontend`): FRCDesignLib's and ConfigLib's documents, one per part set.
+
+```toml
+[tool.fs]
+backend = "backend"     # the backend synced with featurescripts/
+frontend = "frontend"   # where FeatureScripts are released
+
+[tool.fs.documents.backend]
+role = "backend"
+url = "https://cad.onshape.com/documents/<id>/w/<id>"
+
+[tool.fs.documents.enterprise]
+role = "backend"
+url = "https://frcdesign.onshape.com/documents/<id>/w/<id>"
+keys = "FRCDESIGN"      # its own API keys: FRCDESIGN_API_ACCESS_KEY and FRCDESIGN_API_SECRET_KEY
+
+[tool.fs.documents.frcdesignlib-fasteners]
+role = "frontend"
+url = "https://cad.onshape.com/documents/<id>"
+
+[tool.fs.parts.fasteners]
+frontend = "frcdesignlib-fasteners"
+```
+
+A document's url says which Onshape it's on: cad.onshape.com, or an Enterprise's own domain. It names a workspace
+(`/w/<id>`), or `fs` looks up the document's default workspace (a call) when it needs one; the backend's must name its
+workspace. Each is reached:
+
+- With `keys`, with keys of its own, from `<keys>_API_ACCESS_KEY` and `<keys>_API_SECRET_KEY` (in `.env`, like the
+  usual keys), on its url's domain: an Enterprise's keys, for its documents. Every request is signed, so it needn't be
+  shared, and the calls count against the Enterprise's API limits, not yours.
+- Without, with the usual keys (`API_ACCESS_KEY` and `API_SECRET_KEY`). Requests Onshape answers without credentials
+  are made anonymously first (see [API usage](#api-usage)).
+
+`fs` writes only to these documents, and each command only to the roles it's for: `--to` names a document of the role
+the command takes, and anything else is refused. Two names can't be the same document.
+
 ## Pushing and pulling
 
-`[tool.fs]` in `pyproject.toml` points `fs` at the backend document, and every Feature Studio in it corresponds
-to a file in `featurescripts/`. The local folder structure is yours: once a file is tracked you can move or rename
-it freely, and the folders in Onshape are ignored. The only time Onshape's folders matter is when a studio is
-pulled into the repo for the first time, e.g. a studio named `robotFrame.fs` in the document's `Robot` folder
-lands at `featurescripts/Robot/robotFrame.fs`.
+The backend document's every Feature Studio corresponds to a file in `featurescripts/`. The local folder structure is
+yours: once a file is tracked you can move or rename it freely, and the folders in Onshape are ignored. The only time
+Onshape's folders matter is when a studio is pulled into the repo for the first time, e.g. a studio named
+`robotFrame.fs` in the document's `Robot` folder lands at `featurescripts/Robot/robotFrame.fs`.
+
+The repo is the source of truth, so pushing is the everyday command. It's never implied: `fs` with no command, or a
+mistyped one, is an error, so nothing reaches Onshape unless it's asked for by name.
+
+```
+uv run fs push               # push every local change
+uv run fs push robotFrame    # push one FeatureScript, by name...
+uv run fs push featurescripts/Robot   # ...or by file or folder
+uv run fs push --dry-run     # show what would be pushed
+uv run fs push --no-commit   # push without committing
+uv run fs push robotFrame --to enterprise   # push one FeatureScript (and what it imports) to another backend instead
+```
 
 ### Renaming and moving files
 
@@ -41,16 +100,7 @@ uv run fs tabs --rename      # rename tabs to match their files' names (asks fir
 `fs link` doesn't change either side: run `fs status` afterwards to see how they differ. Released tabs (see
 [Releasing](#releasing)) are never renamed.
 
-The repo is the source of truth, so pushing is the everyday command. It's never implied: `fs` with no command, or a
-mistyped one, is an error, so nothing reaches Onshape unless it's asked for by name.
-
-```
-uv run fs push               # push every local change
-uv run fs push robotFrame    # push one FeatureScript, by name...
-uv run fs push featurescripts/Robot   # ...or by file or folder
-uv run fs push --dry-run     # show what would be pushed
-uv run fs push --no-commit   # push without committing
-```
+### What a push does
 
 A file is pushed after the files it imports that are pushed with it, naming the versions they were just given:
 Onshape rewrites the import in a tab pushed before the tab it imports, which would leave the local file behind.
@@ -81,6 +131,40 @@ import(path : "core/myNewUtils.fs", version : "");
 FeatureScripts named `*.local.fs`, like another lighten feature kept for reference, stay in the repo too: they
 aren't synced with tabs, and `fs check` and `fs format` skip them unless they're named (`fs check
 featurescripts/released/lighten/partLighten.local.fs`).
+
+### Pushing to another backend
+
+`fs push --to DOC` pushes the FeatureScripts named, and every studio and image they import from the repo (directly or
+not, by element id or by path), to another backend document than the one synced with the repo: FRCDesign's Enterprise
+document (`enterprise`), say. `--to backend` is a plain `fs push`.
+
+```
+uv run fs push robotFrame --to enterprise                       # robotFrame and what it imports
+uv run fs push robotFrame robotGear --to enterprise             # several, sharing their imports
+uv run fs push featurescripts/Robot --to enterprise --dry-run   # a folder's; show what would be pushed
+```
+
+This is the way to try out a change in Onshape: push just the FeatureScripts you're testing to another backend,
+rather than everything to the backend (with plain `fs push`), unless the test needs every FeatureScript in one document.
+It leaves the backend, the local files, `fs-studios.json`, and git as they are (nothing is committed), so it can be
+run as often as you like from any branch. `fs build SET --to DOC` builds a part set there the same way (see
+[docs/parts.md](parts.md)).
+
+- The target's tabs are matched with files by name (`robotFrame.fs`, or `robotFrame`): a tab of the same name is
+  overwritten, without checking whether it changed in Onshape, and a missing one is created at the top level. Nothing
+  in the target is deleted, and its other tabs are left alone.
+- Imports are pointed at the target's tabs, at the versions just pushed, as each is pushed after what it imports; the
+  local files keep importing the backend's tabs (or by path).
+- A document with `keys` is reached with them alone: `fs push --to` doesn't touch the backend. One reached with the
+  usual keys must be **public or link-shared** (link sharing is enough): fs lists a document's tabs and their
+  microversions with anonymous requests (see [API usage](#api-usage)), which only work for those, so it checks first,
+  with an anonymous request (free), and refuses any other document before changing anything. The keys' account must be
+  able to edit it.
+
+It costs 1 call per studio and image pushed, and 1 per tab created. Listing the target's tabs (once, then again after
+each round of studios pushed, for their new microversions) and downloading its images of the same names (to skip
+uploading those already the same) cost 1 call each with keys of its own; with the usual keys they're anonymous, as is
+checking the document can be opened by anyone with its link.
 
 ### Images
 
@@ -158,10 +242,10 @@ deleted or recreated (see [Releasing](#releasing)).
 
 Onshape limits API calls per year (2,500 per user on Standard/Free plans; see
 [API limits](https://onshape-public.github.io/docs/auth/limits/)), so `fs` keeps them to a minimum. Requests
-Onshape answers without credentials for public documents (listing tabs, downloading images, and reading a tab's
-metadata) are made anonymously, so they don't count (if a document isn't public, they fall back to signed calls,
-which do); see [the Onshape API](../onshape_api/README.md#anonymous-requests). The counts below are of the calls which
-count:
+Onshape answers without credentials for documents anyone with the link can open, public or link-shared (listing tabs,
+downloading images, and reading a tab's metadata), are made anonymously, so they don't count (for any other document,
+they fall back to signed calls, which do). The backend and frontend documents are public; see
+[the Onshape API](../onshape_api/README.md#anonymous-requests). The counts below are of the calls which count:
 
 - Listing the backend document's tabs: 1 anonymous call. Every command that talks to Onshape does this first, to
   get each tab's microversion.
@@ -178,11 +262,13 @@ count:
 - Images: 1 anonymous call to list them (which `fs push` skips when the repo has none), 1 anonymous call per image
   downloaded (only when its microversion changed), and 1 per image uploaded, plus 1 anonymous call to list their
   new microversions afterwards.
+- `fs push --to`: as pushing, but without the downloads (see [Pushing to another backend](#pushing-to-another-backend));
+  with a document's own keys, its calls count against their account instead.
 - `fs tabs` and `fs link`: just the anonymous listing. `fs tabs --rename`: 1 more per tab renamed (plus an anonymous
   one to read its metadata).
-- `fs release`: at most 6 to 8 calls (fewer now that listings are anonymous), and up to 7 more for FRCDesignApp's side
-  (the frontend's tabs, an example, its icon, and `featurescripts.json`). `fs released --detect`: 2.
-  `fs deprecate`: about 12.
+- `fs release`: what it pushes, then at most 6 to 8 calls, and up to 7 more for FRCDesignApp's side (the document's
+  tabs, an example, its icon, and `featurescripts.json`); 1 more to look up a document's workspace when its url names
+  none. A part set's: 4 to 5 per Part Studio built. `fs deprecate`: about 12.
 
 So `fs status`, and `fs push` or `fs pull` with nothing to do, cost nothing: they only make the anonymous listings.
 Failed calls (like a 400) don't count. Commands that only read the repo (`fs check`, `fs gen`, and the others below) make no calls.
@@ -193,59 +279,53 @@ Every git branch works in the backend's main workspace: `fs push` from any of th
 whatever was pushed last, from wherever, and a studio someone's still working on may be broken there for a while. That's
 fine, as releases don't take what's there: each pushes what it releases first.
 
-- Releasing (`release`, `parts --release`, `deprecate`, `sync-versions`, `run-releases`, `app-manifest`) runs only on
-  the main branch (`main_branch` in `[tool.fs]`, robot-code's `main`). `release`, `parts --release`, and `run-releases`
-  also run only once it's what GitHub has: they fetch origin, and refuse unless HEAD is origin's main and what's
-  released has no changes but what's committed. A part set's release to a target (`parts --release --target`), to try
-  it out, runs from any branch (see [docs/parts.md](parts.md)).
-- A release then pushes what it releases over Onshape's, as `fs push --release SCRIPT` does: the FeatureScript, and
-  every studio and image it imports, directly or not, in import order (so each import names the version just pushed),
-  overwriting changes made in Onshape (as `--force`), and deleting nothing. Studios it doesn't import are left as they
-  are, and are in the version as they are. Their import versions are committed, as `fs push` commits them.
+- Releasing to a frontend document (`release`, `publish`, `deprecate`, and `releases --run`) runs only on the main
+  branch (`main_branch` in `[tool.fs]`, robot-code's `main`). `release` and `releases --run` also run only once it's
+  what GitHub has: they fetch origin, and refuse unless HEAD is origin's main and what's released has no changes but
+  what's committed. A release to a library (`release NAME --to DOC`), to try it out, runs from any branch.
+- Every release pushes what it releases over Onshape's first: the FeatureScript (a part set's), and every studio and
+  image it imports, directly or not, in import order (so each import names the version just pushed), overwriting
+  changes made in Onshape (as `--force`), and deleting nothing. Studios it doesn't import are left as they are, and are
+  in the version as they are. Their import versions are committed, as `fs push` commits them.
 
 A CI checkout may leave no branch checked out; `FS_BRANCH` names it.
 
-```
-uv run fs push                           # from any branch: the main workspace
-uv run fs push --release robotFrame      # push what releasing robotFrame needs, over Onshape's
-```
-
 ### Release files
 
-A branch asks for a release by adding a file to `releases/`, reviewed with its code; `fs run-releases` makes it once
+A branch asks for a release by adding a file to `releases/`, reviewed with its code; `fs releases --run` makes it once
 the branch is merged into main:
 
 ```toml
 # releases/frame-hubs.toml
-script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
-part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
+name = "robotFrame"         # a FeatureScript or a part set, as `fs release NAME` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
-publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
+hard = false                # a hard release: version the frontend too, and tag it (not a FeatureScript's first)
 ```
 
-A FeatureScript's release from a file isn't final by default: it makes the backend version and points the frontend
-studio at it, and `fs sync-versions` finalizes it (its frontend version, and its tag) once its frontend examples are
-updated for it. `publish = true` finalizes it at once, for a release which needs nothing in the frontend. A first
-release can't be published at once, from a file or with `fs release --publish`: a new feature needs its examples made
-first. `fs releases` (a pull request's check) reports a file asking to.
+A release from a file is soft by default (see [Soft and hard releases](#soft-and-hard-releases)): it makes the backend
+version and updates the frontend, but doesn't version the frontend, which `fs publish` does once it's checked there
+(and a FeatureScript's examples are updated for it). `hard = true` makes it a hard release, for one which needs nothing
+checked in the frontend. A FeatureScript's first release is always soft, from a file or with `fs release --hard`: a
+new feature needs its examples made first. `fs releases` (a pull request's check) reports a file asking for that.
 
-They run in name order. Each runs as `fs release` or `fs parts SET --release` would, then its file is deleted and what the
-release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release makes
-ends its description with the file's name and the commit that added it (`[releases/frame-hubs.toml 1a2b3c4d5e6f]`), so a
-file whose release Onshape already has, whole or partway, stops `fs run-releases` rather than releasing twice: check
-what it made, finish it by hand, and delete the file. A file added again later, under the same name, is a new release. `fs releases` lists and checks the pending files without calling Onshape.
+They run in name order. Each runs as `fs release NAME` would, to its frontend document, then its file is deleted and
+what the release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release
+makes ends its description with the file's name and the commit that added it (`[releases/frame-hubs.toml 1a2b3c4d5e6f]`),
+so a file whose release Onshape already has, whole or partway, stops `fs releases --run` rather than releasing twice:
+check what it made, finish it by hand, and delete the file. A file added again later, under the same name, is a new
+release. `fs releases` lists and checks the pending files without calling Onshape.
 
 ### The Onshape workflow
 
 `.github/workflows/checks.yml` runs the tests, `fs check`, and `fs releases` on every pull request.
-`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs run-releases`,
+`.github/workflows/onshape.yml` runs on each push to main, one run at a time: the same checks, then `fs releases --run`,
 and a push of what it committed to main. It doesn't push anything else to Onshape. A run whose commit isn't origin's main
 any more (another push came after it) fails its releases, and the next run makes them. It needs:
 
-- The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend,
-  frontend, and part set documents, whose allocation a run spends only on releases (a release's calls, plus one a
-  studio it pushes).
+- The secrets `ONSHAPE_ACCESS_KEY` and `ONSHAPE_SECRET_KEY`: API keys of an account with edit access to the backend
+  and the frontend documents, whose allocation a run spends only on releases (a release's calls, plus one a studio it
+  pushes). A frontend document with `keys` needs those too, set in the workflow's environment.
 - Its commits pushed to main past branch protection: the workflow's `github-actions[bot]` allowed to bypass it.
 
 ## Checking and navigating
@@ -269,9 +349,9 @@ uv run fs mv featurescripts/a.fs featurescripts/core/b.fs   # rename or move, ke
 uv run fs unused             # exports nothing uses (--local: also those only their own file uses)
 uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # screenshot a feature's dialog
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
-uv run fs table featurescripts/released/shaft -n frcShaft   # lookup tables as rows (--md, or --html page.html)
+uv run fs table featurescripts/released/shaft --name frcShaft   # lookup tables as rows (--md, or --html page.html)
 uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
-uv run fs cots 'hex shaft' -d   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
+uv run fs cots 'hex shaft' --details   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
 
@@ -295,6 +375,19 @@ edits, and array items can be added): it has tabs for the lookup tables, writeup
 `fs_cli/audit.py`), and `fs_cli/dialog_page.js` makes both dialogs' controls and tooltips work. Run from VS Code (its
 terminal, or Claude Code in it), `fs audit --open` shows the feature's preview there: it writes `.fs-audit/open.json`,
 which the extension watches for.
+
+A part set's feature (see [docs/parts.md](parts.md)) is used through its Part Studios' configurations, not its own
+dialog, so for a Feature Studio in a part set's folder the page and the preview show those in the dialog's place: a
+panel for each Part Studio using one of its features (on the page each in turn; in VS Code's preview each chosen as a
+file's features are), with Onshape's styles and its inputs as dropdowns (a checkbox's as a checkbox). Choosing options
+shows what the configuration shows with them: an option shows while a rule controlling it holds, and an input shows
+while its condition holds and it has an option shown; a hidden input keeps its value, which later conditions read.
+Where a choice is hidden, the panel shows the first option shown (what Onshape shows there isn't documented).
+`fs_cli/configurations.py` reads a configuration from Onshape's JSON (`parse_configuration`: what
+`ConfiguredStudio.configuration_body` writes, or what `fs configuration URL` reads back from Onshape) and works out
+what it shows (`Configuration.state`), and the page's script (its `RUNTIME`) does the same; a test checks the two draw
+alike, and another that every configuration a part set's manifest lists shows its own choices. The panels are read
+from the definitions as they are on disk, as `fs build` would build them.
 
 `fs audit --artifact` writes the page as a claude.ai Artifact's, to publish (Claude Code's Artifact tool) so people can
 comment on it: without the document around it (publishing adds one), its colors following the viewer's theme (`--theme`
@@ -391,9 +484,9 @@ A `LookupTable` lays a table out by these rules, from what's made, each thing a 
   rule (below).
 
 `ConfiguredStudio.problems()` checks the configuration as it's written against these rules and the shape Onshape takes
-conditions in (below); `fs parts` refuses a set with any before it sends Onshape anything, and
+conditions in (below); `fs build` and `fs release` refuse a set with any before they send Onshape anything, and
 `tests/featurescript/fasteners_manifest_test.py` checks the fasteners' studios as generated. When Onshape refuses a
-configuration these allow, `fs parts SET --diagnose` finds which input's rules, and what it refused becomes a rule here.
+configuration these allow, `fs build SET --diagnose` finds which input's rules, and what it refused becomes a rule here.
 A definition describes one as a `ConfiguredStudio` (see [`fs_cli/configured_studios.py`](../fs_cli/configured_studios.py))
 in its `STUDIOS`, and the feature's enums come from the same definition, so the two can't drift apart. The Part
 Studios are built, not made by hand: a build finds each one's tab by name (`tab`, the studio's name capitalized by
@@ -407,8 +500,8 @@ apart, until it lists the new one, and stops after five reads. The configured fe
 Onshape stored on insert, for it and each of its enums: a feature from a Feature Studio re-exporting another
 document's (as a release's is) is stored under another namespace than it's inserted with, and Onshape refuses an
 update naming any other, "Feature does not match". A refusal names the
-step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs parts` builds
-them, for part sets (see [docs/parts.md](parts.md)).
+step Onshape refused, and a feature that fails to regenerate in its default configuration stops the build. `fs build` and
+`fs release` build them, for part sets (see [docs/parts.md](parts.md)).
 Onshape takes a visibility condition only as its UI makes one, an AND of inputs each one of some values, and refuses
 any other with a 409 ("The change would result in the feature list becoming invalid"). So the combinations which show
 an option are factored by input, earliest first (or by `factor_first`), into such conditions, each a rule controlling
@@ -416,7 +509,7 @@ the options it shows: an option shows while a rule controlling it holds. As Onsh
 rest always, since Onshape hides an option no rule controls. Onshape also refuses a List whose default is hidden while
 the inputs before it are at theirs, as the studio checks. A List with none of its options shown is
 hidden, so a List's own visibility is folded into its options'. A checkbox has no options, and shows by a single
-condition, which the studio checks; one needing more is a `switch`. `fs parts SET --diagnose` finds a part of a
+condition, which the studio checks; one needing more is a `switch`. `fs build SET --diagnose` finds a part of a
 configuration Onshape refuses (see [docs/parts.md](parts.md)). `ConfiguredStudio.manifest()` gives what FRCDesign reads of
 a studio outside Onshape: its feature and the id the feature gives its mate connector. FRCDesign reads the configuration
 from the tab.
@@ -443,35 +536,66 @@ takes an `order` to keep the order a profile was released with.
 
 ## Releasing
 
-The frontend document is what users import. It isn't mirrored into the repo: each of its Feature Studios is a
-small generated file re-exporting a version of the backend studio, and `fs release` keeps it up to date.
+`fs release NAME` releases a FeatureScript, or a part set with its Part Studios (see [docs/parts.md](parts.md)), to its
+frontend document, as a soft release unless it's `--hard` (see [Soft and hard releases](#soft-and-hard-releases)); with
+`--to DOC`, a test release, to a library instead. NAME is a part set's name in `[tool.fs.parts]`, or
+else a FeatureScript, by name or file (a part set's own FeatureScript is released with its part set, so naming it is
+refused).
 
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
-uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend (not a first release)
+uv run fs release robotFrame --patch --hard               # a hard release: also version the frontend (not a first release)
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
+uv run fs release robotFrame --to library                 # release it to the library, for a test FRCDesignApp
+uv run fs release fasteners --minor                       # a part set, to its own frontend document
 ```
 
-A release creates a version named e.g. `Robot frame - v1.3.0` in the backend document, then points the
-frontend studio of the same name at it (creating the studio if needed). A part set's FeatureScript
-(`[tool.fs.parts]`) isn't released here but by `fs parts SET --release`, into its FRCDesignLib document with its Part
-Studios; see [docs/parts.md](parts.md). A release first pushes what it releases over Onshape's (`fs push --release`,
-below), so the version holds it as it is in the repo, and `fs release` asks for confirmation since versions can't be
-deleted (`-y` skips the prompt).
+The frontend document is what users import. It isn't mirrored into the repo: each of its Feature Studios is a
+small generated file re-exporting a version of the backend studio, and `fs release` keeps it up to date.
 
-A release is final once its version is in the frontend document: with `--publish` (a quick release: the backend
-version, the frontend studio, then the frontend version), or later with `fs sync-versions`, which creates the frontend
-versions the backend has that it doesn't. Then the feature's newest release is tagged in git, e.g.
-`robotFrame/v1.3.0`, on the newest commit whose file is as released (`fs push` commits what it pushes, so that's
-usually the last one), and the tag is pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
-changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
-any API calls, falling back to the backend version for releases without one. A release with no commit whose file is as
-released (older ones, mostly) goes untagged; tags only make finding releases in git easier.
+A release pushes what it releases over Onshape's (see [Branches](#branches)), so the version holds it as it is in the
+repo, then creates a version named e.g. `Robot frame - v1.3.0` in the backend document, and points the frontend studio
+of the same name at it (creating the studio if needed). It asks for confirmation since versions can't be deleted (`-y`
+skips the prompt).
+
+### Soft and hard releases
+
+A release to a frontend is soft or hard, the same for FeatureScripts and part sets:
+
+- A **soft release**, the default, stops short of versioning the frontend: it updates the frontend's workspace (its
+  studio, a part set's Part Studios and manifest, FRCDesignApp's entry), but people's documents update only to the
+  frontend's versions, so they don't get it yet. Check it in the frontend (and make a new feature's example), then
+  `fs publish` versions the frontend for it, leaving it as a hard release would.
+- A **hard release** (`--hard`) also creates the version in the frontend document (named as the backend's, `Robot
+  frame - v1.3.0`), which is what people's documents update to. A FeatureScript's first release can't be hard, and
+  nor can one whose feature has no example: a new feature needs its example made first.
+
+A release is tagged in git once it's hard, by `--hard` or `fs publish`: a FeatureScript's by its file's name
+(`robotFrame/v1.3.0`), a part set's by the set's (`fasteners/v1.2.0`, since sets share a FeatureScript), on the newest
+commit whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is
+pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows
+what's changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved)
+without any API calls, falling back to the backend version for releases without one. A release with no commit whose
+file is as released (older ones, mostly) goes untagged; tags only make finding releases in git easier.
+
+`fs publish` creates the release versions the backend has that their frontends don't: each FeatureScript's and part
+set's newest (a version made now holds the frontend as it is, so older ones are left out), and a FeatureScript's
+deprecation (see [Deprecating](#deprecating)).
 
 ```
-uv run fs sync-versions          # finalize releases: create their frontend versions, and tag them
+uv run fs publish                # version the frontends for every soft release, and tag them
+uv run fs publish robotFrame     # just one feature's (or a part set's: fs publish fasteners)
 uv run fs changes robotFrame     # what's changed since robotFrame's last release
 ```
+
+### Test releases
+
+A test release, to a library (`--to DOC`, a library document), does the same there, from any branch, but isn't
+numbered: the versions it makes, in the backend and the library, are named for the branch and commit (`Robot frame
+test - my-branch 1a2b3c4`), which aren't taken for releases, so the next release's number is untouched. The library is
+always versioned, so FRCDesignApp can load it (`--hard` changes nothing), and the entry it writes for the app (below)
+has the last release's version with the commit as its build (`1.3.0+test.1a2b3c4`). Nothing is marked released or
+tagged, and it takes no `--major`, `--minor`, or `--patch`.
 
 The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, the
 repo on GitHub (the repo, not the file, so the link doesn't break when files move). It's written when the studio's
@@ -479,8 +603,8 @@ released, so each FeatureScript gets the GitHub link at its next release.
 
 ### FRCDesignApp
 
-FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab in the frontend document, names, and
-takes the rest from the document's layout: a feature's category is the folder its frontend studio is in, and its
+FRCDesignApp's FeatureScripts tab lists what `featurescripts.json`, a file tab in the frontend document (or for a test
+FRCDesignApp, a library), names, and takes the rest from the document's layout: a feature's category is the folder its frontend studio is in, and its
 example is a Part Studio. It reads all of that from the frontend workspace, and adds each feature from the latest
 frontend version, so the manifest, examples, and icons can be edited by hand there without a version, and show on the
 app's next load. A release keeps that side of the frontend document (`fs_cli/frontend.py`):
@@ -488,8 +612,8 @@ app's next load. A release keeps that side of the frontend document (`fs_cli/fro
 - **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
   one after its studio in the same folder; otherwise the first Part Studio after its studio in its folder, so features
   sharing an example sit before it in one folder. Deprecated tabs and folders are skipped, and the app finds examples
-  the same way. A feature with none gets an empty one, named for it, at the top level; `--publish` is refused until
-  it has one, so an empty example is never published: release without it, model the example, then `fs sync-versions`.
+  the same way. A feature with none gets an empty one, named for it, at the top level; a hard release is refused until
+  it has one, so an empty example is never in a frontend version: release soft, model the example, then `fs publish`.
 - **The icon**: the `.svg` its `"Icon"` imports, itself or through a studio it imports (as `core/robotFeature.fs`
   exports `RobotIcon`, the robot icon of features without their own), written to `<Feature Type Name> icon.svg`.
   A feature with none gets `[tool.fs] default_icon` (robot-code's is `core/robotIcon.svg`, the robot icon); only with
@@ -503,17 +627,6 @@ The API can't make or move folders, so a first release's studio and example land
 by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon and its example (unless another
 feature's example is it too) are renamed `DEPRECATED ...`.
 
-`fs app-manifest` writes the entries and icons of features released before releases wrote them, without releasing
-them: each feature in the frontend document with a release, as its latest release made it, from its code and
-icon in that backend version. It replaces those features' entries and keeps the rest, and creates no examples and no
-versions: FRCDesignApp reads the manifest from the frontend workspace, so it sees them on its next load (the owner's
-Reload in its admin settings). `--dry-run` lists the entries, noting those without an icon, a link, or an example. It costs 3 calls, and 5 per feature.
-
-```
-uv run fs app-manifest --dry-run   # the entries it would write
-uv run fs app-manifest             # write them
-```
-
 ### Released FeatureScripts
 
 A released FeatureScript's backend tab has to keep its element id and name: Part Studios using its feature only
@@ -522,12 +635,11 @@ update to newer versions of it from the same tab, and `fs release` finds its fro
 deleting the tab of a released file you deleted, and won't recreate a released tab deleted in Onshape (restore it
 from the document's history). Other tabs can be deleted and recreated freely.
 
-`fs release` marks what it releases. Otherwise:
+`fs release` marks what it releases (to a frontend; a library's release marks nothing). Otherwise:
 
 ```
-uv run fs released                  # list released FeatureScripts
-uv run fs released robotFrame       # mark one released (--remove unmarks it)
-uv run fs released --detect         # mark every tab with a release version in the backend document
+uv run fs mark-released                  # list released FeatureScripts
+uv run fs mark-released robotFrame       # mark one released (--remove unmarks it)
 ```
 
 `uv run fs changes robotShaft` diffs a released FeatureScript, and every Feature Studio it imports, against the version
@@ -540,19 +652,16 @@ Deleting a released FeatureScript would break documents using it as soon as they
 the frontend document, so retire it instead:
 
 ```
-uv run fs deprecate robotTube -d "Use Robot frame" --publish
+uv run fs deprecate robotTube -d "Use Robot frame" --hard
 ```
 
 This renames its feature "DEPRECATED Robot tube" and pushes it, creates a version named `DEPRECATED Robot tube` in
 the backend document, points the frontend studio at it and renames that tab `DEPRECATED robotTube.fs`, and (with
-`--publish`) creates the version in the frontend document. The frontend studio keeps its element id, so documents
+`--hard`, as a hard release does) creates the version in the frontend document. The frontend studio keeps its element id, so documents
 using the feature keep working and keep updating. Then, since the frontend studio imports a version, the backend tab
 and the file are deleted (`--keep-backend` keeps them, renaming the tab too, e.g. if other studios still import
 it). The API can't rename folders, so rename any folders holding its tabs by hand. `--dry-run` shows the steps
-first.
-
-`uv run fs sync-versions` creates any release versions that exist in the backend document but not in the
-frontend document.
+first. Without `--hard`, `fs publish` creates its frontend version later.
 
 ## Onshape's FeatureScript guide
 

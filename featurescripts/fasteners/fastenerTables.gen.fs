@@ -1,6 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e"); // core/robotProperties.fs
+import(path : "0794d10863d10d98a88c2ab4", version : "d292b4e6b25e9bc8369e8396"); // core/robotProperties.fs
 
 /* Generated from fastenerTables.py by `fs gen` -- DO NOT EDIT */
 
@@ -751,6 +751,8 @@ export const SCREWS = {
                         ScrewLength.IN_2_5 : { "standard" : { "name" : "#10-32 x 2-1/2 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_2_75 : { "standard" : { "name" : "#10-32 x 2-3/4 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_3 : { "standard" : { "name" : "#10-32 x 3 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.IN_3_5 : { "standard" : { "name" : "#10-32 x 3-1/2 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } },
+                        ScrewLength.IN_4 : { "standard" : { "name" : "#10-32 x 4 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_4_75 : { "standard" : { "name" : "#10-32 x 4-3/4 in Button Head Screw", "material" : STEEL, "appearance" : BLACK } }
                     }
                 },
@@ -1510,6 +1512,31 @@ export const SCREWS = {
                         ScrewLength.IN_2_25 : { "standard" : { "name" : "#10-32 x 2-1/4 in Button Head Screw", "vendor" : "McMaster-Carr", "partNumber" : "91255A815", "url" : "https://www.mcmaster.com/91255A815/", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_2_5 : { "standard" : { "name" : "#10-32 x 2-1/2 in Button Head Screw", "vendor" : "McMaster-Carr", "partNumber" : "91255A029", "url" : "https://www.mcmaster.com/91255A029/", "material" : STEEL, "appearance" : BLACK } },
                         ScrewLength.IN_3 : { "standard" : { "name" : "#10-32 x 3 in Button Head Screw", "vendor" : "McMaster-Carr", "partNumber" : "91255A030", "url" : "https://www.mcmaster.com/91255A030/", "material" : STEEL, "appearance" : BLACK } }
+                    },
+                    ScrewFinish.STAINLESS : {
+                        ScrewLength.IN_0_125 : { "standard" : { "name" : "#10-32 x 1/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A432", "url" : "https://www.mcmaster.com/92949A432/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_1875 : { "standard" : { "name" : "#10-32 x 3/16 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A259", "url" : "https://www.mcmaster.com/92949A259/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_25 : { "standard" : { "name" : "#10-32 x 1/4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A261", "url" : "https://www.mcmaster.com/92949A261/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_3125 : { "standard" : { "name" : "#10-32 x 5/16 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A262", "url" : "https://www.mcmaster.com/92949A262/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_375 : { "standard" : { "name" : "#10-32 x 3/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A263", "url" : "https://www.mcmaster.com/92949A263/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_4375 : { "standard" : { "name" : "#10-32 x 7/16 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A264", "url" : "https://www.mcmaster.com/92949A264/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_5 : { "standard" : { "name" : "#10-32 x 1/2 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A265", "url" : "https://www.mcmaster.com/92949A265/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_625 : { "standard" : { "name" : "#10-32 x 5/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A267", "url" : "https://www.mcmaster.com/92949A267/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_75 : { "standard" : { "name" : "#10-32 x 3/4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A269", "url" : "https://www.mcmaster.com/92949A269/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_0_875 : { "standard" : { "name" : "#10-32 x 7/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A270", "url" : "https://www.mcmaster.com/92949A270/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1 : { "standard" : { "name" : "#10-32 x 1 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A271", "url" : "https://www.mcmaster.com/92949A271/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_125 : { "standard" : { "name" : "#10-32 x 1-1/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A826", "url" : "https://www.mcmaster.com/92949A826/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_25 : { "standard" : { "name" : "#10-32 x 1-1/4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A272", "url" : "https://www.mcmaster.com/92949A272/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_375 : { "standard" : { "name" : "#10-32 x 1-3/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A827", "url" : "https://www.mcmaster.com/92949A827/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_5 : { "standard" : { "name" : "#10-32 x 1-1/2 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A273", "url" : "https://www.mcmaster.com/92949A273/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_625 : { "standard" : { "name" : "#10-32 x 1-5/8 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A828", "url" : "https://www.mcmaster.com/92949A828/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_1_75 : { "standard" : { "name" : "#10-32 x 1-3/4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A274", "url" : "https://www.mcmaster.com/92949A274/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_2 : { "standard" : { "name" : "#10-32 x 2 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A275", "url" : "https://www.mcmaster.com/92949A275/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_2_25 : { "standard" : { "name" : "#10-32 x 2-1/4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A829", "url" : "https://www.mcmaster.com/92949A829/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_2_5 : { "standard" : { "name" : "#10-32 x 2-1/2 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A277", "url" : "https://www.mcmaster.com/92949A277/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_3 : { "standard" : { "name" : "#10-32 x 3 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A279", "url" : "https://www.mcmaster.com/92949A279/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_3_5 : { "standard" : { "name" : "#10-32 x 3-1/2 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A830", "url" : "https://www.mcmaster.com/92949A830/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } },
+                        ScrewLength.IN_4 : { "standard" : { "name" : "#10-32 x 4 in Button Head Screw (Stainless steel)", "vendor" : "McMaster-Carr", "partNumber" : "92949A831", "url" : "https://www.mcmaster.com/92949A831/", "material" : STAINLESS_STEEL, "appearance" : STEEL_GRAY, "fullyThreaded" : true } }
                     },
                     ScrewFinish.ZINC_PLATED : {
                         ScrewLength.IN_0_25 : { "standard" : { "name" : "#10-32 x 1/4 in Button Head Screw (Zinc plated)", "vendor" : "McMaster-Carr", "partNumber" : "91306A352", "url" : "https://www.mcmaster.com/91306A352/", "material" : STEEL, "appearance" : MEDIUM_GRAY } },
@@ -2625,28 +2652,82 @@ export const NUTS = {
 export const WASHERS = {
             FastenerVendor.GENERIC : {
                 FastenerSize.NO_4_40 : {
+                    WasherType.OD_5_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.125 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.03 * inch, "name" : "#4 Washer (5/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_5_16_X_0_032 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.125 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.032 * inch, "name" : "#4 Washer (5/16 in OD x 0.032 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_6_32 : {
+                    WasherType.OD_5_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.3125 * inch, "thickness" : 0.03 * inch, "name" : "#6 Washer (5/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.03 * inch, "name" : "#6 Washer (3/8 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_3_8_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.049 * inch, "name" : "#6 Washer (3/8 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.156 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.031 * inch, "name" : "#6 Washer (5/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_8_32 : {
+                    WasherType.OD_3_8_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.188 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.03 * inch, "name" : "#8 Washer (3/8 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_7_16_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.188 * inch, "outerDiameter" : 0.4375 * inch, "thickness" : 0.049 * inch, "name" : "#8 Washer (7/16 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.NO_10_32 : {
+                    WasherType.OD_3_8_X_0_012 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.012 * inch, "name" : "#10 Washer (3/8 in OD x 0.012 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.031 * inch, "name" : "#10 Washer (3/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_7_16_X_0_03 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.4375 * inch, "thickness" : 0.03 * inch, "name" : "#10 Washer (7/16 in OD x 0.03 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_2_X_0_04 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.5 * inch, "thickness" : 0.04 * inch, "name" : "#10 Washer (1/2 in OD x 0.04 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_1_2_X_0_049 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.5 * inch, "thickness" : 0.049 * inch, "name" : "#10 Washer (1/2 in OD x 0.049 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.031 * inch, "name" : "#10 Washer (5/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_4_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 0.75 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (3/4 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.219 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "#10 Washer (1 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.QUARTER_20 : {
+                    WasherType.OD_3_8_X_0_012 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.012 * inch, "name" : "1/4 in Washer (3/8 in OD x 0.012 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_8_X_0_031 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.375 * inch, "thickness" : 0.031 * inch, "name" : "1/4 in Washer (3/8 in OD x 0.031 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_05 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.05 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.05 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_5_8_X_0_063 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.063 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.063 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
                     WasherType.OD_5_8_X_0_065 : {
                         WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 0.625 * inch, "thickness" : 0.065 * inch, "name" : "1/4 in Washer (5/8 in OD x 0.065 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_1_X_0_062 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 1 * inch, "thickness" : 0.062 * inch, "name" : "1/4 in Washer (1 in OD x 0.062 in)", "material" : STEEL, "appearance" : BLACK }
+                    },
+                    WasherType.OD_3_X_0_06 : {
+                        WasherFinish.BLACK : { "innerDiameter" : 0.281 * inch, "outerDiameter" : 3 * inch, "thickness" : 0.06 * inch, "name" : "1/4 in Washer (3 in OD x 0.06 in)", "material" : STEEL, "appearance" : BLACK }
                     }
                 },
                 FastenerSize.M3 : {

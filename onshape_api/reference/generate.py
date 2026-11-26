@@ -32,6 +32,7 @@ OPERATIONS = [
     ("get", "/documents/d/{did}/{wvm}/{wvmid}/contents"),
     ("get", "/documents/d/{did}/{wvm}/{wvmid}/elements"),
     ("get", "/documents/d/{did}/versions"),
+    ("get", "/documents/{did}"),
     ("delete", "/elements/d/{did}/w/{wid}/e/{eid}"),
     ("post", "/documents/d/{did}/versions"),
     ("post", "/featurestudios/d/{did}/w/{wid}"),

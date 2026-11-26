@@ -68,7 +68,7 @@ export function run(context is Context)
 @pytest.fixture
 def project(tmp_path) -> Project:
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     for path, code in FILES.items():
         file = tmp_path / "featurescripts" / path
@@ -1113,6 +1113,29 @@ def test_unknown_annotation_keys(project):
         'Onshape doesn\'t know the annotation key "Driving query", so it does nothing. Did you mean "Driven query"?',
         'Onshape doesn\'t know the annotation key "UIHInt", so it does nothing. Did you mean "UIHint"?',
     ]
+
+
+def test_vendor_is_asked_first(project):
+    path = project.code_dir / "feature2.fs"
+
+    def problems(precondition: str) -> list[str]:
+        path.write_text(
+            f"FeatureScript 2909;\n{STD}\n"
+            "export enum ScrewVendor\n{\n    WCP\n}\n"
+            "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
+            f"    precondition\n    {{\n{precondition}    }}\n    {{\n    }});\n"
+        )
+        return [p.message for p in project.check(project.module(path)) if p.code == "vendor-order"]
+
+    width = '        annotation { "Name" : "Width" }\n        isLength(definition.width, LENGTH_BOUNDS);\n'
+    vendor = '        annotation { "Name" : "Vendor" }\n        definition.vendor is ScrewVendor;\n'
+    assert problems(vendor + width) == []
+    assert problems(width + vendor) == ["Vendor goes first, before Width."]
+    # A part's vendor is first among its part's parameters alone
+    screw = '        annotation { "Name" : "Screw vendor" }\n        definition.screwVendor is ScrewVendor;\n'
+    head = '        annotation { "Name" : "Screw head" }\n        isLength(definition.screwHead, LENGTH_BOUNDS);\n'
+    assert problems(width + screw + head) == []
+    assert problems(width + head + screw) == ["Vendor goes first, before Screw head."]
 
 
 def test_quick_fixes(project):

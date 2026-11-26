@@ -12,9 +12,10 @@ import subprocess
 import pytest
 
 from fs_cli import cli, workspace
-from fs_cli.configured_studios import Built
+from fs_cli.config import Role
+from fs_cli.configured_studios import Built, Diagnosis
 from fs_cli.frontend import FrontendTab
-from fs_cli.remote import RemoteImage, RemoteStudio, RemoteWorkspace, Version, folder_paths
+from fs_cli.remote import RemoteDocument, RemoteImage, RemoteStudio, Version, folder_paths
 from fs_cli.versions import ReleasedVersion, VersionType, next_version
 from fs_cli.std import StdMetadata
 from fs_cli.workspace import Status, update_std_version
@@ -24,6 +25,14 @@ from semver import Version as SemVersion
 
 BACKEND = "https://cad.onshape.com/documents/back/w/bw"
 FRONTEND = "https://cad.onshape.com/documents/front/w/fw"
+
+
+def config(frontend: bool = True, extra: str = "") -> str:
+    """A [tool.fs] table: the backend, and the frontend FeatureScripts are released to, then `extra` keys."""
+    documents = f'documents.backend = {{ role = "backend", url = "{BACKEND}" }}\nbackend = "backend"\n'
+    if frontend:
+        documents += f'documents.frontend = {{ role = "frontend", url = "{FRONTEND}" }}\nfrontend = "frontend"\n'
+    return f"[tool.fs]\n{documents}{extra}"
 
 
 class FakeOnshape:
@@ -46,14 +55,13 @@ class FakeOnshape:
         self.part_studio_folders: dict[str, tuple[str, ...]] = {}
         # (document id, studio name, Feature Studio element id, its microversion) of each build
         self.builds: list[tuple[str, str, str, str]] = []
+        # (document id, studio name, the tab it's built in) of each diagnosis
+        self.diagnoses: list[tuple[str, str, str]] = []
         self.build_status = "OK"
-        # (document id, workspace id) -> name, for every workspace but the backend's main one
-        self.workspace_names: dict[tuple[str, str], str] = {}
-        self.workspace_descriptions: dict[str, str] = {}
         # (document id, instance id) -> element id -> (name, data), of file tabs put_file wrote
         self.files: dict[tuple[str, str], dict[str, tuple[str, bytes]]] = {}
-        # (target workspace id, source workspace id, strategy) of each merge
-        self.merges: list[tuple[str, str, str]] = []
+        # Documents which anyone with the link can't open (see `shared_document`)
+        self.private: set[str] = set()
 
     def _id(self, prefix: str) -> str:
         # Like Onshape's: 24 hex digits
@@ -199,6 +207,11 @@ class FakeOnshape:
         self.calls["default_workspace"] += 1
         return InstancePath(document_id, "lw")
 
+    def shared_document(self, document_id):
+        # Anonymous, so not counted against the API limits, but counted here to see it's checked
+        self.calls["shared_document"] += 1
+        return None if document_id in self.private else RemoteDocument(f"Document {document_id}", False)
+
     def list_images(self, instance):
         self.calls["list_images"] += 1
         images = self.images(instance.document_id, instance.instance_id)
@@ -226,6 +239,11 @@ class FakeOnshape:
         element_id = tabs.setdefault(studio.tab_name, self._id("p"))
         self.builds.append((instance.document_id, studio.name, feature_studio_id, microversion_id))
         return Built(element_id, created, self.build_status)
+
+    def diagnose_studio(self, instance, studio, built_tab):
+        self.calls["diagnose_studio"] += 1
+        self.diagnoses.append((instance.document_id, studio.name, built_tab))
+        return Diagnosis(self._id("d"), ["no conditions"], None, [])
 
     def put_file(self, instance, name, data, content_type):
         self.calls["put_file"] += 1
@@ -263,48 +281,12 @@ class FakeOnshape:
         files = self.files.get((instance.document_id, instance.instance_id), {})
         return next((data for each, data in files.values() if each == name), None)
 
-    def element_ids(self, instance):
-        key = (instance.document_id, instance.instance_id)
-        return set(self.instances.get(key, {})) | set(self.image_tabs.get(key, {}))
-
-    def workspaces(self, document_id):
-        self.calls["workspaces"] += 1
-        return [
-            RemoteWorkspace(id, name, self.workspace_descriptions.get(id, ""))
-            for (document, id), name in self.workspace_names.items()
-            if document == document_id
-        ]
-
-    def create_workspace(self, document_id, version_id, name, description):
-        self.calls["create_workspace"] += 1
-        workspace_id = self._id("w")
-        self.workspace_names[(document_id, workspace_id)] = name
-        self.workspace_descriptions[workspace_id] = description
-        self.instances[(document_id, workspace_id)] = copy.deepcopy(self.studios(document_id, version_id))
-        return RemoteWorkspace(workspace_id, name, description)
-
-    def delete_workspace(self, instance):
-        self.calls["delete_workspace"] += 1
-        del self.workspace_names[(instance.document_id, instance.instance_id)]
-        self.instances.pop((instance.document_id, instance.instance_id), None)
-
-    def merge(self, target, source_workspace_id, strategy):
-        """Takes the source's tabs the target lacks, and with REPLACE (or MERGE) the source's version of the rest."""
-        self.calls["merge"] += 1
-        self.merges.append((target.instance_id, source_workspace_id, strategy))
-        studios = self.studios(target.document_id, target.instance_id)
-        for element_id, studio in self.studios(target.document_id, source_workspace_id).items():
-            if element_id not in studios or strategy != "KEEP":
-                studios[element_id] = copy.deepcopy(studio)
-
 
 @pytest.fixture
 def repo(tmp_path, monkeypatch) -> pathlib.Path:
     # Tabs deleted in the fake are gone at once, so don't wait to list them again
     monkeypatch.setattr(workspace, "RELIST_DELAYS", (0, 0))
-    (tmp_path / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "{BACKEND}"\nfrontend = "{FRONTEND}"\n'
-    )
+    (tmp_path / "pyproject.toml").write_text(config())
     (tmp_path / "featurescripts").mkdir()
     monkeypatch.chdir(tmp_path)
     return tmp_path
@@ -915,7 +897,7 @@ def test_pushing_a_tab_with_its_importer_keeps_the_version_onshape_gives_the_imp
 
 
 def test_a_push_with_nothing_to_push_commits_the_import_versions_it_took(repo, onshape, capsys):
-    """So the tree is clean after it, as `fs run-releases` needs between releases."""
+    """So the tree is clean after it, as `fs releases --run` needs between releases."""
     git_repo(repo)
     element_id = onshape.add("b.fs", importing(OLD))
     run(onshape, "pull")
@@ -1089,7 +1071,7 @@ def test_release(repo, onshape):
             "featurescripts/Robot/robotFrame.fs",
             "--patch",
             "-y",
-            "--publish",
+            "--hard",
         )
         == 0
     )
@@ -1144,29 +1126,202 @@ def test_release_pushes_what_it_releases_over_onshape(repo, onshape):
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
 
 
-def test_push_release_pushes_only_what_a_release_needs(repo, onshape, capsys):
-    utils = onshape.add("utils.fs", "u")
-    onshape.add("other.fs", "o")
-    onshape.add("robotFrame.fs", f'import(path : "{utils}", version : "{"a" * 24}");\nframe\n', features=["robotFrame"])
-    run(onshape, "pull")
-    local(repo, "utils.fs").write_text("u 2")
-    local(repo, "other.fs").write_text("o 2")
-    onshape.edit(utils, "u in Onshape")
-    assert run(onshape, "push", "--release", "robotFrame") == 0
-    assert onshape.code("utils.fs") == "u 2"
-    assert onshape.code("other.fs") == "o"
-    assert run(onshape, "push", "--release") == 2
-    assert "Name the FeatureScripts" in capsys.readouterr().err
+PART_FRONTEND = "abcdef0123456789abcdef01"
+OTHER_FRONTEND = "bcdef0123456789abcdef012"
+LIBRARY = "fedcba9876543210fedcba98"
+OTHER_BACKEND = "0123456789abcdef01234567"
+ENTERPRISE_DOCUMENT = "89abcdef0123456789abcdef"
 
 
-MAIN = "abcdef0123456789abcdef01"
-
-
-def with_part_set(repo: pathlib.Path) -> None:
+def with_documents(repo: pathlib.Path, documents: str) -> None:
     pyproject = repo / "pyproject.toml"
-    pyproject.write_text(
-        pyproject.read_text()
-        + f'\n[tool.fs.parts.parts]\ntitle = "Parts"\nfolder = "Parts"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
+    pyproject.write_text(pyproject.read_text() + documents)
+
+
+def with_other_backends(repo: pathlib.Path) -> None:
+    """Another backend reached with the usual keys, which must be public or link-shared, and an Enterprise's, with keys
+    of its own."""
+    with_documents(
+        repo,
+        f'\n[tool.fs.documents.public]\nrole = "backend"\nurl = "https://cad.onshape.com/documents/{OTHER_BACKEND}/w/{"1" * 24}"\n'
+        f'\n[tool.fs.documents.enterprise]\nrole = "backend"\n'
+        f'url = "https://frcdesign.onshape.com/documents/{ENTERPRISE_DOCUMENT}/w/{"2" * 24}"\nkeys = "FRCDESIGN"\n',
+    )
+
+
+def with_library(repo: pathlib.Path) -> None:
+    with_documents(repo, f'\n[tool.fs.documents.library]\nrole = "library"\nurl = "https://cad.onshape.com/documents/{LIBRARY}"\n')
+
+
+def writes(onshape: FakeOnshape) -> int:
+    return sum(onshape.calls[call] for call in ("push", "create", "upload_image", "update_image", "delete"))
+
+
+def test_push_to_another_backend_pushes_a_script_and_what_it_imports(repo, onshape, capsys):
+    with_other_backends(repo)
+    utils = onshape.add("utils.fs", "FeatureScript 1;\nutils\n")
+    icon = onshape.add_image("robotIcon.svg", b"<svg/>")
+    onshape.add("other.fs", "other")
+    frame = (
+        f'import(path : "{utils}", version : "{"a" * 24}");\n'
+        f'Icon::import(path : "{icon}", version : "{"b" * 24}");\n'
+        'import(path : "core/helper.fs", version : "");\nframe\n'
+    )
+    onshape.add("robotFrame.fs", frame)
+    run(onshape, "pull")
+    write(repo, "core/helper.fs", "helper")
+    local(repo, "utils.fs").write_text("FeatureScript 1;\nutils 2\n")
+    backend = copy.deepcopy(onshape.studios())
+    studios_json = (repo / "fs-studios.json").read_text()
+    capsys.readouterr()
+
+    assert run(onshape, "push", "robotFrame", "--to", "public") == 0
+    out = capsys.readouterr().out
+    assert "Pushing to public" in out and "core/helper.fs (new)" in out and "other.fs" not in out
+    target = onshape.studios(OTHER_BACKEND, "1" * 24)
+    by_name = {studio["name"]: (element_id, studio) for element_id, studio in target.items()}
+    assert sorted(by_name) == ["helper.fs", "robotFrame.fs", "utils.fs"]
+    assert by_name["utils.fs"][1]["code"] == "FeatureScript 1;\nutils 2\n"
+    pushed_frame = by_name["robotFrame.fs"][1]["code"]
+    # Imports of the target's tabs, at the versions they were pushed as
+    target_utils, target_helper = by_name["utils.fs"][0], by_name["helper.fs"][0]
+    assert f'import(path : "{target_utils}", version : "{by_name["utils.fs"][1]["mv"]}")' in pushed_frame
+    assert f'import(path : "{target_helper}", version : "{by_name["helper.fs"][1]["mv"]}")' in pushed_frame
+    [(target_icon, image)] = onshape.images(OTHER_BACKEND, "1" * 24).items()
+    assert image["name"] == "robotIcon.svg"
+    assert f'Icon::import(path : "{target_icon}", version : "{image["mv"]}")' in pushed_frame
+    # Nothing local, and nothing in the backend, changed
+    assert onshape.studios() == backend
+    assert 'import(path : "core/helper.fs", version : "")' in local(repo, "robotFrame.fs").read_text()
+    assert (repo / "fs-studios.json").read_text() == studios_json
+
+    # Again: the tabs of the same names are updated, and the unchanged image isn't uploaded
+    local(repo, "utils.fs").write_text("FeatureScript 1;\nutils 3\n")
+    before = dict(onshape.calls)
+    assert run(onshape, "push", "robotFrame", "--to", "public") == 0
+    assert onshape.calls["create"] == before["create"]
+    assert onshape.calls["upload_image"] == before["upload_image"]
+    assert onshape.calls["update_image"] == before.get("update_image", 0)
+    assert len(onshape.studios(OTHER_BACKEND, "1" * 24)) == 3
+    assert onshape.code("utils.fs", OTHER_BACKEND, "1" * 24) == "FeatureScript 1;\nutils 3\n"
+    assert "1 image already the same" in capsys.readouterr().out
+
+
+def test_push_to_the_backend_is_a_push(repo, onshape):
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "--to", "backend") == 0
+    assert onshape.code("robotFrame.fs") == "frame"
+
+
+def test_push_to_a_backend_with_keys_of_its_own_does_not_check_it_is_shared(repo, onshape, capsys):
+    with_other_backends(repo)
+    write(repo, "robotFrame.fs", "frame")
+    onshape.private.add(ENTERPRISE_DOCUMENT)
+    assert run(onshape, "push", "robotFrame", "--to", "enterprise") == 0
+    assert onshape.code("robotFrame.fs", ENTERPRISE_DOCUMENT, "2" * 24) == "frame"
+    assert onshape.calls["shared_document"] == 0
+
+
+def test_a_documents_keys_reach_its_domain_signing_every_request(repo, monkeypatch):
+    from onshape_api.api import key_api
+
+    with_other_backends(repo)
+    monkeypatch.setenv("FRCDESIGN_API_ACCESS_KEY", "access")
+    monkeypatch.setenv("FRCDESIGN_API_SECRET_KEY", "secret")
+    target = cli.load_config().find_document("enterprise", Role.BACKEND)
+    api = cli._onshape_remote(False, target).api
+    assert isinstance(api, key_api.KeyApi)
+    assert api._base_url.startswith("https://frcdesign.onshape.com/api") and api._access_key == "access"
+    assert not api._anonymous
+    monkeypatch.delenv("FRCDESIGN_API_SECRET_KEY")
+    with pytest.raises(cli.ConfigError, match="FRCDESIGN_API_SECRET_KEY"):
+        cli._onshape_remote(False, target)
+
+
+def test_each_document_is_reached_its_own_way(repo):
+    """A document reached as the backend is shares its remote; one with keys of its own, or on another domain, gets
+    its own, made once."""
+    with_other_backends(repo)
+    with_library(repo)
+    config = cli.load_config()
+    made = []
+
+    def connect(document):
+        made.append(document.name)
+        return object()
+
+    backend_remote = object()
+    workspace = cli.Workspace(config, cli.State.load(config.state_path, config.studios_path), backend_remote, connect=connect)
+    assert workspace.remote_for(config.find_document("library", Role.LIBRARY)) is backend_remote
+    enterprise = config.find_document("enterprise", Role.BACKEND)
+    assert workspace.remote_for(enterprise) is workspace.remote_for(enterprise) is not backend_remote
+    assert made == ["enterprise"]
+
+
+def test_push_to_dry_run_changes_nothing(repo, onshape, capsys):
+    with_other_backends(repo)
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "robotFrame", "--to", "public", "--dry-run") == 0
+    assert "Would push" in capsys.readouterr().out
+    assert writes(onshape) == 0
+
+
+def test_push_to_refuses_a_document_reached_with_the_usual_keys_which_is_not_shared(repo, onshape, capsys):
+    with_other_backends(repo)
+    write(repo, "robotFrame.fs", "frame")
+    onshape.private.add(OTHER_BACKEND)
+    assert run(onshape, "push", "robotFrame", "--to", "public") == 2
+    assert "neither public nor link-shared" in capsys.readouterr().err
+    assert writes(onshape) == 0
+    assert onshape.calls["list_studios"] == 0
+
+
+def test_push_to_needs_scripts_and_a_backend(repo, onshape, capsys):
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "robotFrame", "--to", "public") == 2
+    assert "No document named public" in capsys.readouterr().err
+    with_other_backends(repo)
+    with_library(repo)
+    assert run(onshape, "push", "--to", "public") == 2
+    assert "Name the FeatureScripts" in capsys.readouterr().err
+    assert run(onshape, "push", "robotFrame", "--to", "library") == 2
+    assert "library is a library document, not a backend document" in capsys.readouterr().err
+    assert writes(onshape) == 0
+
+
+@pytest.mark.parametrize(
+    "documents, error",
+    [
+        ('documents.other = { role = "backend", url = "https://cad.onshape.com/documents/back/w/xw" }\n', "the same document"),
+        ('documents.other = { role = "branch", url = "https://cad.onshape.com/documents/o" }\n', "role must be"),
+        ('documents.other = { role = "library", url = "https://cad.onshape.com/documents/o/v/v" }\n', "url must be its url"),
+        ('documents.other = { role = "library", url = "https://cad.onshape.com/documents/o", key = "K" }\n', "unknown keys: key"),
+        ('frontend = "backend"\n', "backend is a backend document, not a frontend document"),
+        ('backend = "nowhere"\n', "[tool.fs] backend must name a backend document"),
+    ],
+)
+def test_documents_are_checked(repo, onshape, capsys, documents, error):
+    text = config(frontend=False, extra=documents)
+    if documents.startswith("backend ="):
+        text = text.replace('backend = "backend"\n', "", 1)
+    (repo / "pyproject.toml").write_text(text)
+    assert run(onshape, "status") == 2
+    assert error in capsys.readouterr().err
+
+
+def test_the_backend_names_its_workspace(repo, onshape, capsys):
+    (repo / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = "backend", url = "https://cad.onshape.com/documents/back" }\n')
+    assert run(onshape, "status") == 2
+    assert "must name its workspace" in capsys.readouterr().err
+
+
+def with_part_set(repo: pathlib.Path, frontend: bool = True) -> None:
+    documents = f'\n[tool.fs.documents.parts-frontend]\nrole = "frontend"\nurl = "https://cad.onshape.com/documents/{PART_FRONTEND}"\n'
+    with_documents(
+        repo,
+        documents
+        + '\n[tool.fs.parts.parts]\ntitle = "Parts"\nfolder = "Parts"\n'
+        + ('frontend = "parts-frontend"\n' if frontend else ""),
     )
 
 
@@ -1185,18 +1340,18 @@ EXPORTS = {"parts.gen.json": '{"studios": {"screw": {"feature": "partScrew", "ma
 PART_MAKER = "FeatureScript 1;\nexport const partScrew = defineFeature(function(context, id, definition) {});\n"
 
 
-def part_set(repo: pathlib.Path, onshape: FakeOnshape) -> str:
-    with_part_set(repo)
+def part_set(repo: pathlib.Path, onshape: FakeOnshape, frontend: bool = True) -> str:
+    with_part_set(repo, frontend)
     element_id = onshape.add("partMaker.fs", PART_MAKER, folders=("Parts",), features=["Screw"])
     run(onshape, "pull")
     write(repo, "Parts/partTables.py", PART_TABLES)
     return element_id
 
 
-def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, capsys):
+def test_a_part_set_is_built_in_the_backend_as_test_part_studios(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
 
-    assert run(onshape, "parts", "parts", "--test", "-y") == 0
+    assert run(onshape, "build", "parts", "-y") == 0
     assert onshape.builds == [("back", "screw", element_id, onshape.studios()[element_id]["mv"])]
     assert list(onshape.part_studios[("back", "bw")]) == ["Screw (TEST)"]
     assert "Screw (TEST) (created, OK): https://cad.onshape.com/documents/back/w/bw/e/" in capsys.readouterr().out
@@ -1205,23 +1360,65 @@ def test_a_part_set_is_tried_in_the_backend_as_test_part_studios(repo, onshape, 
     assert onshape.versions_by_document == {}
 
 
-def shared_part_sets(repo: pathlib.Path, onshape: FakeOnshape) -> str:
-    """Two part sets sharing a folder and its FeatureScript, as FRC's and FTC's fasteners do."""
+def test_a_part_set_is_built_in_another_backend_from_its_featurescript_pushed_there(repo, onshape, capsys):
+    part_set(repo, onshape)
+    with_other_backends(repo)
+    backend = copy.deepcopy(onshape.studios())
+
+    assert run(onshape, "build", "parts", "--to", "enterprise", "-y") == 0
+    target = (ENTERPRISE_DOCUMENT, "2" * 24)
+    [(copied, studio)] = onshape.studios(*target).items()
+    assert studio["name"] == "partMaker.fs"
+    assert onshape.builds == [(ENTERPRISE_DOCUMENT, "screw", copied, studio["mv"])]
+    assert list(onshape.part_studios[target]) == ["Screw (TEST)"]
+    assert f"https://frcdesign.onshape.com/documents/{ENTERPRISE_DOCUMENT}/w/{'2' * 24}/e/" in capsys.readouterr().out
+    assert onshape.studios() == backend
+    with_library(repo)
+    assert run(onshape, "build", "parts", "--to", "library", "-y") == 2
+    assert "not a backend document" in capsys.readouterr().err
+
+
+def test_a_part_sets_configurations_are_diagnosed(repo, onshape, capsys):
+    part_set(repo, onshape)
+    with_other_backends(repo)
+    assert run(onshape, "build", "parts", "--diagnose", "-y") == 0
+    assert run(onshape, "build", "parts", "--diagnose", "--to", "enterprise", "-y") == 0
+    assert onshape.diagnoses == [("back", "screw", "Screw (TEST)"), (ENTERPRISE_DOCUMENT, "screw", "Screw (TEST)")]
+    assert "  accepted no conditions" in capsys.readouterr().out
+    assert onshape.builds == []
+
+
+def two_part_sets(repo: pathlib.Path, onshape: FakeOnshape) -> str:
+    """Two part sets sharing a folder and its FeatureScript, as FRC's and FTC's fasteners do, each released into a
+    frontend document of its own."""
     element_id = part_set(repo, onshape)
     write(repo, "Parts/otherTables.py", PART_TABLES.replace('"screw"', '"bolt"').replace("CONTENTS = []\n", ""))
     pyproject = repo / "pyproject.toml"
     pyproject.write_text(
         pyproject.read_text().replace('folder = "Parts"\n', 'folder = "Parts"\ndefinition = "partTables.py"\n')
-        + f'\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nmain = "https://cad.onshape.com/documents/{MAIN}"\n'
+        + f'\n[tool.fs.documents.others-frontend]\nrole = "frontend"\nurl = "https://cad.onshape.com/documents/{OTHER_FRONTEND}"\n'
+        + '\n[tool.fs.parts.others]\ntitle = "Others"\nfolder = "Parts"\ndefinition = "otherTables.py"\nfrontend = "others-frontend"\n'
     )
     return element_id
 
 
-def test_a_part_set_is_tried_only_once_pushed(repo, onshape, capsys):
+def test_part_sets_are_released_into_their_own_frontends(repo, onshape):
+    two_part_sets(repo, onshape)
+
+    assert run(onshape, "release", "parts", "--minor", "-y") == 0
+    assert run(onshape, "release", "others", "--minor", "-y") == 0
+    assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0", "Others - v0.1.0"]
+    assert list(onshape.part_studios[(PART_FRONTEND, "lw")]) == ["Screw"]
+    assert list(onshape.part_studios[(OTHER_FRONTEND, "lw")]) == ["Bolt"]
+    assert json.loads(local(repo, "Parts/partTables.studios.json").read_text())["documentId"] == PART_FRONTEND
+    assert json.loads(local(repo, "Parts/otherTables.studios.json").read_text())["documentId"] == OTHER_FRONTEND
+
+
+def test_a_part_set_is_built_only_once_pushed(repo, onshape, capsys):
     part_set(repo, onshape)
     write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
 
-    assert run(onshape, "parts", "parts", "--test", "-y") != 0
+    assert run(onshape, "build", "parts", "-y") != 0
     assert "Parts/partMaker.fs isn't in sync with the backend document" in capsys.readouterr().err
     assert onshape.builds == []
 
@@ -1233,7 +1430,7 @@ def test_a_part_set_takes_the_import_versions_onshape_gave_its_featurescript(rep
     run(onshape, "pull")
     onshape.edit(element_id, f'import(path : "{utils}", version : "{NEW}");\n' + PART_MAKER)
 
-    assert run(onshape, "parts", "parts", "--test", "-y") == 0
+    assert run(onshape, "build", "parts", "-y") == 0
     assert "Updated import versions in Parts/partMaker.fs to match Onshape" in capsys.readouterr().out
     assert local(repo, "Parts/partMaker.fs").read_text() == onshape.code("partMaker.fs")
     onshape.calls.clear()
@@ -1245,94 +1442,159 @@ def test_a_part_set_release_pushes_its_featurescript_over_onshape(repo, onshape)
     part_set(repo, onshape)
     write(repo, "Parts/partMaker.fs", PART_MAKER + "// edited\n")
 
-    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert run(onshape, "release", "parts", "--minor", "-y") == 0
     assert onshape.code("partMaker.fs").endswith("// edited\n")
     assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0"]
 
 
-def test_a_part_set_is_released_into_its_main_document(repo, onshape, capsys):
+def test_a_part_set_is_released_into_its_frontend_document(repo, onshape, capsys):
     element_id = part_set(repo, onshape)
 
-    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert run(onshape, "release", "parts", "--minor", "-y") == 0
 
     [backend_version] = onshape.versions_by_document["back"]
     assert backend_version.name == "Parts - v0.1.0"
-    main_studio = next(id for id, s in onshape.studios(MAIN, "lw").items() if s["name"] == "partMaker.fs")
-    assert f'"back/{backend_version.id}/{element_id}"' in onshape.code("partMaker.fs", MAIN, "lw")
-    # Built from the main document's own studio as pushed, not the backend's
-    assert onshape.builds == [(MAIN, "screw", main_studio, onshape.studios(MAIN, "lw")[main_studio]["mv"])]
-    # The main document is left for its owner to version
-    assert MAIN not in onshape.versions_by_document
+    frontend_studio = next(id for id, s in onshape.studios(PART_FRONTEND, "lw").items() if s["name"] == "partMaker.fs")
+    assert f'"back/{backend_version.id}/{element_id}"' in onshape.code("partMaker.fs", PART_FRONTEND, "lw")
+    # Built from the frontend document's own studio as pushed, not the backend's
+    assert onshape.builds == [
+        (PART_FRONTEND, "screw", frontend_studio, onshape.studios(PART_FRONTEND, "lw")[frontend_studio]["mv"])
+    ]
+    # The frontend is left for its owner to version
+    assert PART_FRONTEND not in onshape.versions_by_document
     assert json.loads(local(repo, "Parts/partTables.studios.json").read_text()) == {
-        "documentId": MAIN,
-        "elements": {"screw": onshape.part_studios[(MAIN, "lw")]["Screw"]},
+        "documentId": PART_FRONTEND,
+        "elements": {"screw": onshape.part_studios[(PART_FRONTEND, "lw")]["Screw"]},
     }
     out = capsys.readouterr().out
-    assert "  3. Build Screw in the main document, and write its manifest there" in out
-    assert "Create version Parts - v0.1.0 in the main document" not in out
+    assert "  3. Build Screw in the frontend document (parts-frontend), and write its manifest there" in out
+    assert "Create version Parts - v0.1.0 in the frontend document" not in out
     assert "front" not in onshape.versions_by_document
     # Its manifest beside its Part Studios, naming each by its tab there
-    [(name, data)] = onshape.files[(MAIN, "lw")].values()
+    [(name, data)] = onshape.files[(PART_FRONTEND, "lw")].values()
     assert name == "parts.parts.json"
-    screw = onshape.part_studios[(MAIN, "lw")]["Screw"]
+    screw = onshape.part_studios[(PART_FRONTEND, "lw")]["Screw"]
     assert json.loads(data) == {"studios": {"screw": {"feature": "partScrew", "mateConnector": "mc", "elementId": screw}}}
+    # Indented, to read in Onshape
+    assert data.startswith(b'{\n    "studios": {\n')
 
     # The next is numbered from the backend's versions
-    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") == 0
+    assert run(onshape, "release", "parts", "--minor", "-y") == 0
     assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0", "Parts - v0.2.0"]
-    assert MAIN not in onshape.versions_by_document
+    assert PART_FRONTEND not in onshape.versions_by_document
 
 
-TARGET = "fedcba9876543210fedcba98"
-
-
-def test_a_part_set_is_released_to_a_target_to_try_it(repo, onshape, capsys):
+def test_a_hard_part_set_release_versions_its_frontend_and_tags_it(repo, onshape, capsys):
+    git_repo(repo)
     part_set(repo, onshape)
-    (repo / "pyproject.toml").write_text(
-        (repo / "pyproject.toml").read_text()
-        + f'[tool.fs.parts.parts.targets]\nlocal = "https://cad.onshape.com/documents/{TARGET}"\n'
-    )
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Parts")
 
-    assert run(onshape, "parts", "parts", "--release", "--target", "local", "-y") == 0
+    assert run(onshape, "release", "parts", "--minor", "--hard", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[PART_FRONTEND]] == ["Parts - v0.1.0"]
+    assert "Hard release of the parts part set" in capsys.readouterr().out
+    assert tags(repo) == ["parts/v0.1.0"]
+
+
+def test_a_soft_part_set_release_is_published_later(repo, onshape, capsys):
+    git_repo(repo)
+    two_part_sets(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Parts")
+
+    assert run(onshape, "release", "parts", "--minor", "-y", "--no-push-tags") == 0
+    assert "It's a soft release" in capsys.readouterr().out
+    assert run(onshape, "release", "others", "--minor", "-y", "--no-push-tags") == 0
+    assert tags(repo) == [] and PART_FRONTEND not in onshape.versions_by_document
+    # Each in its own frontend, and just the ones named
+    assert run(onshape, "publish", "parts", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[PART_FRONTEND]] == ["Parts - v0.1.0"]
+    assert OTHER_FRONTEND not in onshape.versions_by_document
+    assert tags(repo) == ["parts/v0.1.0"]
+    assert run(onshape, "publish", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[OTHER_FRONTEND]] == ["Others - v0.1.0"]
+    assert tags(repo) == ["others/v0.1.0", "parts/v0.1.0"]
+
+
+def test_a_part_set_is_released_to_a_library_to_try_it(repo, onshape, capsys):
+    part_set(repo, onshape)
+    with_library(repo)
+
+    assert run(onshape, "release", "parts", "--to", "library", "-y") == 0
     # Versioned, but not as a release
     [backend_version] = onshape.versions_by_document["back"]
     assert backend_version.name == "Parts test - no branch"
-    [version] = onshape.versions_by_document[TARGET]
+    [version] = onshape.versions_by_document[LIBRARY]
     assert version.name == "Parts test - no branch"
-    assert list(onshape.part_studios[(TARGET, "lw")]) == ["Screw"]
-    [(name, _)] = onshape.files[(TARGET, "lw")].values()
+    assert list(onshape.part_studios[(LIBRARY, "lw")]) == ["Screw"]
+    [(name, _)] = onshape.files[(LIBRARY, "lw")].values()
     assert name == "parts.parts.json"
-    # Nothing recorded, released, or in the main document
+    # Nothing recorded, released, or in the frontend
     assert not local(repo, "Parts/partTables.studios.json").exists()
-    assert MAIN not in onshape.versions_by_document
+    assert PART_FRONTEND not in onshape.versions_by_document
     assert "Record where" not in capsys.readouterr().out
 
-    assert run(onshape, "parts", "parts", "--release", "--target", "local", "--minor", "-y") == 2
+    assert run(onshape, "release", "parts", "--to", "library", "--minor", "-y") == 2
     assert "takes no --major, --minor, or --patch" in capsys.readouterr().err
-    assert run(onshape, "parts", "parts", "--release", "--target", f"https://cad.onshape.com/documents/{MAIN}", "-y") == 2
-    assert "main document" in capsys.readouterr().err
-    assert run(onshape, "parts", "parts", "--test", "--target", "local", "-y") == 2
-    assert "go with --release" in capsys.readouterr().err
+    assert run(onshape, "release", "parts", "--to", "parts-frontend", "-y") == 2
+    assert "parts-frontend is a frontend document, not a library document" in capsys.readouterr().err
+
+
+def test_a_part_set_without_a_frontend_is_released_only_to_a_library(repo, onshape, capsys):
+    part_set(repo, onshape, frontend=False)
+    with_library(repo)
+    assert run(onshape, "release", "parts", "--minor", "-y") == 2
+    assert "has no frontend document yet" in capsys.readouterr().err
+    assert onshape.versions_by_document == {}
+    assert run(onshape, "release", "parts", "--to", "library", "-y") == 0
 
 
 def test_a_part_set_release_stops_at_a_part_studio_that_fails_to_regenerate(repo, onshape, capsys):
     part_set(repo, onshape)
     onshape.build_status = "ERROR"
 
-    assert run(onshape, "parts", "parts", "--release", "--minor", "-y") != 0
+    assert run(onshape, "release", "parts", "--minor", "-y") != 0
     assert "Screw's partScrew fails to regenerate in its default configuration" in capsys.readouterr().err
-    assert MAIN not in onshape.versions_by_document
+    assert PART_FRONTEND not in onshape.versions_by_document
     assert not local(repo, "Parts/partTables.studios.json").exists()
 
 
-def test_a_part_sets_featurescript_isnt_released_by_fs_release(repo, onshape, capsys):
-    part_set(repo, onshape)
-    assert run(onshape, "release", "partMaker", "--minor", "-y") != 0
-    assert "release it with `fs parts parts --release`" in capsys.readouterr().err
+def test_a_part_sets_featurescript_is_released_with_its_part_set(repo, onshape, capsys):
+    two_part_sets(repo, onshape)
+    assert run(onshape, "release", "partMaker", "--minor", "-y") == 2
+    assert "release the part set (parts, others) instead" in capsys.readouterr().err
     assert onshape.versions_by_document == {}
+    assert writes(onshape) == 0
 
 
-def test_sync_versions_leaves_out_part_set_releases(repo, onshape):
+def test_a_featurescript_is_released_to_a_library_to_try_it(repo, onshape, capsys):
+    element_id = app_frame(repo, onshape)
+    with_library(repo)
+    onshape.versions_by_document["back"] = [Version("1", "Robot frame - v1.2.0")]
+
+    assert run(onshape, "release", "robotFrame", "--to", "library", "-y") == 0
+    # Not numbered: named for the branch, which `fs release` doesn't take for a release
+    assert [version.name for version in onshape.versions_by_document["back"]] == [
+        "Robot frame - v1.2.0",
+        "Robot frame test - no branch",
+    ]
+    assert [version.name for version in onshape.versions_by_document[LIBRARY]] == ["Robot frame test - no branch"]
+    assert "Robot frame test - no branch" in onshape.code("robotFrame.fs", LIBRARY, "lw")
+    # FRCDesignApp's side, as the frontend's, with the last release's version
+    assert list(onshape.part_studios[(LIBRARY, "lw")]) == ["Robot frame"]
+    files = dict(onshape.files[(LIBRARY, "lw")].values())
+    assert files["Robot frame icon.svg"] == ICON_SVG
+    [entry] = json.loads(files["featurescripts.json"])["features"]
+    assert entry["version"] == "1.2.0+test"
+    # Nothing in the frontend, marked released, or numbered
+    assert "front" not in onshape.versions_by_document and onshape.names("front", "fw") == []
+    assert element_id not in released_ids(repo)
+    # Always versioned, so --hard changes nothing
+    assert run(onshape, "release", "robotFrame", "--to", "library", "--hard", "-y") == 0
+    assert len(onshape.versions_by_document[LIBRARY]) == 2
+
+
+def test_publish_leaves_out_part_set_releases(repo, onshape):
     with_part_set(repo)
     onshape.versions_by_document["back"] = [
         Version("1", "Robot frame - v1.0.0"),
@@ -1340,14 +1602,14 @@ def test_sync_versions_leaves_out_part_set_releases(repo, onshape):
         Version("3", "Robot frame - v1.1.0"),
     ]
     onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
-    assert run(onshape, "sync-versions", "-y") == 0
+    assert run(onshape, "publish", "-y") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == [
         "Robot frame - v1.0.0",
         "Robot frame - v1.1.0",
     ]
 
 
-def test_sync_versions(repo, onshape):
+def test_publish(repo, onshape):
     onshape.versions_by_document["back"] = [
         Version("1", "Robot frame - v1.0.0"),
         Version("2", "Unrelated version"),
@@ -1355,7 +1617,7 @@ def test_sync_versions(repo, onshape):
         Version("4", "Robot bore - v0.1.0"),
     ]
     onshape.versions_by_document["front"] = [Version("9", "Robot frame - v1.0.0")]
-    assert run(onshape, "sync-versions", "-y") == 0
+    assert run(onshape, "publish", "-y") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == [
         "Robot frame - v1.0.0",
         "Robot frame - v1.1.0",
@@ -1364,8 +1626,8 @@ def test_sync_versions(repo, onshape):
     assert onshape.versions_by_document["front"][1].description == "Things"
 
 
-def test_sync_versions_finds_releases_older_than_another_features_published_one(repo, onshape):
-    # Robot frame released twice without publishing, then Robot bore published at once
+def test_publish_finds_releases_older_than_another_features_published_one(repo, onshape):
+    # Robot frame released soft twice, then Robot bore released hard
     onshape.versions_by_document["back"] = [
         Version("1", "Robot frame - v1.0.0"),
         Version("2", "Robot bore - v0.1.0"),
@@ -1377,7 +1639,7 @@ def test_sync_versions_finds_releases_older_than_another_features_published_one(
         Version("8", "Robot frame - v1.0.0"),
         Version("9", "Robot bore - v0.1.1"),
     ]
-    assert run(onshape, "sync-versions", "-y") == 0
+    assert run(onshape, "publish", "-y") == 0
     # Only the newest: a version of v1.1.0 made now would import v1.1.1
     assert [v.name for v in onshape.versions_by_document["front"]] == [
         "Robot frame - v1.0.0",
@@ -1386,27 +1648,27 @@ def test_sync_versions_finds_releases_older_than_another_features_published_one(
     ]
 
 
-def test_sync_versions_syncs_a_deprecation_rather_than_the_releases_before_it(repo, onshape):
+def test_publish_publishes_a_deprecation_rather_than_the_releases_before_it(repo, onshape):
     onshape.versions_by_document["back"] = [
         Version("1", "Robot bore - v0.1.0"),
         Version("2", "Robot bore - v0.2.0"),
         Version("3", "DEPRECATED Robot bore", "Use Robot hole"),
     ]
     onshape.versions_by_document["front"] = [Version("9", "Robot bore - v0.1.0")]
-    assert run(onshape, "sync-versions", "-y") == 0
+    assert run(onshape, "publish", "-y") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot bore - v0.1.0", "DEPRECATED Robot bore"]
     assert onshape.versions_by_document["front"][1].description == "Use Robot hole"
-    # Synced once
-    assert run(onshape, "sync-versions", "-y") == 0
+    # Published once
+    assert run(onshape, "publish", "-y") == 0
     assert len(onshape.versions_by_document["front"]) == 2
 
 
-def test_sync_versions_of_some_features(repo, onshape):
+def test_publish_some_features(repo, onshape):
     onshape.versions_by_document["back"] = [Version("1", "Robot frame - v1.0.0"), Version("2", "Robot bore - v0.1.0")]
     onshape.versions_by_document["front"] = []
-    assert run(onshape, "sync-versions", "robotFrame", "-y") == 0
+    assert run(onshape, "publish", "robotFrame", "-y") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v1.0.0"]
-    assert run(onshape, "sync-versions", "Robot bore", "-y") == 0
+    assert run(onshape, "publish", "Robot bore", "-y") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v1.0.0", "Robot bore - v0.1.0"]
 
 # Tagging releases in git
@@ -1435,33 +1697,33 @@ def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
     return version
 
 
-def test_publishing_a_release_tags_it(repo, onshape, capsys):
+def test_a_hard_release_tags_it(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
-    # Not final until its version is in the frontend
+    # A soft release isn't tagged until its version is in the frontend
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
     assert tags(repo) == []
-    assert "sync-versions" in capsys.readouterr().out
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish", "--no-push-tags") == 0
+    assert "fs publish" in capsys.readouterr().out
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard", "--no-push-tags") == 0
     assert tags(repo) == ["robotFrame/v0.1.1"]
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.1") == git_output(repo, "rev-parse", "HEAD")
 
 
-def test_a_first_release_isnt_published_at_once(repo, onshape, capsys):
+def test_a_first_release_is_soft(repo, onshape, capsys):
     released_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--hard") == 2
     assert "never been released" in capsys.readouterr().err
     # Nothing made
     assert "back" not in onshape.versions_by_document
     # Released, and then a later one can be
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard") == 0
     assert [version.name for version in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
 
 
-def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
+def test_publish_tags_the_releases_it_makes_hard(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
@@ -1471,19 +1733,19 @@ def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     # Edited since: the tag goes on the commit with the code as it was released
     local(repo, "Robot/robotFrame.fs").write_text("frame 2")
     git(repo, "commit", "-qam", "Later")
-    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert run(onshape, "publish", "-y", "--no-push-tags") == 0
     assert tags(repo) == ["robotFrame/v0.1.0"]
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
 
 
-def test_syncing_versions_makes_and_tags_only_each_features_newest_release(repo, onshape):
+def test_publish_makes_and_tags_only_each_features_newest_release(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
     assert run(onshape, "release", "robotFrame", "--patch", "-y", "--no-push-tags") == 0
-    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert run(onshape, "publish", "-y", "--no-push-tags") == 0
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
     assert tags(repo) == ["robotFrame/v0.1.1"]
 
@@ -1495,7 +1757,7 @@ def test_changes_reads_the_release_tag(repo, onshape, capsys):
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
-    assert run(onshape, "sync-versions", "-y", "--no-push-tags") == 0
+    assert run(onshape, "publish", "-y", "--no-push-tags") == 0
     local(repo, "Robot/robotFrame.fs").write_text("frame 2\n")
     pulls = onshape.pulls
     capsys.readouterr()
@@ -1556,7 +1818,7 @@ def test_release_marks_released(repo, onshape):
 
 def test_push_keeps_released_tabs_of_deleted_files(repo, onshape, capsys):
     element_id = released_frame(repo, onshape)
-    assert cli.main(["released", "robotFrame"]) == 0
+    assert cli.main(["mark-released", "robotFrame"]) == 0
     local(repo, "Robot/robotFrame.fs").unlink()
     capsys.readouterr()
     assert run(onshape, "push", "--yes") == 1
@@ -1568,7 +1830,7 @@ def test_push_keeps_released_tabs_of_deleted_files(repo, onshape, capsys):
 
 def test_push_doesnt_recreate_released_tabs(repo, onshape, capsys):
     element_id = released_frame(repo, onshape)
-    assert cli.main(["released", "featurescripts/Robot/robotFrame.fs"]) == 0
+    assert cli.main(["mark-released", "featurescripts/Robot/robotFrame.fs"]) == 0
     onshape.delete(onshape_backend(), element_id)
     capsys.readouterr()
     assert run(onshape, "push") == 1
@@ -1578,7 +1840,7 @@ def test_push_doesnt_recreate_released_tabs(repo, onshape, capsys):
     assert studio_files(repo)[element_id] == "Robot/robotFrame.fs"
     assert run(onshape, "push") == 1
 
-    assert cli.main(["released", "robotFrame", "--remove"]) == 0
+    assert cli.main(["mark-released", "robotFrame", "--remove"]) == 0
     assert run(onshape, "push") == 0
     assert onshape.names() == ["robotFrame.fs"]
 
@@ -1589,39 +1851,28 @@ def onshape_backend():
     return url_to_instance_path(BACKEND)
 
 
-def test_released_lists_marks_and_detects(repo, onshape, capsys):
+def test_mark_released_lists_marks_and_unmarks(repo, onshape, capsys):
     frame = released_frame(repo, onshape)
-    bore = onshape.add("robotBore.fs", "bore")
-    old = onshape.add("robotOld.fs", "old")
-    onshape.add("utils.fs", "utils")
+    onshape.add("robotBore.fs", "bore")
     run(onshape, "pull")
     capsys.readouterr()
-    assert cli.main(["released"]) == 0
+    assert cli.main(["mark-released"]) == 0
     assert "Nothing is released" in capsys.readouterr().out
 
-    onshape.versions_by_document["back"] = [
-        Version("1", "Robot frame - v1.0.0"),
-        Version("2", "Robot bore - v0.1.0-beta.1"),
-        Version("3", "Robot old - v1.0.0"),
-        Version("4", "DEPRECATED Robot old"),
-    ]
     calls = sum(onshape.calls.values())
-    assert run(onshape, "released", "--detect") == 0
-    assert sum(onshape.calls.values()) - calls == 2
-    assert sorted(released_ids(repo)) == sorted([frame, bore])
-    assert old not in released_ids(repo)
-
-    assert cli.main(["released", "robotBore", "--remove"]) == 0
+    assert cli.main(["mark-released", "robotFrame", "robotBore"]) == 0
+    assert cli.main(["mark-released", "robotBore", "--remove"]) == 0
+    assert sum(onshape.calls.values()) == calls
     assert released_ids(repo) == [frame]
     capsys.readouterr()
-    assert cli.main(["released"]) == 0
+    assert cli.main(["mark-released"]) == 0
     assert capsys.readouterr().out == "Robot/robotFrame.fs\n"
-    assert cli.main(["released", "nothing"]) == 2
+    assert cli.main(["mark-released", "nothing"]) == 2
 
 
 def test_mv_keeps_released(repo, onshape):
     element_id = released_frame(repo, onshape)
-    cli.main(["released", "robotFrame"])
+    cli.main(["mark-released", "robotFrame"])
     assert cli.main(["mv", "featurescripts/Robot/robotFrame.fs", "featurescripts/frame.fs"]) == 0
     assert released_ids(repo) == [element_id]
     assert studio_files(repo)[element_id] == "frame.fs"
@@ -1635,7 +1886,7 @@ def test_tabs_lists_what_isnt_paired(repo, onshape, capsys):
     onshape.add("gone.fs", "gone")
     released = onshape.add("robotFrame.fs", "rf")
     run(onshape, "pull")
-    cli.main(["released", "robotFrame"])
+    cli.main(["mark-released", "robotFrame"])
     onshape.add("remoteOnly.fs", "r")
     cli.main(["mv", "featurescripts/frame.fs", "featurescripts/tube.fs"])
     cli.main(["mv", "featurescripts/robotFrame.fs", "featurescripts/robotTube.fs"])
@@ -1696,14 +1947,14 @@ def deprecatable_frame(repo, onshape) -> str:
     onshape.add_part_studio("Robot frame")
     run(onshape, "pull")
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    assert run(onshape, "sync-versions", "-y") == 0
+    assert run(onshape, "publish", "-y") == 0
     return element_id
 
 
 def test_deprecate(repo, onshape, capsys):
     element_id = deprecatable_frame(repo, onshape)
     frontend_id = next(iter(onshape.studios("front", "fw")))
-    assert run(onshape, "deprecate", "robotFrame", "-y", "--publish", "-d", "Use robot tube") == 0
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--hard", "-d", "Use robot tube") == 0
 
     version = onshape.versions_by_document["back"][-1]
     assert version.name == "DEPRECATED Robot frame"
@@ -2009,8 +2260,7 @@ def test_onshape_remote_images():
 
 def branched(repo: pathlib.Path, onshape: FakeOnshape, branch: str = "feature", frontend: bool = False) -> None:
     """A repo releasing from main, on `branch`."""
-    front = f'frontend = "{FRONTEND}"\n' if frontend else ""
-    (repo / "pyproject.toml").write_text(f'[tool.fs]\nbackend = "{BACKEND}"\n{front}main_branch = "main"\n')
+    (repo / "pyproject.toml").write_text(config(frontend, 'main_branch = "main"\n'))
     (repo / ".gitignore").write_text(".fs-state*.json\n")
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.name", "t")
@@ -2041,13 +2291,20 @@ def test_every_branch_pushes_to_the_main_workspace(repo, onshape):
     local(repo, "frame.fs").write_text("2")
     assert run(onshape, "push") == 0
     assert onshape.code("frame.fs") == "2"
-    assert onshape.workspace_names == {}
 
 
-def test_releasing_runs_only_on_main(repo, onshape, capsys):
-    branched(repo, onshape)
-    assert run(onshape, "sync-versions") == 2
-    assert "runs only on main" in capsys.readouterr().err
+def test_releasing_to_a_frontend_runs_only_on_main(repo, onshape, capsys):
+    app_frame(repo, onshape)
+    branched(repo, onshape, frontend=True)
+    with_library(repo)
+    for command in [("publish",), ("releases", "--run"), ("deprecate", "robotFrame"), ("release", "robotFrame", "--minor")]:
+        assert run(onshape, *command, "-y" if command[0] != "releases" else "--dry-run") == 2
+        assert "runs only on main" in capsys.readouterr().err
+    assert onshape.versions_by_document == {}
+    # A library's release runs on any branch, named for it
+    assert run(onshape, "release", "robotFrame", "--to", "library", "-y") == 0
+    commit = git_output(repo, "rev-parse", "HEAD").strip()[:7]
+    assert [v.name for v in onshape.versions_by_document[LIBRARY]] == [f"Robot frame test - feature {commit}"]
 
 
 def test_releases_are_cut_only_from_what_origin_has(repo, onshape, tmp_path_factory, capsys):
@@ -2076,44 +2333,49 @@ def test_releases_are_cut_only_from_what_origin_has(repo, onshape, tmp_path_fact
 
 def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
     (repo / "releases").mkdir()
-    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\n')
     assert run(onshape, "releases") == 0
     assert "releases/frame.toml: FeatureScript robotFrame, minor release" in capsys.readouterr().out
+    with_part_set(repo)
+    (repo / "releases" / "frame.toml").write_text('name = "parts"\nbump = "minor"\n')
+    assert run(onshape, "releases") == 0
+    assert "releases/frame.toml: part set parts, minor release" in capsys.readouterr().out
     for contents, problem in [
-        ('script = "robotFrame"\npart_set = "fasteners"\n', "one script"),
-        ('script = "robotFrame"\nbump = "huge"\n', "major, minor, or patch"),
-        ('script = "robotFrame"\nversion = "1"\n', "unknown keys: version"),
-        ('part_set = "fasteners"\n', "no part set named fasteners"),
+        ('bump = "minor"\n', "must name what it releases"),
+        ('name = "robotFrame"\nbump = "huge"\n', "major, minor, or patch"),
+        ('name = "robotFrame"\nversion = "1"\n', "unknown keys: version"),
+        ('name = "parts"\nhard = "yes"\n', "hard is true or false"),
+        ('name = "parts"\npublish = true\n', "unknown keys: publish"),
     ]:
         (repo / "releases" / "frame.toml").write_text(contents)
         assert run(onshape, "releases") == 2
         assert problem in capsys.readouterr().err
 
 
-def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
+def test_release_files_dont_hard_release_a_first_release(repo, onshape, capsys):
     element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
     run(onshape, "pull")
     (repo / "releases").mkdir()
-    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\npublish = true\n')
+    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\nhard = true\n')
     assert run(onshape, "releases") == 2
     assert "never been released" in capsys.readouterr().err
     # Once it's been released, it can be
-    assert run(onshape, "released", "robotFrame") == 0
+    assert run(onshape, "mark-released", "robotFrame") == 0
     assert element_id in json.loads((repo / "fs-studios.json").read_text())["released"]
     assert run(onshape, "releases") == 0
 
 
-def test_run_releases_doesnt_publish_unless_asked(repo, onshape, tmp_path_factory):
+def test_run_releases_are_soft_unless_hard(repo, onshape, tmp_path_factory):
     onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
     branched(repo, onshape, "main", frontend=True)
     run(onshape, "pull")
     (repo / "releases").mkdir()
-    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\n')
     commit_all(repo, "Ask for a release")
     with_origin(repo, tmp_path_factory)
-    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert run(onshape, "releases", "--run", "--no-push-tags") == 0
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
-    # Its frontend studio points at it, but it's not final until `fs sync-versions`
+    # A soft release: its frontend studio points at it, but the frontend isn't versioned until `fs publish`
     assert "Robot frame - v0.1.0" in onshape.code("robotFrame.fs", "front", "fw")
     assert "front" not in onshape.versions_by_document
 
@@ -2124,13 +2386,13 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys, tmp_path_fa
     run(onshape, "pull")
     (repo / "releases").mkdir()
     (repo / "releases" / "frame.toml").write_text(
-        'script = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
+        'name = "robotFrame"\nbump = "minor"\ndescription = "First"\nhard = false\n'
     )
     commit_all(repo, "Ask for a release")
     with_origin(repo, tmp_path_factory)
     asked = git_output(repo, "rev-parse", "HEAD").strip()[:12]
 
-    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert run(onshape, "releases", "--run", "--no-push-tags") == 0
     released = onshape.versions_by_document["back"][-1]
     assert (released.name, released.description) == ("Robot frame - v0.1.0", f"First [releases/frame.toml {asked}]")
     assert element_id in onshape.studios("back", released.id)
@@ -2141,17 +2403,17 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys, tmp_path_fa
     # Run again before its file was deleted, as after a run that stopped partway, it's found made rather than made twice
     git(repo, "reset", "-q", "--hard", "HEAD~1")
     capsys.readouterr()
-    assert run(onshape, "run-releases", "--no-push-tags") == 2
+    assert run(onshape, "releases", "--run", "--no-push-tags") == 2
     assert "already made Robot frame - v0.1.0" in capsys.readouterr().err
 
     # A file of the same name asking for a later release makes it
     git(repo, "rm", "-q", "releases/frame.toml")
     commit_all(repo, "Released by hand")
     (repo / "releases").mkdir(exist_ok=True)
-    (repo / "releases" / "frame.toml").write_text('script = "robotFrame"\nbump = "minor"\n')
+    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\n')
     commit_all(repo, "Ask again")
     git(repo, "push", "-q", "--force", "origin", "main")
-    assert run(onshape, "run-releases", "--no-push-tags") == 0
+    assert run(onshape, "releases", "--run", "--no-push-tags") == 0
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.2.0"
 
 
@@ -2182,7 +2444,7 @@ def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshap
     app_frame(repo, onshape)
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
 
-    assert "Create an empty example Part Studio, Robot frame, in the frontend document" in capsys.readouterr().out
+    assert "Create an empty example Part Studio, Robot frame, in the frontend document (frontend)" in capsys.readouterr().out
     assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
     [studio_id] = onshape.studios("front", "fw")
     files = onshape.files[("front", "fw")]
@@ -2204,43 +2466,19 @@ def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshap
     }
 
     # The next release keeps the example it made, and replaces its entry
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard") == 0
     assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
     assert [feature["version"] for feature in manifest(onshape)["features"]] == ["0.1.1"]
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
 
 
-def test_release_refuses_to_publish_a_feature_with_no_example(repo, onshape, capsys):
+def test_release_refuses_a_hard_release_of_a_feature_with_no_example(repo, onshape, capsys):
     app_frame(repo, onshape)
     onshape.versions_by_document["back"] = [Version("1", "Robot frame - v0.1.0")]
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--hard") == 2
     assert "has no example in the frontend document" in capsys.readouterr().err
     assert "front" not in onshape.versions_by_document
     assert onshape.calls["create_version"] == 0
-
-
-def test_app_manifest_writes_what_the_latest_release_would_have(repo, onshape, capsys):
-    app_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    written = manifest(onshape)
-    # Released before releases wrote the app's side, and changed since
-    del onshape.files[("front", "fw")]
-    code = local(repo, "released/frame/robotFrame.fs")
-    code.write_text(code.read_text().replace("Add tube.", "Add pipe."))
-    assert run(onshape, "push") == 0
-    capsys.readouterr()
-
-    assert run(onshape, "app-manifest", "--dry-run") == 0
-    assert "Robot frame - v0.1.0\n" in capsys.readouterr().out
-    assert ("front", "fw") not in onshape.files
-
-    assert run(onshape, "app-manifest", "-y") == 0
-    [entry] = written["features"]
-    icon_id = next(id for id, (name, _) in onshape.files[("front", "fw")].items() if name == "Robot frame icon.svg")
-    assert manifest(onshape) == {"schemaVersion": 1, "features": [{**entry, "iconElementId": icon_id}]}
-    assert onshape.files[("front", "fw")][icon_id][1] == ICON_SVG
-    assert onshape.calls["create_version"] == 1
-    assert onshape.calls["create_part_studio"] == 1
 
 
 def test_an_icon_another_studio_exports_is_found(repo, onshape):
@@ -2261,11 +2499,6 @@ def test_an_icon_another_studio_exports_is_found(repo, onshape):
     [entry] = manifest(onshape)["features"]
     assert files[entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
 
-    del onshape.files[("front", "fw")]
-    assert run(onshape, "app-manifest", "-y") == 0
-    [entry] = manifest(onshape)["features"]
-    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
-
 
 def test_a_feature_without_an_icon_gets_the_default_icon(repo, onshape, capsys):
     pyproject = repo / "pyproject.toml"
@@ -2276,40 +2509,6 @@ def test_a_feature_without_an_icon_gets_the_default_icon(repo, onshape, capsys):
     assert run(onshape, "release", "robotGrid", "--minor", "-y") == 0
     [entry] = manifest(onshape)["features"]
     assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
-
-    del onshape.files[("front", "fw")]
-    capsys.readouterr()
-    assert run(onshape, "app-manifest", "-y") == 0
-    assert "Robot grid - v0.1.0 (the default icon" in capsys.readouterr().out
-    [entry] = manifest(onshape)["features"]
-    assert onshape.files[("front", "fw")][entry["iconElementId"]] == ("Robot grid icon.svg", ICON_SVG)
-
-
-def test_app_manifest_keeps_other_entries(repo, onshape):
-    app_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    front = InstancePath("front", "fw")
-    other = {"studioElementId": "other", "featureType": "other", "name": "Other", "description": "", "version": "1.0.0", "iconElementId": None}
-    onshape.put_file(front, "featurescripts.json", json.dumps({"schemaVersion": 1, "features": [other]}).encode(), "")
-
-    assert run(onshape, "app-manifest", "-y") == 0
-    [kept, frame] = manifest(onshape)["features"]
-    assert kept == other
-    assert frame["sourceUrl"] == "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs"
-
-
-def test_app_manifest_leaves_out_unreleased_and_deprecated_features(repo, onshape, capsys):
-    app_frame(repo, onshape)
-    # In the frontend document, but never released
-    onshape.add("robotTube.fs", "export const robotTube = defineFeature();\n", document="front", instance="fw")
-    # Deprecated: its last release is named for it, and its frontend studio renamed
-    old = onshape.add("robotOld.fs", "export const robotOld = defineFeature();\n")
-    onshape.create_version(InstancePath("back", "bw"), "Robot old - v1.0.0", "")
-    onshape.add("DEPRECATED robotOld.fs", "export const robotOld = defineFeature();\n", document="front", instance="fw")
-    del onshape.studios()[old]
-    assert run(onshape, "app-manifest", "-y") == 0
-    assert "No released features to write." in capsys.readouterr().out
-    assert manifest(onshape) == {}
 
 
 def test_deprecate_takes_the_feature_out_of_the_app(repo, onshape):

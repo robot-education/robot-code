@@ -108,7 +108,12 @@ export const robotSprocket = defineFeature(function(context is Context, id is Id
             cutBores(context, id + "bore", bore,
                 mapArray(sprockets, function(sprocket) { return sprocket.plane; }),
                 mapArray(sprockets, function(sprocket) { return sprocket.identity; }),
-                bodies);
+                bodies,
+                // The sprockets again, if the bore uses them up, to show
+                function(errorId is Id)
+                {
+                    createSprockets(context, errorId, definition, sprockets);
+                });
         }
     });
 

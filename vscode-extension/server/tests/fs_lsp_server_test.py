@@ -151,7 +151,7 @@ def test_cross_file_navigation(tmp_path):
     """Definitions, hovers, and diagnostics across files in a repo with an fs config."""
     utils_id = "a" * 24
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts"
     code_dir.mkdir()
@@ -196,7 +196,7 @@ def test_cross_file_navigation(tmp_path):
 
 def test_std_navigation(tmp_path):
     """Go to Definition into the copy of std, and in std's files, which get no diagnostics."""
-    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n')
     (tmp_path / "featurescripts").mkdir()
     (tmp_path / "std").mkdir()
     std_source = (
@@ -253,7 +253,7 @@ def test_renames_keep_studios_and_imports(tmp_path):
     """Renaming files and folders in the editor updates fs-studios.json and imports by path."""
     utils_id = "a" * 24
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts"
     (code_dir / "core").mkdir(parents=True)
@@ -297,7 +297,7 @@ def test_renames_keep_studios_and_imports(tmp_path):
 def test_formatting(tmp_path):
     """Formatting fixes whitespace, by changed lines, but not in std's files, generated files, or while there are
     syntax errors."""
-    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n')
     (tmp_path / "featurescripts").mkdir()
     (tmp_path / "std").mkdir()
     messy = "FeatureScript 2909;\nfunction f(a,b)\n{\n  return a;  \n}\n"
@@ -394,7 +394,7 @@ export const widget = defineFeature(function(context is Context, id is Id, defin
 
 def test_render_ui(tmp_path):
     """The extension's dialog preview renders through the server, with unsaved changes."""
-    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n')
     code_dir = tmp_path / "featurescripts"
     code_dir.mkdir()
     (tmp_path / "std").mkdir()
@@ -437,9 +437,56 @@ def test_render_ui(tmp_path):
         client.close()
 
 
+PART_TABLES = """
+from fs_cli.configured_studios import ConfiguredStudio, Input, Option
+
+STUDIOS = {
+    "part": ConfiguredStudio(
+        "part",
+        "widget",
+        [Input("size", "Size", "size", [Option("SMALL", "Small", "SMALL"), Option("LARGE", "Large", "LARGE")], enum_name="Size")],
+    )
+}
+"""
+
+
+def test_render_ui_shows_a_part_sets_configurations(tmp_path):
+    """A part set's Feature Studio previews its Part Studios' configurations, each chosen as a feature is."""
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
+        '[tool.fs.parts.parts]\ntitle = "Parts"\nfolder = "parts"\ndefinition = "partTables.py"\n'
+    )
+    folder = tmp_path / "featurescripts" / "parts"
+    folder.mkdir(parents=True)
+    (tmp_path / "std").mkdir()
+    (tmp_path / "std" / "common.fs").write_text("FeatureScript 1;\n")
+    (folder / "partTables.py").write_text(PART_TABLES)
+    path = folder / "widget.fs"
+    path.write_text(WIDGET)
+    uri = path.as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": tmp_path.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": WIDGET}},
+        )
+        result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["size", "LARGE"]]})
+        assert result["features"] == ["Parts: Part"] and result["feature"] == "Parts: Part"
+        assert "<span class='ns-dialog-title'>Part</span>" in result["html"]
+        assert "data-set='size' data-value='SMALL'" in result["html"]
+        assert result["settings"] == [["size", "LARGE"]]
+        # Its default unsets it
+        result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["size", "SMALL"]]})
+        assert result["settings"] == []
+    finally:
+        client.close()
+
+
 def test_audit(tmp_path):
     """The extension's preview gets the dialog's script, and `fs audit`'s other sections, through the server."""
-    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n')
     code_dir = tmp_path / "featurescripts"
     code_dir.mkdir()
     (tmp_path / "std").mkdir()
@@ -474,7 +521,7 @@ def test_audit(tmp_path):
 def test_rename_quick_fixes_links_and_names(tmp_path):
     """Renames across files, quick fixes, import links, and names from imports."""
     utils_id = "a" * 24
-    (tmp_path / "pyproject.toml").write_text('[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n')
     code_dir = tmp_path / "featurescripts"
     code_dir.mkdir()
     (code_dir / "utils.fs").write_text("FeatureScript 2909;\nexport function double(x is number) { return x * 2; }\n")

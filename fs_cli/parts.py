@@ -1,14 +1,15 @@
 """Part sets (`[tool.fs.parts]`): Part Studios built from a definition's configured studios, like FRCDesign's fasteners,
 whose FeatureScript only they use. Their FeatureScript is in the backend document like any other, and its imports work
-the same, but it's tried and released here rather than by `fs release`:
+the same, but it's built and released with its Part Studios:
 
-- `fs parts <set> --test` builds each Part Studio in the backend workspace, named `<tab> (TEST)`, from the
-  FeatureScript as pushed, to try a change. Nothing else is written.
-- `fs parts <set> --release` versions the backend document, points the set's main document (an FRCDesignLib document)
-  at that version, builds each Part Studio there and writes the set's manifest beside them (`<set>.parts.json`),
-  versions the main document, records where they are beside their definition (`<definition>.studios.json`), writes the
-  definition's exports again, and tags the release in git. With `--target`, it does the same to another document, to
-  try it out, but numbers, records, and tags nothing.
+- `fs build SET` builds each Part Studio in the backend workspace (or with `--to`, another backend), named
+  `<tab> (TEST)`, from the FeatureScript as pushed, to try a change. Nothing else is written.
+- `fs release SET` versions the backend document, points the set's frontend document (one of FRCDesignLib's or
+  ConfigLib's) at that version, builds each Part Studio there and writes the set's manifest beside them
+  (`<set>.parts.json`), records where they are beside their definition (`<definition>.studios.json`), and writes the
+  definition's exports again. That's a soft release; a hard one (`--hard`) also versions the frontend and tags the
+  release in git, as `fs publish` does for a soft one later. With `--to`, it does the same to a library document, a
+  test release, and versions it, but numbers, records, and tags nothing.
 
 See docs/parts.md.
 """
@@ -22,8 +23,7 @@ import re
 import runpy
 from collections.abc import Callable
 
-from fs_cli.branches import branch_name
-from fs_cli.config import ConfigError, PartSet
+from fs_cli.config import Document, PartSet, Role
 from fs_cli.configured_studios import (
     Built,
     ConfiguredStudio,
@@ -32,8 +32,7 @@ from fs_cli.configured_studios import (
     configured_studios,
     write_locations,
 )
-from fs_cli.git import head_commit
-from fs_cli.release import find_frontend_studio, version_backend
+from fs_cli.release import check_release_document, find_frontend_studio, test_version_name, version_backend
 from fs_cli.remote import Remote, RemoteStudio
 from fs_cli.versions import (
     ReleasedVersion,
@@ -72,8 +71,7 @@ def part_set_definitions(workspace: Workspace, part_set: PartSet) -> list[tuple[
 
 
 def part_set_script(workspace: Workspace, part_set: PartSet) -> str:
-    """The FeatureScript in a part set's folder defining every feature its studios use, as `fs push --release` takes
-    it, read from the repo."""
+    """The FeatureScript in a part set's folder defining every feature its studios use, read from the repo."""
     features = sorted({studio.feature for _, studios in part_set_definitions(workspace, part_set) for studio in studios})
     folder = workspace.config.code_dir / part_set.folder
     found = [
@@ -153,27 +151,41 @@ def test_studios(studios: list[ConfiguredStudio]) -> list[ConfiguredStudio]:
     return [dataclasses.replace(studio, tab=studio.tab_name + TEST_SUFFIX) for studio in studios]
 
 
-def run_test(
-    workspace: Workspace, part_set: PartSet, log: Callable[[str], None] = print
+def run_build(
+    workspace: Workspace,
+    part_set: PartSet,
+    remote: Remote | None = None,
+    instance: InstancePath | None = None,
+    feature: RemoteStudio | None = None,
+    log: Callable[[str], None] = print,
 ) -> list[tuple[ConfiguredStudio, Built]]:
-    """Builds a part set's test Part Studios in the backend document, from its FeatureScript as pushed."""
+    """Builds a part set's test Part Studios from its FeatureScript as pushed: in the backend document, or with `remote`,
+    `instance`, and `feature`, in another backend, from its copy of the FeatureScript there."""
     definitions = part_set_definitions(workspace, part_set)
     every = [studio for _, studios in definitions for studio in test_studios(studios)]
-    feature = feature_studio(workspace, part_set, every)
-    assert feature.remote
-    built = build_studios(workspace.remote, workspace.instance, every, feature.remote, log)
+    if feature is None:
+        found = feature_studio(workspace, part_set, every)
+        assert found.remote
+        feature = found.remote
+    built = build_studios(remote or workspace.remote, instance or workspace.instance, every, feature, log)
     return [(studio, built[studio.name]) for studio in every]
 
 
 def run_diagnose(
-    workspace: Workspace, part_set: PartSet, log: Callable[[str], None] = print
+    workspace: Workspace,
+    part_set: PartSet,
+    remote: Remote | None = None,
+    instance: InstancePath | None = None,
+    log: Callable[[str], None] = print,
 ) -> list[tuple[ConfiguredStudio, Diagnosis]]:
-    """Diagnoses each of a part set's configurations in the backend document, stopping at the first Onshape refuses."""
+    """Diagnoses each of a part set's configurations in the backend document (or another backend), stopping at the
+    first Onshape refuses."""
+    remote, instance = remote or workspace.remote, instance or workspace.instance
     diagnosed = []
     for _, studios in part_set_definitions(workspace, part_set):
         for studio in studios:
             log(f"Diagnosing {studio.tab_name}...")
-            diagnosis = workspace.remote.diagnose_studio(workspace.instance, studio, studio.tab_name + TEST_SUFFIX)
+            diagnosis = remote.diagnose_studio(instance, studio, studio.tab_name + TEST_SUFFIX)
             diagnosed.append((studio, diagnosis))
             if diagnosis.refused is not None:
                 return diagnosed
@@ -190,11 +202,12 @@ RELEASED_MANIFEST_SUFFIX = ".parts.json"
 
 @dataclasses.dataclass
 class PartReleasePlan:
-    """A release of a part set: to its main document, numbered (`released`), or to a target, to try it out.
+    """A release of a part set: to its frontend document, numbered (`released`), or to a library, to try it out.
 
     Attributes:
-        main: The workspace of the document it's released to.
-        released: Its version number; None for a target's, which isn't numbered, recorded, or tagged.
+        document: Where it's released to.
+        target: That document's workspace.
+        released: Its version number; None for a library's, which isn't numbered, recorded, or tagged.
     """
 
     part_set: PartSet
@@ -202,39 +215,43 @@ class PartReleasePlan:
     definitions: list[tuple[pathlib.Path, list[ConfiguredStudio]]]
     previous: ReleasedVersion | None
     released: ReleasedVersion | None
-    main: InstancePath
+    document: Document
+    target: InstancePath
     version_name: str
 
     @property
     def label(self) -> str:
-        return "main document" if self.released else "target document"
+        return f"{self.document.role} document ({self.document.name})"
+
+
+def frontend_of(part_set: PartSet) -> Document:
+    """The frontend document a part set is released to."""
+    if part_set.frontend is None:
+        raise UsageError(
+            f"The {part_set.name} part set has no frontend document yet: name the one it's released to in "
+            f"[tool.fs.parts.{part_set.name}] frontend (`--to DOC` releases it to a library meanwhile)."
+        )
+    return part_set.frontend
 
 
 def plan_part_release(
-    workspace: Workspace, part_set: PartSet, bump: VersionType | None, target: str | None = None
+    workspace: Workspace, part_set: PartSet, bump: VersionType | None, document: Document
 ) -> PartReleasePlan:
+    check_release_document(document, bump)
     definitions = part_set_definitions(workspace, part_set)
     studio = feature_studio(workspace, part_set, [each for _, studios in definitions for each in studios])
-    if target is not None:
-        if bump is not None:
-            raise UsageError("A release to a target isn't numbered, so it takes no --major, --minor, or --patch.")
-        try:
-            document_id = part_set.target_document_id(target)
-        except ConfigError as error:
-            raise UsageError(str(error)) from error
-        main = workspace.remote.default_workspace(document_id)
-        commit = (head_commit(workspace.config.root) or "")[:7]
-        name = f"{part_set.title} test - {branch_name(workspace.config) or 'no branch'} {commit}".rstrip()
-        return PartReleasePlan(part_set, studio, definitions, None, None, main, name)
-    main = workspace.remote.default_workspace(part_set.main_document_id)
-    # The main document is versioned by hand, so its releases are numbered by the backend's
+    target = workspace.instance_of(document)
+    if document.role is Role.LIBRARY:
+        name = test_version_name(workspace, part_set.title)
+        return PartReleasePlan(part_set, studio, definitions, None, None, document, target, name)
+    # Numbered by the backend's versions, as the frontend has only its hard releases'
     previous = latest_release(part_set.title, workspace.remote.versions(workspace.instance))
     try:
         version = next_version(previous, bump)
     except ValueError as error:
         raise UsageError(str(error)) from error
     released = ReleasedVersion(part_set.title, version)
-    return PartReleasePlan(part_set, studio, definitions, previous, released, main, released.name)
+    return PartReleasePlan(part_set, studio, definitions, previous, released, document, target, released.name)
 
 
 def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dict[str, bytes]:
@@ -249,40 +266,44 @@ def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dic
         for key, studio in manifest.get("studios", {}).items():
             studio.pop("location", None)
             studio["elementId"] = built[key].element_id
-        manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = json.dumps(manifest).encode()
+        # Indented, for people reading it in Onshape
+        manifests[name.removesuffix(MANIFEST_SUFFIX) + RELEASED_MANIFEST_SUFFIX] = (
+            json.dumps(manifest, indent=4) + "\n"
+        ).encode()
     return manifests
 
 
 def run_part_release(
-    workspace: Workspace, plan: PartReleasePlan, description: str, log: Callable[[str], None] = print
+    workspace: Workspace, plan: PartReleasePlan, description: str, hard: bool, log: Callable[[str], None] = print
 ) -> None:
-    remote = workspace.remote
+    remote = workspace.remote_for(plan.document)
     assert plan.studio.remote
     name = plan.studio.remote.name
     code = version_backend(workspace, plan.studio, plan.version_name, description, log)
-    main_studio = find_frontend_studio(workspace, plan.main, name)
-    if main_studio is None:
+    target_studio = find_frontend_studio(remote, plan.target, name)
+    if target_studio is None:
         log(f"Creating {name} in the {plan.label}...")
-        main_studio = remote.create(plan.main, name)
+        target_studio = remote.create(plan.target, name)
     log(f"Updating {name} in the {plan.label}...")
-    remote.push(plan.main, main_studio.element_id, code)
+    remote.push(plan.target, target_studio.element_id, code)
     # Its microversion as pushed, which the Part Studios insert its features at
-    pushed = next(each for each in remote.list_studios(plan.main) if each.element_id == main_studio.element_id)
+    pushed = next(each for each in remote.list_studios(plan.target) if each.element_id == target_studio.element_id)
     built = {
-        definition: build_studios(remote, plan.main, studios, pushed, log) for definition, studios in plan.definitions
+        definition: build_studios(remote, plan.target, studios, pushed, log) for definition, studios in plan.definitions
     }
     for definition, studios in built.items():
         for tab, manifest in released_manifests(definition, studios).items():
             log(f"Writing {tab} in the {plan.label}...")
-            remote.put_file(plan.main, tab, manifest, "application/json")
+            remote.put_file(plan.target, tab, manifest, "application/json")
 
-    if plan.released is None:
-        # A target is versioned, for a local FRCDesignApp to load
+    # A library is always versioned, for a test FRCDesignApp to load
+    if hard or plan.released is None:
         log(f"Creating version {plan.version_name} in the {plan.label}...")
-        remote.create_version(plan.main, plan.version_name, description)
+        remote.create_version(plan.target, plan.version_name, description)
+    if plan.released is None:
         return
     for definition, studios in built.items():
-        write_locations(definition, plan.main.document_id, {name: each.element_id for name, each in studios.items()})
+        write_locations(definition, plan.target.document_id, {name: each.element_id for name, each in studios.items()})
         for exported in write_exports(definition):
             log(f"Updated {exported.name}")
     # Its tab has to stay put from now on (see `load_released`)

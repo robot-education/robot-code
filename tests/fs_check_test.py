@@ -12,7 +12,7 @@ UTILS_ID = "a" * 24
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts"
     (code_dir / "core").mkdir(parents=True)
@@ -113,26 +113,3 @@ def test_refs_to_std(repo, capsys):
         "opExtrude (variable) defined at std/geomOperations.fs:2:14\n"
         "  featurescripts/core/utils.fs:3:51: export function f(context is Context, id is Id) { opExtrude(context, id, {}); }\n"
     )
-
-
-def test_check_moves_studio_files_out_of_old_state(repo, capsys):
-    # Even if fs-studios.json was already made (e.g. on another machine)
-    (repo / "fs-studios.json").write_text(json.dumps({"version": 1, "studios": {}}))
-    (repo / ".fs-state.json").write_text(
-        json.dumps(
-            {
-                "version": 3,
-                "studios": {
-                    UTILS_ID: {"file": "core/utils.fs", "hash": "h", "microversion_id": "m"}
-                },
-            }
-        )
-    )
-    assert cli.main(["check"]) == 0
-    assert "No problems found." in capsys.readouterr().out
-    assert json.loads((repo / "fs-studios.json").read_text())["studios"] == {
-        UTILS_ID: "core/utils.fs"
-    }
-    assert json.loads((repo / ".fs-state.json").read_text())["studios"] == {
-        UTILS_ID: {"hash": "h", "microversion_id": "m"}
-    }

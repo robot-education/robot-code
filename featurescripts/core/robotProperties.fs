@@ -6,6 +6,7 @@ export const ALUMINUM_7075 = material("Aluminum - 7075", 0.102 * pound / inch ^ 
 export const STEEL = material("Steel", 0.284 * pound / inch ^ 3);
 export const STAINLESS_STEEL = material("Stainless Steel", 0.289 * pound / inch ^ 3);
 export const PLASTIC = material("Onyx", 1.18 * gram / centimeter ^ 3);
+export const ACETAL = material("Acetal", 1.41 * gram / centimeter ^ 3);
 
 // Appearances of parts, by what they're made of: FRCDesignLib's color standards, but for uncoated steel and printed green
 

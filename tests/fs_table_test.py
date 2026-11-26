@@ -70,7 +70,7 @@ def test_find_tables_skips_other_constants():
 
 
 def test_command(capsys):
-    assert cli.main(["table", "featurescripts/uiTestBench/uiTestBench.local.fs", "-n", "TEST"]) == 0
+    assert cli.main(["table", "featurescripts/uiTestBench/uiTestBench.local.fs", "--name", "TEST"]) == 0
     out = capsys.readouterr().out
     assert out.startswith(f"TEST_TABLE  ({BENCH}, 4 rows)\nUsed by: {BENCH}: Lookup table\n")
     assert "WCP *   3/8 in.    Rounded *  3" in out
