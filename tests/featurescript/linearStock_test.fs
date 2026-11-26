@@ -131,36 +131,20 @@ export function testThreePointManipulatorSetsFaceAt()
     expectEqual(flipped.flip, true);
 }
 
-export function testHolesOffsetsDraggedPastTheirEndFlip()
+export function testThreePointManipulatorSetsHolesAt()
 {
-    const dragged = stockManipulatorChange(newContext(), { "placement" : StockPlacement.HOLES, "flip" : false, "edgeStartOffset" : 0.25 * inch,
-                "edgeStartOffsetOppositeDirection" : false }, { "startOffsetManipulator" : { "offset" : -1 * inch } });
-    expectEqual(dragged.edgeStartOffset, 1 * inch);
-    expectEqual(dragged.edgeStartOffsetOppositeDirection, true);
+    const onHoles = stockManipulatorChange(newContext(), { "placement" : StockPlacement.HOLES, "holesAt" : SelectionAt.BOTTOM, "flip" : false },
+        { "selectionAtManipulator" : { "index" : 1 } });
+    expectEqual(onHoles.holesAt, SelectionAt.MIDDLE);
 }
 
-export function testUnshiftedHolesStay()
+export function testStartingOffsetDraggedPastTheFaceFlips()
 {
-    var stock = tube();
-    stock.xRows = [holeRow(0.75 * inch, 0.5 * inch)];
-    const shifted = shiftedHoles(stock, 0 * meter);
-    expectNear(shifted.xRows[0].start, 0.75 * inch, 1e-12 * meter);
-    expectNear(shifted.tieStart, 0.5 * inch, 1e-12 * meter);
-}
-
-export function testHolesGoOnIntoALongerStart()
-{
-    // Out 1.25 in.: the first hole is as near the start as it was, with the holes on the selected holes 1.25 in. on
-    const shifted = shiftedHoles(tube(), 1.25 * inch);
-    expectNear(shifted.xRows[0].start, 0.75 * inch, 1e-12 * meter);
-    expectNear(shifted.yRows[0].start, 0.75 * inch, 1e-12 * meter);
-    expectNear(shifted.tieStart, 0.75 * inch, 1e-12 * meter);
-}
-
-export function testHolesStillOnAShorterStartStay()
-{
-    // In 0.25 in.: the hole 0.25 in. from the start is still wholly on it
-    expectNear(shiftedHoles(tube(), -0.25 * inch).xRows[0].start, 0.25 * inch, 1e-12 * meter);
-    // In 0.45 in.: it isn't (its radius is 0.098 in.), so the next is first
-    expectNear(shiftedHoles(tube(), -0.45 * inch).xRows[0].start, 0.55 * inch, 1e-12 * meter);
+    for (var placement in [StockPlacement.FACE, StockPlacement.HOLES])
+    {
+        const dragged = stockManipulatorChange(newContext(), { "placement" : placement, "flip" : false, "startOffsetDistance" : 0.25 * inch,
+                    "startOffsetOppositeDirection" : false }, { "startingOffsetManipulator" : { "offset" : -1 * inch } });
+        expectEqual(dragged.startOffsetDistance, 1 * inch);
+        expectEqual(dragged.startOffsetOppositeDirection, true);
+    }
 }

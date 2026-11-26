@@ -91,12 +91,13 @@ const OFFSET_BOUNDS = {
 
 /**
  * Where stock goes, in a Position group: along an edge, with the offsets of its ends; on a face, as one of its sides,
- * with which of its sides is on the face; between two holes, with the offsets of its ends; or extruded from a point,
- * with the extrude's options (see `isEdgePlacement` and the others). Then, unless it's extruded from a point, a Trim
+ * with which of its sides is on the face; between two holes, with which of its sides is on them; or extruded from a
+ * point, with the extrude's options (see `isEdgePlacement` and the others). On a face or holes, std's extrude's starting
+ * offset moves it off them (see `startingOffset`). Then, unless it's extruded from a point, a Trim
  * ends group of faces and parts to trim its ends to (like miters, or coped ends). Either way, `flip` (Flip `<name>`
  * ends, and a flip manipulator) draws it from the other end (see `acrossSign`), and a button rotates it in 90 degree
  * increments. Along an edge or from a point, a nine point manipulator chooses which point of its profile is on the edge
- * or point (see `orientStock`); on a face, a three point manipulator chooses Face at. From a point,
+ * or point (see `orientStock`); on a face or holes, a three point manipulator chooses Face at or Holes at. From a point,
  * `oppositeDirection` (Flip primary axis) is the extrude's.
  *
  * @param name : What's placed, e.g. `"nut strip"`.
@@ -134,6 +135,9 @@ export predicate stockLocationPredicate(definition is map, name is string)
                         "Filter" : (EntityType.EDGE && GeometryType.CIRCLE) || (EntityType.VERTEX && SketchObject.YES) || BodyType.MATE_CONNECTOR,
                         "MaxNumberOfPicks" : 1, "UIHint" : ["UNCONFIGURABLE"] }
             definition.endHole is Query;
+
+            annotation { "Name" : "Holes at", "Default" : SelectionAt.BOTTOM, "UIHint" : ["SHOW_LABEL", "REMEMBER_PREVIOUS_VALUE"] }
+            definition.holesAt is SelectionAt;
         }
         else
         {
@@ -155,7 +159,7 @@ export predicate stockLocationPredicate(definition is map, name is string)
 
         ninePointManipulatorPredicate(definition);
 
-        if (isEdgePlacement(definition) || isHolePlacement(definition))
+        if (isEdgePlacement(definition))
         {
             stockOffsetsPredicate(definition);
         }
@@ -163,7 +167,17 @@ export predicate stockLocationPredicate(definition is map, name is string)
         {
             stockBoundsPredicate(definition);
             extrudeDirectionPredicate(definition);
-            newExtrudeOptionsPredicate(definition);
+        }
+        // Std's extrude's starting offset, declared once for every placement but an edge's: from a point it moves the
+        // profile along the extrude, and on a face or holes it moves stock off them, along their normal (see
+        // `startingOffset`)
+        if (!isEdgePlacement(definition))
+        {
+            extrudeOffsetPredicate(definition);
+        }
+        if (isPointPlacement(definition))
+        {
+            newExtrudeSecondEndPredicate(definition);
         }
     }
 
@@ -188,9 +202,8 @@ export predicate stockLocationPredicate(definition is map, name is string)
 }
 
 /**
- * The offsets of the ends of stock on edges (and between holes): each moves its end in from the end of the edge (or
- * where it ends between holes, see `holePlacement`), or out past it when it's negative; its Opposite direction reverses
- * it, as std's offsets' do (see `edgeOffset`).
+ * The offsets of the ends of stock on edges: each moves its end in from the end of the edge, or out past it when it's
+ * negative; its Opposite direction reverses it, as std's offsets' do (see `edgeOffset`).
  */
 export predicate stockOffsetsPredicate(definition is map)
 {
@@ -714,8 +727,10 @@ const END_OFFSET_MANIPULATOR = "endOffsetManipulator";
 // Not "flipManipulator", which is std's extrude's (see `addExtrudeManipulator`)
 const FLIP_MANIPULATOR = "stockFlipManipulator";
 const SELECTION_AT_MANIPULATOR = "selectionAtManipulator";
+// Not "startOffsetManipulator", which is an edge's start offset's
+const STARTING_OFFSET_MANIPULATOR = "startingOffsetManipulator";
 
-/** Face at's choices, in the order of its manipulator's points (see `addSelectionAtManipulator`). */
+/** Face at's (and Holes at's) choices, in the order of its manipulator's points (see `addSelectionAtManipulator`). */
 const SELECTION_AT_POINTS = [SelectionAt.TOP, SelectionAt.MIDDLE, SelectionAt.BOTTOM];
 
 /**
@@ -745,8 +760,6 @@ export function placeStock(context is Context, id is Id, definition is map, part
     else if (isHolePlacement(definition))
     {
         placement = holePlacement(context, id, definition, stock, name);
-        // Its holes stay on the selected holes, wherever its start is
-        stock = shiftedHoles(stock, placement.holeShift);
     }
     else
     {
@@ -789,9 +802,10 @@ export function placeStock(context is Context, id is Id, definition is map, part
                     return toWorld(center, offset + vector(0 * meter, 0 * meter, length / 2));
                 }), getNinePointIndex(definition));
     }
-    else if (isFacePlacement(definition))
+    else
     {
         addSelectionAtManipulator(context, id, definition, stock, center, length, placement.normal);
+        addStartingOffsetManipulator(context, id, definition, stock, center, length, placement.normal, placement.startingOffset);
     }
     addManipulators(context, id, {
                 (FLIP_MANIPULATOR) : flipManipulator({
@@ -867,9 +881,25 @@ function profileThickness(stock is Stock, location is CoordSystem, direction is 
 }
 
 /**
- * The three point manipulator choosing Face at: points at the top, middle, and bottom of stock (along the face's
- * `normal`), halfway along it. The chosen one is on the face, as the nine point manipulator's chosen point is on an
- * edge.
+ * Which side of stock is on the selected face (Face at) or holes (Holes at).
+ */
+function selectionAt(definition is map) returns SelectionAt
+{
+    return isFacePlacement(definition) ? definition.faceAt : definition.holesAt;
+}
+
+/**
+ * The parameter choosing which side of stock is on the selected face or holes (see `selectionAt`).
+ */
+function selectionAtParameter(definition is map) returns string
+{
+    return isFacePlacement(definition) ? "faceAt" : "holesAt";
+}
+
+/**
+ * The three point manipulator choosing Face at (or Holes at): points at the top, middle, and bottom of stock (along the
+ * face's or holes' `normal`), halfway along it. The chosen one is on the face (or the holes' plane), moved by the
+ * starting offset, as the nine point manipulator's chosen point is on an edge.
  */
 function addSelectionAtManipulator(context is Context, id is Id, definition is map, stock is Stock, center is CoordSystem,
     length is ValueWithUnits, normal is Vector)
@@ -879,7 +909,54 @@ function addSelectionAtManipulator(context is Context, id is Id, definition is m
     addManipulators(context, id, {
                 (SELECTION_AT_MANIPULATOR) : pointsManipulator({
                         "points" : [halfway + half, halfway, halfway - half],
-                        "index" : indexOf(SELECTION_AT_POINTS, definition.faceAt)
+                        "index" : indexOf(SELECTION_AT_POINTS, selectionAt(definition))
+                    })
+            });
+}
+
+/**
+ * How far std's extrude's starting offset moves what's at `origin` along `direction`, as std's extrude moves its
+ * profile: its depth (negated by Opposite direction), or up to an entity, to where the plane through the entity's
+ * nearest point, square to `normal`, crosses the axis; 0 without one.
+ */
+function startingOffset(context is Context, definition is map, origin is Vector, direction is Vector, normal is Vector) returns ValueWithUnits
+{
+    if (!definition.startOffset)
+    {
+        return 0 * meter;
+    }
+    if (definition.startOffsetBound == StartOffsetType.BLIND)
+    {
+        return (definition.startOffsetOppositeDirection ? -1 : 1) * definition.startOffsetDistance;
+    }
+    if (isQueryEmpty(context, definition.startOffsetEntity))
+    {
+        throw regenError(ErrorStringEnum.EXTRUDE_SELECT_START_OFFSET_ENTITY, ["startOffsetEntity"]);
+    }
+    const nearest = evDistance(context, { "side0" : origin, "side1" : definition.startOffsetEntity }).sides[1].point;
+    return alongTo(origin, direction, plane(nearest, normal));
+}
+
+/**
+ * The starting offset's manipulator on a face or holes: along their `normal`, from where stock's chosen side would be
+ * without it (halfway along stock), to where it's moved by `offset`. Only for a blind starting offset, as std's
+ * extrude's.
+ */
+function addStartingOffsetManipulator(context is Context, id is Id, definition is map, stock is Stock, center is CoordSystem,
+    length is ValueWithUnits, normal is Vector, offset is ValueWithUnits)
+{
+    if (!definition.startOffset || definition.startOffsetBound != StartOffsetType.BLIND)
+    {
+        return;
+    }
+    const halfway = center.origin + center.zAxis * length / 2;
+    const chosen = halfway - normal * selectionShift(selectionAt(definition), profileThickness(stock, center, normal));
+    addManipulators(context, id, {
+                (STARTING_OFFSET_MANIPULATOR) : linearManipulator({
+                        "base" : chosen - normal * offset,
+                        "direction" : normal,
+                        "offset" : offset,
+                        "primaryParameterId" : "startOffsetDistance"
                     })
             });
 }
@@ -978,8 +1055,9 @@ function partTrims(context is Context, definition is map, center is CoordSystem,
  * holes are spaced from the farthest point of its start), centered across it, and turned so its side as wide as the
  * face is on it, unless the face is as wide as neither of its sides, or both (then its X, its top along a sketch's
  * edge, is up out of the face; the rotate button turns it from there). Face at puts its top, middle, or bottom on the
- * face (see `selectionShift`). Returns the `location` its start is at (oriented by `orientStock`), its `length`, and the
- * face's `normal`.
+ * face (see `selectionShift`), and the starting offset moves it off the face, along its normal (see `startingOffset`).
+ * Returns the `location` its start is at (oriented by `orientStock`), its `length`, the face's `normal`, and the
+ * `startingOffset` it's moved by.
  */
 function facePlacement(context is Context, definition is map, stock is Stock) returns map
 {
@@ -994,12 +1072,15 @@ function facePlacement(context is Context, definition is map, stock is Stock) re
     const middle = toWorld(onFace, vector(0 * meter, (bounds.minCorner[1] + bounds.maxCorner[1]) / 2, 0 * meter));
     const turned = tolerantEquals(width, stock.width) && !tolerantEquals(width, stock.height);
     var location = orientStock(definition, coordSystem(middle, turned ? yAxis(onFace) : onFace.xAxis, direction));
-    location.origin = middle + direction * (isFlipped(definition) ? bounds.maxCorner[2] : bounds.minCorner[2]) +
-        facePlane.normal * selectionShift(definition.faceAt, profileThickness(stock, location, facePlane.normal));
+    const onFaceStart = middle + direction * (isFlipped(definition) ? bounds.maxCorner[2] : bounds.minCorner[2]);
+    const offset = startingOffset(context, definition, onFaceStart, facePlane.normal, facePlane.normal);
+    location.origin = onFaceStart + facePlane.normal * (offset +
+                selectionShift(definition.faceAt, profileThickness(stock, location, facePlane.normal)));
     return {
             "location" : location,
             "length" : bounds.maxCorner[2] - bounds.minCorner[2],
             "normal" : facePlane.normal,
+            "startingOffset" : offset,
             "errorParameters" : ["face"]
         };
 }
@@ -1039,10 +1120,10 @@ function faceDirection(context is Context, face is Query, facePlane is Plane, st
  * plane), with the holes through its walls facing their axis (X's, or rotated, Y's), and the first of them (see
  * `alignedHole`) on the start hole (or flipped, the end hole). It reaches as far past each hole as that hole is from its
  * start, so with the holes a whole number of its hole spacings apart, its holes line up with both; a warning says when
- * they don't. Its bottom is on the holes' plane, on the side the holes face. Its offsets move its ends from there, in
- * (or out, negative or with Opposite direction), as an edge's do, but its holes stay on the selected holes: its
- * `holeShift` (how far its start moved out) moves them along it (see `shiftedHoles`). Returns the `location` its start
- * is at (oriented by `orientStock`), its `length`, its `holeShift`, and the holes' `normal`.
+ * they don't. Holes at puts its top, middle, or bottom on the holes' plane (see `selectionShift`; its top faces the way
+ * the holes do), and the starting offset moves it off them, along their normal (see `startingOffset`), as for spacers.
+ * Returns the `location` its start is at (oriented by `orientStock`), its `length`, the holes' `normal`, and the
+ * `startingOffset` it's moved by.
  */
 function holePlacement(context is Context, id is Id, definition is map, stock is Stock, name is string) returns map
 {
@@ -1072,14 +1153,9 @@ function holePlacement(context is Context, id is Id, definition is map, stock is
     }
     const offsetDirection = facesX ? yAxis(location) : location.xAxis * acrossSign(definition);
     const first = isFlipped(definition) ? start.origin + between : start.origin;
-    // Where its start is without offsets
-    const defaultStart = first - location.zAxis * hole.position - offsetDirection * hole.offset +
-        start.normal * selectionShift(SelectionAt.BOTTOM, profileThickness(stock, location, start.normal));
-    const defaultLength = distance + 2 * hole.position;
-    const startOffset = edgeOffset(definition, "Start");
-    const endOffset = edgeOffset(definition, "End");
-    addOffsetManipulators(context, id, definition, defaultStart, location.zAxis, defaultLength, startOffset, endOffset);
-    location.origin = defaultStart + location.zAxis * startOffset;
+    const offset = startingOffset(context, definition, first, start.normal, start.normal);
+    location.origin = first - location.zAxis * hole.position - offsetDirection * hole.offset +
+        start.normal * (offset + selectionShift(definition.holesAt, profileThickness(stock, location, start.normal)));
     if (!tolerantEquals(distance, round(distance / hole.pitch) * hole.pitch))
     {
         reportFeatureWarning(context, id, "Selected holes are not a multiple of " ~ lengthString(definition, hole.pitch) ~ " apart.",
@@ -1087,58 +1163,11 @@ function holePlacement(context is Context, id is Id, definition is map, stock is
     }
     return {
             "location" : location,
-            "length" : defaultLength - startOffset - endOffset,
-            "holeShift" : -startOffset,
+            "length" : distance + 2 * hole.position,
             "normal" : start.normal,
-            "errorParameters" : ["startHole", "endHole", "edgeStartOffset", "edgeStartOffsetOppositeDirection", "edgeEndOffset",
-                    "edgeEndOffsetOppositeDirection"]
+            "startingOffset" : offset,
+            "errorParameters" : ["startHole", "endHole"]
         };
-}
-
-/**
- * Stock's holes moved `shift` along it (as its start moves out by `shift`, so they stay where they were), as if it were
- * cut from longer stock: a longer start has its rows' holes on into it, as close to its start as they were (a row's
- * `start` moves out by the remainder of `shift` over its pitch), and a shorter one keeps the holes still wholly on it.
- * The holes counted for tying move the same way.
- */
-export function shiftedHoles(stock is Stock, shift is ValueWithUnits) returns Stock
-{
-    const shiftRows = function(rows is array) returns array
-        {
-            return mapArray(rows, function(row)
-                {
-                    row.start = shiftedStart(row.start, shift, row.pitch, rowExtent(row, stock.holeDiameter));
-                    return row;
-                });
-        };
-    stock.xRows = shiftRows(stock.xRows);
-    stock.yRows = shiftRows(stock.yRows);
-    stock.tieStart = shiftedStart(stock.tieStart, shift, stock.tieUnit, 0 * meter);
-    return stock;
-}
-
-/**
- * Where holes `pitch` apart, the first `start` from stock's start, start once it moves out by `shift` (see
- * `shiftedHoles`): moved out by the remainder of `shift` over `pitch`, or moved in by it, to the first which reaches no
- * nearer its start than `extent`.
- */
-function shiftedStart(start is ValueWithUnits, shift is ValueWithUnits, pitch is ValueWithUnits, extent is ValueWithUnits) returns ValueWithUnits
-{
-    if (tolerantGreaterThan(shift, 0 * meter))
-    {
-        return start + positiveRemainder(shift, pitch);
-    }
-    const moved = start + shift;
-    return tolerantLessThan(moved, extent) ? extent + positiveRemainder(moved - extent, pitch) : moved;
-}
-
-/**
- * `value` less the multiple of `step` which leaves it at least 0 and less than `step`.
- */
-function positiveRemainder(value is ValueWithUnits, step is ValueWithUnits) returns ValueWithUnits
-{
-    const remainder = value - floor(value / step) * step;
-    return tolerantEquals(remainder, step) ? 0 * meter : remainder;
 }
 
 /**
@@ -1407,16 +1436,7 @@ function extrudePlacement(context is Context, id is Id, definition is map, name 
     const extrudeAxis = line(axisPlane.origin, axisPlane.normal);
 
     // The profile moved by the starting offset, along the extrude's axis, as std's extrude moves it
-    var shift = 0 * meter;
-    if (definition.startOffset)
-    {
-        shift = definition.startOffsetBound == StartOffsetType.BLIND ?
-            (definition.startOffsetOppositeDirection ? -1 : 1) * definition.startOffsetDistance :
-            alongTo(extrudeAxis.origin, extrudeAxis.direction, plane(evDistance(context, {
-                                    "side0" : extrudeAxis.origin,
-                                    "side1" : definition.startOffsetEntity
-                                }).sides[1].point, profilePlane.normal));
-    }
+    const shift = startingOffset(context, definition, extrudeAxis.origin, extrudeAxis.direction, profilePlane.normal);
     const origin = extrudeAxis.origin + extrudeAxis.direction * shift;
 
     // From the moved profile, as std's extrude adds them
@@ -1641,19 +1661,26 @@ export function stockManipulatorChange(context is Context, definition is map, ne
     {
         definition.flip = flip.flipped;
     }
-    if (isFacePlacement(definition))
+    if (isFacePlacement(definition) || isHolePlacement(definition))
     {
-        // Its points are Face at's choices, in order
+        // Its points are Face at's (or Holes at's) choices, in order
         const at = newManipulators[SELECTION_AT_MANIPULATOR];
         if (at != undefined && at.index is number && at.index >= 0 && at.index < size(SELECTION_AT_POINTS))
         {
-            definition.faceAt = SELECTION_AT_POINTS[at.index];
+            definition[selectionAtParameter(definition)] = SELECTION_AT_POINTS[at.index];
+        }
+        // Dragged back past the face (or holes), the starting offset flips
+        const offset = newManipulators[STARTING_OFFSET_MANIPULATOR];
+        if (offset != undefined)
+        {
+            definition.startOffsetDistance = abs(offset.offset);
+            definition.startOffsetOppositeDirection = offset.offset < 0 * meter;
         }
         return definition;
     }
-    if (isEdgePlacement(definition) || isHolePlacement(definition))
+    if (isEdgePlacement(definition))
     {
-        // Dragged past its end (the edge's, or between holes, where it ends without offsets), an offset flips
+        // Dragged past the edge's end, an offset flips
         const startOffset = newManipulators[START_OFFSET_MANIPULATOR];
         if (startOffset != undefined)
         {

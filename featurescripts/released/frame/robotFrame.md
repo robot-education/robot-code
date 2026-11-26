@@ -23,11 +23,12 @@ Since v1.2.0 (`fs changes robotFrame`).
 - Face selection type: the frame on a face as one of its sides (like a rectangle drawn in a sketch where a tube goes),
   along its longest straight edge, centered across it, turned so its side as wide as the face is on it, and square at
   the ends of the face's bounding box along it. Face at (with a three point manipulator in the middle) puts its top,
-  middle, or bottom on the face.
+  middle, or bottom on the face, and Starting offset (std's extrude's, with its manipulator) moves it off the face.
 - Holes selection type: the frame between a start hole and an end hole (holes' edges, sketch points, or mate
   connectors), on the holes' plane, with its middle hole facing them on the start hole, as far past each hole as its
-  first hole is from its start; a warning when the holes aren't a multiple of its hole spacing apart. Start offset and
-  End offset move its ends, its holes staying on the selected holes.
+  first hole is from its start; a warning when the holes aren't a multiple of its hole spacing apart. Holes at (with a
+  three point manipulator) puts its top, middle, or bottom on the holes, and Starting offset moves it off them (for
+  spacers).
 - Trim frame ends has Parts to trim to, as std's Frame does: each part cuts off the end it's nearer (coping it, for a
   round tube), and Trim frame ends is offered on faces and between holes too.
 - Its description mentions faces and holes.

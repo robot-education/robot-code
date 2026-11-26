@@ -19,7 +19,8 @@ else below is the same for both. `<name>` in strings is what's placed:
 ### Descriptions and hidden parameters
 
 None of its parameters have descriptions. `index` (the nine point manipulator's point, `core/pointManipulator.fs`) is
-hidden; the manipulator sets it. On a face, the three point manipulator sets Face at (`faceAt`), which is shown.
+hidden; the manipulator sets it. On a face or holes, the three point manipulator sets Face at (`faceAt`) or Holes at
+(`holesAt`), which are shown.
 
 ### Errors, warnings, and info
 
@@ -38,7 +39,8 @@ hidden; the manipulator sets it. On a face, the three point manipulator sets Fac
 | Select a sketch point, circle, or mate connector to use. | error | Point, nothing selected | `location` | std's form |
 | Specified offsets are too long. | error | Edge: the offsets add up to the edge's length or more | `edgeStartOffset`, `edgeEndOffset` and their Opposite directions, the edge | none (std's wording) |
 | The selected face does not intersect the `<name>`. | error | Trim: a face's plane misses the stock, or would cut all of it away | `trimFaces`, the face | `MOVE_CURVE_BOUNDARY_TRIM_NO_INTERSECTION` |
-| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start; Holes: the offsets add up to its length or more | Point: `depth`, `endBound`, `secondDirectionBound`; Holes: `startHole`, `endHole`, and the offsets | none |
+| The `<name>` has no length. | error | Point: the ends are at the same place, or the end is behind the start | `depth`, `endBound`, `secondDirectionBound` | none |
+| std's `EXTRUDE_SELECT_START_OFFSET_ENTITY` | error | Face, Holes, Point: Starting offset up to an entity, nothing selected | `startOffsetEntity` | itself |
 | The `<name>`'s ends must be flat. | error | Point, Up to next: the next face is curved | the bound's parameters, the face | none |
 | std's `EXTRUDE_FAILED` (Failed to extrude selections, check input.) | error | Point: up to next finds nothing in front of the point, or an up to face runs along the extrude | the bound's parameters (and face) | itself |
 | std's `EXTRUDE_SELECT_TERMINATING_SURFACE`, `EXTRUDE_SELECT_TERMINATING_VERTEX` | error | Point, Up to face / vertex with nothing selected | the bound's parameters | themselves |
@@ -82,9 +84,9 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
    1. Where it goes: `edgePlacement`, `facePlacement`, `holePlacement`, or `extrudePlacement` (below) give the
       `location` of its start (a coordinate system with Z along it, oriented by `orientStock`), its `length`, and, from
       point placement, the `startPlane` and `endPlane` its ends are on if they're slanted. Face and hole placement also
-      give the `normal` its top is toward, and have already put its top, middle, or bottom (between holes, its bottom)
-      on the face or holes' plane (`selectionShift`); hole placement warns if the holes are off its hole pattern, and
-      gives the `holeShift` its holes are moved by (`shiftedHoles`), so they stay on the holes whatever its offsets.
+      give the `normal` its top is toward, and have already put its top, middle, or bottom (Face at, Holes at) on the
+      face or holes' plane (`selectionShift`), then moved it off them by the starting offset (`startingOffset`), which
+      they give as `startingOffset`; hole placement warns if the holes are off its hole pattern.
    2. Along an edge or from a point, the chosen nine point is moved onto the edge or point (`stockPointOffsets`). Then
       `stockSpan` stretches the length to reach the farthest corner of each slanted end, as an extrude up to a slanted
       face reaches it.
@@ -92,14 +94,16 @@ and trimmed to, and (once it's trimmed, on the body it ended up as) their profil
       trims (below).
    4. The feature's builder builds it (below). If it was trimmed, its length is measured from the body (`stockExtent`).
    5. `setStockProperties` names it and sets its properties.
-   6. Along an edge or from a point, the nine point manipulator is added; on a face, the three point manipulator
-      (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it). Then the flip
-      manipulator (and, by `edgePlacement` and `holePlacement`, the offset manipulators; by `extrudePlacement`, std's
-      depth and flip manipulators, from the point moved by the starting offset).
+   6. Along an edge or from a point, the nine point manipulator is added; on a face or holes, the three point
+      manipulator (`addSelectionAtManipulator`: its top, middle, and bottom along the normal, halfway along it) and,
+      for a blind starting offset, its manipulator (`addStartingOffsetManipulator`, along the normal from where the
+      chosen side would be without it). Then the flip manipulator (and, by `edgePlacement`, the offset manipulators;
+      by `extrudePlacement`, std's depth and flip manipulators, from the point moved by the starting offset).
    7. Tied holes are shown, then a warning if it's longer than it's sold, or else info if it isn't a regular length.
 4. **Manipulator change** (`stockManipulatorChange`): the nine point and flip manipulators set their parameters; on a
-   face, the three point manipulator sets Face at (its points in `SELECTION_AT_POINTS`' order); along an edge or between
-   holes, the offset manipulators set the offsets; from a point, std's extrude manipulators set depth
+   face or holes, the three point manipulator sets Face at or Holes at (its points in `SELECTION_AT_POINTS`' order),
+   and the starting offset's sets its depth (dragged back past them, Opposite direction); along an edge, the offset
+   manipulators set the offsets; from a point, std's extrude manipulators set depth
    and direction (`extrudeManipulatorChange`).
 
 ### Placing
@@ -131,6 +135,9 @@ sketch region is a face):
    spaced from its start, as along an edge.
 4. Face at puts its top (the side the face's normal points to), middle, or bottom on the face (`selectionShift`, by its
    thickness along the normal, `profileThickness`).
+5. The starting offset (std's extrude's, `extrudeOffsetPredicate`) moves it off the face along its normal, as for
+   spacers: its depth (back into the face with Opposite direction), or up to an entity, to the plane through its
+   nearest point, parallel to the face (`startingOffset`).
 
 `holePlacement`: between two holes (circular edges, sketch points, or mate connectors), lined up with them:
 
@@ -146,11 +153,10 @@ sketch region is a face):
 4. It's `2 * position` longer than the distance between the holes, as far past each as its first hole is from its
    start, so a whole number of that row's pitch apart, the far hole lines up too, and it's a regular length when the
    hole is at `tieStart`. Otherwise a warning says the holes aren't a multiple of the pitch apart.
-5. Its bottom is on the start hole's plane, on the side the holes face.
-6. Start offset and End offset (the edge's parameters and manipulators) move its ends in from there, or out past them,
-   as along an edge. Its holes stay on the selected holes (`shiftedHoles`): with its start moved out, each row's holes go
-   on into it, the first as near the start as it was; moved in, those still wholly on it stay. The holes counted for
-   tying move with them.
+5. Holes at puts its top (the side the holes face), middle, or bottom (the default: it sits on the holes, on the side
+   they face) on the start hole's plane, as Face at does on a face.
+6. The starting offset moves it off the holes along their axis, as on a face (for spacers between it and the part).
+   Its ends aren't offset: Trim ends shortens it.
 
 `extrudePlacement` works out where an extrude from the selected point would go, without extruding, as std's extrude
 decides it:
@@ -158,7 +164,8 @@ decides it:
 1. The axis: from the point, along its normal or the selected direction, which may lie in the point's plane (like a
    sketch line beside it), since the profile is sketched square to it (`extrudeDirectionPlane`). The stock runs along
    the extrude's direction, which Opposite direction flips.
-2. The starting offset moves the point along the axis (blind, or to where the entity is, measured with `evDistance`).
+2. The starting offset moves the point along the axis (blind, or to where the entity is, measured with `evDistance`;
+   `startingOffset`, as on a face or holes).
 3. The end (`boundAlong`): a blind length; the distance to a vertex or mate connector (square to the extrude); where an
    up to face's (or mate connector's) plane crosses the axis; or, for up to next, the nearest face a ray from the point
    hits (`evRaycast` against every modifiable solid), which must be planar. Offsets move it back toward the point,
@@ -238,7 +245,4 @@ There are no fallbacks.
   nothing says so; a warning would also show for every nut strip placed on a tube's inside face.
 - Holes are picked by their edges (or sketch points), not their cylindrical faces, which are easier to click: a
   cylinder doesn't say which of its ends is on the part's face the stock goes on.
-- Between holes, a start offset that isn't a multiple of the hole spacing leaves the first hole nearer (or farther
-  from) the start than the stock's usual margin, as cutting it from longer stock would, and its length then isn't
-  regular (the info says so).
 - Trimming to parts doesn't extend the stock to reach a part first, as std's Frame does.
