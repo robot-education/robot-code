@@ -40,8 +40,10 @@ frontend = "configlib-fasteners"
 uv run fs build fasteners                         # build its Part Studios in the backend workspace
 uv run fs build fasteners --to enterprise         # ...or in another backend, pushing its FeatureScript there first
 uv run fs build fasteners --diagnose              # find what Onshape refuses in a configuration
-uv run fs release fasteners --minor               # release it to its frontend document (on main)
-uv run fs release fasteners --to library          # release it to a library, to try it out (any branch)
+uv run fs release fasteners --minor               # a soft release to its frontend document (on main)
+uv run fs release fasteners --minor --hard        # a hard release: also version the frontend
+uv run fs publish fasteners                       # version the frontend for its soft release, once checked
+uv run fs release fasteners --to library          # a test release, to a library (any branch)
 uv run fs configuration <url>                     # print a Part Studio's configuration as Onshape stores it
 uv run fs features <url>                          # print its features as Onshape stores them, namespaces and all
 ```
@@ -115,12 +117,14 @@ A release, as `fs release` makes a FeatureScript's (see [Releasing](fs-cli.md#re
    to one, in that studio or any Part Studio using the feature. FRCDesignApp reads it when it loads
    the document's version, so the records it indexes are always those of the version it loads.
 5. Records where the Part Studios are in `<definition>.studios.json` beside the definition (the frontend document and
-   each tab), writes the definition's `EXPORTS` again, and tags the release in git, by the set's name
-   (`fasteners/v1.2.0`, `ftcFasteners/v1.0.0`).
+   each tab), and writes the definition's `EXPORTS` again.
+6. A hard release (`--hard`) also creates the version in the frontend document (`Fasteners - v1.2.0`), and tags the
+   release in git, by the set's name (`fasteners/v1.2.0`, `ftcFasteners/v1.0.0`).
 
-It leaves the frontend document unversioned: its owner versions it in Onshape once they've checked the Part Studios,
-and FRCDesignApp loads that version (or holds it for approval), so a part set's release takes no `--publish`, and
-`fs publish` leaves its versions out. Releases are numbered by the backend document's versions.
+A soft release, the default, stops at 5 (see [Soft and hard releases](fs-cli.md#soft-and-hard-releases)): check the
+Part Studios in the frontend, then `fs publish fasteners` versions it and tags the release, as a hard release would.
+FRCDesignApp loads the frontend's version (or holds it for approval). Releases are numbered by the backend document's
+versions.
 
 Every other studio in the set's folder must be pushed and in sync first. Versions can't be deleted, so it asks for
 confirmation (`-y` skips it). A feature that fails to regenerate stops the release before anything is recorded; the
@@ -131,10 +135,11 @@ A release runs on the main branch only. Ask for one in a release file (`name = "
 recorded locations and exports; run by hand, commit them yourself. FRCDesignApp's library reads the released manifest
 itself, and Auto Assembly reads the catalog the library stored from it, so a release needs no change there.
 
-### Releasing to a library
+### Test releases
 
-`--to DOC` releases to a library document instead (see [Documents](fs-cli.md#documents)), from any branch: to load a
-set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 4 there, then versions it, so FRCDesignApp
+`--to DOC` makes a test release, to a library document instead (see [Documents](fs-cli.md#documents)), from any
+branch: to load a set into a local FRCDesignApp, say, before releasing it. It does steps 1 to 4 there, then always
+versions it, so FRCDesignApp
 can load it; the versions are named for the branch and commit (`Fasteners test - my-branch 1a2b3c4`), not numbered, and
 nothing is recorded, marked released, or tagged: the frontend document and the next release's number are untouched.
 Versions can't be deleted, so each try leaves one in the backend document and one in the library.

@@ -1071,7 +1071,7 @@ def test_release(repo, onshape):
             "featurescripts/Robot/robotFrame.fs",
             "--patch",
             "-y",
-            "--publish",
+            "--hard",
         )
         == 0
     )
@@ -1482,9 +1482,38 @@ def test_a_part_set_is_released_into_its_frontend_document(repo, onshape, capsys
     assert run(onshape, "release", "parts", "--minor", "-y") == 0
     assert [version.name for version in onshape.versions_by_document["back"]] == ["Parts - v0.1.0", "Parts - v0.2.0"]
     assert PART_FRONTEND not in onshape.versions_by_document
-    # Its frontend's owner versions it
-    assert run(onshape, "release", "parts", "--minor", "--publish", "-y") == 2
-    assert "versioned by its owner" in capsys.readouterr().err
+
+
+def test_a_hard_part_set_release_versions_its_frontend_and_tags_it(repo, onshape, capsys):
+    git_repo(repo)
+    part_set(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Parts")
+
+    assert run(onshape, "release", "parts", "--minor", "--hard", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[PART_FRONTEND]] == ["Parts - v0.1.0"]
+    assert "Hard release of the parts part set" in capsys.readouterr().out
+    assert tags(repo) == ["parts/v0.1.0"]
+
+
+def test_a_soft_part_set_release_is_published_later(repo, onshape, capsys):
+    git_repo(repo)
+    two_part_sets(repo, onshape)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Parts")
+
+    assert run(onshape, "release", "parts", "--minor", "-y", "--no-push-tags") == 0
+    assert "It's a soft release" in capsys.readouterr().out
+    assert run(onshape, "release", "others", "--minor", "-y", "--no-push-tags") == 0
+    assert tags(repo) == [] and PART_FRONTEND not in onshape.versions_by_document
+    # Each in its own frontend, and just the ones named
+    assert run(onshape, "publish", "parts", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[PART_FRONTEND]] == ["Parts - v0.1.0"]
+    assert OTHER_FRONTEND not in onshape.versions_by_document
+    assert tags(repo) == ["parts/v0.1.0"]
+    assert run(onshape, "publish", "-y", "--no-push-tags") == 0
+    assert [v.name for v in onshape.versions_by_document[OTHER_FRONTEND]] == ["Others - v0.1.0"]
+    assert tags(repo) == ["others/v0.1.0", "parts/v0.1.0"]
 
 
 def test_a_part_set_is_released_to_a_library_to_try_it(repo, onshape, capsys):
@@ -1560,8 +1589,9 @@ def test_a_featurescript_is_released_to_a_library_to_try_it(repo, onshape, capsy
     # Nothing in the frontend, marked released, or numbered
     assert "front" not in onshape.versions_by_document and onshape.names("front", "fw") == []
     assert element_id not in released_ids(repo)
-    assert run(onshape, "release", "robotFrame", "--to", "library", "--publish", "-y") == 2
-    assert "takes no --publish" in capsys.readouterr().err
+    # Always versioned, so --hard changes nothing
+    assert run(onshape, "release", "robotFrame", "--to", "library", "--hard", "-y") == 0
+    assert len(onshape.versions_by_document[LIBRARY]) == 2
 
 
 def test_publish_leaves_out_part_set_releases(repo, onshape):
@@ -1597,7 +1627,7 @@ def test_publish(repo, onshape):
 
 
 def test_publish_finds_releases_older_than_another_features_published_one(repo, onshape):
-    # Robot frame released twice without publishing, then Robot bore published at once
+    # Robot frame released soft twice, then Robot bore released hard
     onshape.versions_by_document["back"] = [
         Version("1", "Robot frame - v1.0.0"),
         Version("2", "Robot bore - v0.1.0"),
@@ -1667,33 +1697,33 @@ def frame_released_in_a_recreated_tab(repo, onshape) -> Version:
     return version
 
 
-def test_publishing_a_release_tags_it(repo, onshape, capsys):
+def test_a_hard_release_tags_it(repo, onshape, capsys):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Frame")
-    # Not final until its version is in the frontend
+    # A soft release isn't tagged until its version is in the frontend
     assert run(onshape, "release", "robotFrame", "--minor", "-y", "--no-push-tags") == 0
     assert tags(repo) == []
     assert "fs publish" in capsys.readouterr().out
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish", "--no-push-tags") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard", "--no-push-tags") == 0
     assert tags(repo) == ["robotFrame/v0.1.1"]
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.1") == git_output(repo, "rev-parse", "HEAD")
 
 
-def test_a_first_release_isnt_published_at_once(repo, onshape, capsys):
+def test_a_first_release_is_soft(repo, onshape, capsys):
     released_frame(repo, onshape)
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--hard") == 2
     assert "never been released" in capsys.readouterr().err
     # Nothing made
     assert "back" not in onshape.versions_by_document
     # Released, and then a later one can be
     assert run(onshape, "release", "robotFrame", "--minor", "-y") == 0
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard") == 0
     assert [version.name for version in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
 
 
-def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
+def test_publish_tags_the_releases_it_makes_hard(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
@@ -1708,7 +1738,7 @@ def test_syncing_versions_tags_the_releases_it_finalizes(repo, onshape):
     assert git_output(repo, "rev-list", "-n", "1", "robotFrame/v0.1.0") == released
 
 
-def test_syncing_versions_makes_and_tags_only_each_features_newest_release(repo, onshape):
+def test_publish_makes_and_tags_only_each_features_newest_release(repo, onshape):
     git_repo(repo)
     released_frame(repo, onshape)
     git(repo, "add", "-A")
@@ -1924,7 +1954,7 @@ def deprecatable_frame(repo, onshape) -> str:
 def test_deprecate(repo, onshape, capsys):
     element_id = deprecatable_frame(repo, onshape)
     frontend_id = next(iter(onshape.studios("front", "fw")))
-    assert run(onshape, "deprecate", "robotFrame", "-y", "--publish", "-d", "Use robot tube") == 0
+    assert run(onshape, "deprecate", "robotFrame", "-y", "--hard", "-d", "Use robot tube") == 0
 
     version = onshape.versions_by_document["back"][-1]
     assert version.name == "DEPRECATED Robot frame"
@@ -2314,18 +2344,19 @@ def test_releases_lists_and_checks_release_files(repo, onshape, capsys):
         ('bump = "minor"\n', "must name what it releases"),
         ('name = "robotFrame"\nbump = "huge"\n', "major, minor, or patch"),
         ('name = "robotFrame"\nversion = "1"\n', "unknown keys: version"),
-        ('name = "parts"\npublish = true\n', "a part set's release has no publish"),
+        ('name = "parts"\nhard = "yes"\n', "hard is true or false"),
+        ('name = "parts"\npublish = true\n', "unknown keys: publish"),
     ]:
         (repo / "releases" / "frame.toml").write_text(contents)
         assert run(onshape, "releases") == 2
         assert problem in capsys.readouterr().err
 
 
-def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
+def test_release_files_dont_hard_release_a_first_release(repo, onshape, capsys):
     element_id = onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
     run(onshape, "pull")
     (repo / "releases").mkdir()
-    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\npublish = true\n')
+    (repo / "releases" / "frame.toml").write_text('name = "robotFrame"\nbump = "minor"\nhard = true\n')
     assert run(onshape, "releases") == 2
     assert "never been released" in capsys.readouterr().err
     # Once it's been released, it can be
@@ -2334,7 +2365,7 @@ def test_release_files_dont_publish_a_first_release(repo, onshape, capsys):
     assert run(onshape, "releases") == 0
 
 
-def test_run_releases_doesnt_publish_unless_asked(repo, onshape, tmp_path_factory):
+def test_run_releases_are_soft_unless_hard(repo, onshape, tmp_path_factory):
     onshape.add("robotFrame.fs", "frame", folders=("Robot",), features=["robotFrame"])
     branched(repo, onshape, "main", frontend=True)
     run(onshape, "pull")
@@ -2344,7 +2375,7 @@ def test_run_releases_doesnt_publish_unless_asked(repo, onshape, tmp_path_factor
     with_origin(repo, tmp_path_factory)
     assert run(onshape, "releases", "--run", "--no-push-tags") == 0
     assert onshape.versions_by_document["back"][-1].name == "Robot frame - v0.1.0"
-    # Its frontend studio points at it, but it's not final until `fs publish`
+    # A soft release: its frontend studio points at it, but the frontend isn't versioned until `fs publish`
     assert "Robot frame - v0.1.0" in onshape.code("robotFrame.fs", "front", "fw")
     assert "front" not in onshape.versions_by_document
 
@@ -2355,7 +2386,7 @@ def test_run_releases_makes_each_release_once(repo, onshape, capsys, tmp_path_fa
     run(onshape, "pull")
     (repo / "releases").mkdir()
     (repo / "releases" / "frame.toml").write_text(
-        'name = "robotFrame"\nbump = "minor"\ndescription = "First"\npublish = false\n'
+        'name = "robotFrame"\nbump = "minor"\ndescription = "First"\nhard = false\n'
     )
     commit_all(repo, "Ask for a release")
     with_origin(repo, tmp_path_factory)
@@ -2435,16 +2466,16 @@ def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshap
     }
 
     # The next release keeps the example it made, and replaces its entry
-    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--publish") == 0
+    assert run(onshape, "release", "robotFrame", "--patch", "-y", "--hard") == 0
     assert list(onshape.part_studios[("front", "fw")]) == ["Robot frame"]
     assert [feature["version"] for feature in manifest(onshape)["features"]] == ["0.1.1"]
     assert [v.name for v in onshape.versions_by_document["front"]] == ["Robot frame - v0.1.1"]
 
 
-def test_release_refuses_to_publish_a_feature_with_no_example(repo, onshape, capsys):
+def test_release_refuses_a_hard_release_of_a_feature_with_no_example(repo, onshape, capsys):
     app_frame(repo, onshape)
     onshape.versions_by_document["back"] = [Version("1", "Robot frame - v0.1.0")]
-    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--publish") == 2
+    assert run(onshape, "release", "robotFrame", "--minor", "-y", "--hard") == 2
     assert "has no example in the frontend document" in capsys.readouterr().err
     assert "front" not in onshape.versions_by_document
     assert onshape.calls["create_version"] == 0

@@ -300,15 +300,14 @@ the branch is merged into main:
 name = "robotFrame"         # a FeatureScript or a part set, as `fs release NAME` takes it
 bump = "minor"              # major, minor, or patch
 description = "Adds hubs"   # internal, as --description
-publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
+hard = false                # a hard release: version the frontend too, and tag it (not a FeatureScript's first)
 ```
 
-A FeatureScript's release from a file isn't final by default: it makes the backend version and points the frontend
-studio at it, and `fs publish` finalizes it (its frontend version, and its tag) once its frontend examples are
-updated for it. `publish = true` finalizes it at once, for a release which needs nothing in the frontend. A first
-release can't be published at once, from a file or with `fs release --publish`: a new feature needs its examples made
-first. `fs releases` (a pull request's check) reports a file asking to. A part set's release takes no `publish`: its
-frontend's owner versions it.
+A release from a file is soft by default (see [Soft and hard releases](#soft-and-hard-releases)): it makes the backend
+version and updates the frontend, but doesn't version the frontend, which `fs publish` does once it's checked there
+(and a FeatureScript's examples are updated for it). `hard = true` makes it a hard release, for one which needs nothing
+checked in the frontend. A FeatureScript's first release is always soft, from a file or with `fs release --hard`: a
+new feature needs its examples made first. `fs releases` (a pull request's check) reports a file asking for that.
 
 They run in name order. Each runs as `fs release NAME` would, to its frontend document, then its file is deleted and
 what the release recorded (`fs-studios.json`, a part set's locations and exports) is committed. Every version a release
@@ -538,13 +537,14 @@ takes an `order` to keep the order a profile was released with.
 ## Releasing
 
 `fs release NAME` releases a FeatureScript, or a part set with its Part Studios (see [docs/parts.md](parts.md)), to its
-frontend document; with `--to DOC`, to a library instead, to try it. NAME is a part set's name in `[tool.fs.parts]`, or
+frontend document, as a soft release unless it's `--hard` (see [Soft and hard releases](#soft-and-hard-releases)); with
+`--to DOC`, a test release, to a library instead. NAME is a part set's name in `[tool.fs.parts]`, or
 else a FeatureScript, by name or file (a part set's own FeatureScript is released with its part set, so naming it is
 refused).
 
 ```
 uv run fs release robotFrame --minor -d "Added a thing"   # 1.2.3 -> 1.3.0
-uv run fs release robotFrame --patch --publish            # quick release: also create the version in the frontend (not a first release)
+uv run fs release robotFrame --patch --hard               # a hard release: also version the frontend (not a first release)
 uv run fs release robotFrame --minor --dry-run            # show the plan without changing anything
 uv run fs release robotFrame --to library                 # release it to the library, for a test FRCDesignApp
 uv run fs release fasteners --minor                       # a part set, to its own frontend document
@@ -558,28 +558,44 @@ repo, then creates a version named e.g. `Robot frame - v1.3.0` in the backend do
 of the same name at it (creating the studio if needed). It asks for confirmation since versions can't be deleted (`-y`
 skips the prompt).
 
-A release to a library (`--to DOC`, a library document) does the same there, from any branch, but isn't numbered:
-the versions it makes, in the backend and the library, are named for the branch and commit (`Robot frame test -
-my-branch 1a2b3c4`), which aren't taken for releases, so the next release's number is untouched. The library is
-versioned at once, so FRCDesignApp can load it, and the entry it writes for the app (below) has the last release's
-version with the commit as its build (`1.3.0+test.1a2b3c4`). Nothing is marked released or tagged, and it takes no
-`--major`, `--minor`, `--patch`, or `--publish`.
+### Soft and hard releases
 
-A FeatureScript's release is final once its version is in the frontend document: with `--publish` (a quick release: the
-backend version, the frontend studio, then the frontend version), or later with `fs publish`, which creates the
-frontend versions the backend has that it doesn't. Then the feature's newest release is tagged in git, e.g.
-`robotFrame/v1.3.0`, on the newest commit whose file is as released (`fs push` commits what it pushes, so that's
-usually the last one), and the tag is pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows what's
-changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved) without
-any API calls, falling back to the backend version for releases without one. A release with no commit whose file is as
-released (older ones, mostly) goes untagged; tags only make finding releases in git easier. A part set's release is
-tagged at once (`fasteners/v1.2.0`), and its frontend is versioned by its owner, not `fs publish`.
+A release to a frontend is soft or hard, the same for FeatureScripts and part sets:
+
+- A **soft release**, the default, stops short of versioning the frontend: it updates the frontend's workspace (its
+  studio, a part set's Part Studios and manifest, FRCDesignApp's entry), but people's documents update only to the
+  frontend's versions, so they don't get it yet. Check it in the frontend (and make a new feature's example), then
+  `fs publish` versions the frontend for it, leaving it as a hard release would.
+- A **hard release** (`--hard`) also creates the version in the frontend document (named as the backend's, `Robot
+  frame - v1.3.0`), which is what people's documents update to. A FeatureScript's first release can't be hard, and
+  nor can one whose feature has no example: a new feature needs its example made first.
+
+A release is tagged in git once it's hard, by `--hard` or `fs publish`: a FeatureScript's by its file's name
+(`robotFrame/v1.3.0`), a part set's by the set's (`fasteners/v1.2.0`, since sets share a FeatureScript), on the newest
+commit whose file is as released (`fs push` commits what it pushes, so that's usually the last one), and the tag is
+pushed to origin (`--no-push-tags` keeps it local). So `git diff robotFrame/v1.3.0 -- featurescripts/Robot/` shows
+what's changed since, and `fs changes robotFrame` uses the tag (and `fs-studios.json` at it, for files which have moved)
+without any API calls, falling back to the backend version for releases without one. A release with no commit whose
+file is as released (older ones, mostly) goes untagged; tags only make finding releases in git easier.
+
+`fs publish` creates the release versions the backend has that their frontends don't: each FeatureScript's and part
+set's newest (a version made now holds the frontend as it is, so older ones are left out), and a FeatureScript's
+deprecation (see [Deprecating](#deprecating)).
 
 ```
-uv run fs publish                # finalize releases: create their frontend versions, and tag them
-uv run fs publish robotFrame     # just one feature's
+uv run fs publish                # version the frontends for every soft release, and tag them
+uv run fs publish robotFrame     # just one feature's (or a part set's: fs publish fasteners)
 uv run fs changes robotFrame     # what's changed since robotFrame's last release
 ```
+
+### Test releases
+
+A test release, to a library (`--to DOC`, a library document), does the same there, from any branch, but isn't
+numbered: the versions it makes, in the backend and the library, are named for the branch and commit (`Robot frame
+test - my-branch 1a2b3c4`), which aren't taken for releases, so the next release's number is untouched. The library is
+always versioned, so FRCDesignApp can load it (`--hard` changes nothing), and the entry it writes for the app (below)
+has the last release's version with the commit as its build (`1.3.0+test.1a2b3c4`). Nothing is marked released or
+tagged, and it takes no `--major`, `--minor`, or `--patch`.
 
 The frontend studio's header links its source: the backend document, and with `github` set in `[tool.fs]`, the
 repo on GitHub (the repo, not the file, so the link doesn't break when files move). It's written when the studio's
@@ -596,8 +612,8 @@ app's next load. A release keeps that side of the frontend document (`fs_cli/fro
 - **The example**: a Part Studio named for the feature, its Feature Type Name in any case (`Multi extrude`), preferring
   one after its studio in the same folder; otherwise the first Part Studio after its studio in its folder, so features
   sharing an example sit before it in one folder. Deprecated tabs and folders are skipped, and the app finds examples
-  the same way. A feature with none gets an empty one, named for it, at the top level; `--publish` is refused until
-  it has one, so an empty example is never published: release without it, model the example, then `fs publish`.
+  the same way. A feature with none gets an empty one, named for it, at the top level; a hard release is refused until
+  it has one, so an empty example is never in a frontend version: release soft, model the example, then `fs publish`.
 - **The icon**: the `.svg` its `"Icon"` imports, itself or through a studio it imports (as `core/robotFeature.fs`
   exports `RobotIcon`, the robot icon of features without their own), written to `<Feature Type Name> icon.svg`.
   A feature with none gets `[tool.fs] default_icon` (robot-code's is `core/robotIcon.svg`, the robot icon); only with
@@ -636,16 +652,16 @@ Deleting a released FeatureScript would break documents using it as soon as they
 the frontend document, so retire it instead:
 
 ```
-uv run fs deprecate robotTube -d "Use Robot frame" --publish
+uv run fs deprecate robotTube -d "Use Robot frame" --hard
 ```
 
 This renames its feature "DEPRECATED Robot tube" and pushes it, creates a version named `DEPRECATED Robot tube` in
 the backend document, points the frontend studio at it and renames that tab `DEPRECATED robotTube.fs`, and (with
-`--publish`) creates the version in the frontend document. The frontend studio keeps its element id, so documents
+`--hard`, as a hard release does) creates the version in the frontend document. The frontend studio keeps its element id, so documents
 using the feature keep working and keep updating. Then, since the frontend studio imports a version, the backend tab
 and the file are deleted (`--keep-backend` keeps them, renaming the tab too, e.g. if other studios still import
 it). The API can't rename folders, so rename any folders holding its tabs by hand. `--dry-run` shows the steps
-first. Without `--publish`, `fs publish` creates its frontend version later.
+first. Without `--hard`, `fs publish` creates its frontend version later.
 
 ## Onshape's FeatureScript guide
 

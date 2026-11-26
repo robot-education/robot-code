@@ -38,7 +38,7 @@ from fs_cli.release import (
     run_release,
     tag_release,
     tag_versions,
-    unsynced_versions,
+    soft_releases,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
@@ -426,8 +426,9 @@ def make_parser() -> argparse.ArgumentParser:
     release = command(
         "release",
         "release a FeatureScript, or a part set with its Part Studios, to its frontend document (on main only), or to a "
-        "library document to try it out (from any branch): push what it releases over Onshape's, version the backend, "
-        "and point the document at that version",
+        "library document to try it out (a test release, from any branch): push what it releases over Onshape's, "
+        "version the backend, and point the document at that version. A soft release, the default, leaves the "
+        "frontend unversioned (`fs publish` versions it later); a hard one (--hard) versions it too",
         targets=False,
     )
     release.add_argument(
@@ -443,14 +444,15 @@ def make_parser() -> argparse.ArgumentParser:
     release.add_argument(
         "--to",
         metavar="DOC",
-        help="release to a library document in [tool.fs.documents] instead, to load in a test FRCDesignApp: from any "
-        "branch, named for the branch and commit, versioned there at once, and not numbered, marked released, or tagged",
+        help="a test release, to a library document in [tool.fs.documents] instead, to load in a test FRCDesignApp: "
+        "from any branch, named for the branch and commit, always versioned there, and not numbered, marked released, "
+        "or tagged",
     )
     release.add_argument(
-        "--publish",
+        "--hard",
         action="store_true",
-        help="FeatureScripts: also create the version in the frontend document, publishing (finalizing) the release "
-        "at once, and tag it in git (not for a first release)",
+        help="a hard release: also create the version in the frontend document, which people's documents update to, "
+        "and tag it in git (not a FeatureScript's first release, whose examples need making)",
     )
     release.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
@@ -468,7 +470,7 @@ def make_parser() -> argparse.ArgumentParser:
         "-d", "--description", default="", help="a brief, internal-only description of why"
     )
     deprecate_command.add_argument(
-        "--publish", action="store_true", help="also create the version in the frontend document"
+        "--hard", action="store_true", help="also create the version in the frontend document, as a hard release does"
     )
     deprecate_command.add_argument(
         "--keep-backend",
@@ -480,14 +482,16 @@ def make_parser() -> argparse.ArgumentParser:
 
     publish_command = command(
         "publish",
-        "publish (finalize) FeatureScripts' releases: create the release versions the backend document has but the "
-        "frontend document doesn't, and tag them in git",
+        "publish soft releases, of FeatureScripts and part sets: create the release versions the backend document "
+        "has but their frontend documents don't, and tag them in git, as hard releases would have",
         targets=False,
     )
     publish_command.add_argument(
-        "features",
+        "names",
         nargs="*",
-        help="only these features' versions, by script (robotFrame) or feature name (\"Robot frame\"); default all",
+        metavar="name",
+        help="only these: FeatureScripts, by script (robotFrame) or feature name (\"Robot frame\"), or part sets "
+        "(fasteners); default all",
     )
     publish_command.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
@@ -659,7 +663,7 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
                 to=None,
                 bump=file.bump,
                 description=file.described,
-                publish=file.publish,
+                hard=file.hard,
                 yes=True,
                 dry_run=args.dry_run,
                 no_push_tags=args.no_push_tags,
@@ -1308,15 +1312,10 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
     else:
         document = frontend_document(workspace)
     # What's refused before anything's pushed
-    check_release_document(document, args.bump, args.publish)
+    check_release_document(document, args.bump)
     if part_set is not None:
         from fs_cli.parts import part_set_script
 
-        if args.publish:
-            raise UsageError(
-                f"A part set's frontend ({document.name}) is versioned by its owner in Onshape, once they've checked "
-                "its Part Studios, so its release takes no --publish."
-            )
         script = part_set_script(workspace, part_set)
     else:
         script = args.name
@@ -1337,9 +1336,9 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
     push_for_release(workspace, [script], args.dry_run)
     if part_set is not None:
         return release_part_set(workspace, part_set, document, args)
-    plan = plan_release(workspace, script, args.bump, document, args.publish)
+    plan = plan_release(workspace, script, args.bump, document, args.hard)
     previous = plan.previous.name if plan.previous else "none"
-    print(f"Releasing {plan.studio.path} to {document.name} as {plan.version_name} (previous release: {previous})")
+    print(f"{_release_kind(plan.released, args.hard)} of {plan.studio.path} to {document.name} as {plan.version_name} (previous release: {previous})")
     print(f"  1. Create version {plan.version_name} in the backend document")
     steps = [f"Point {plan.studio.name} in the {plan.label} at that version"]
     if plan.example is None:
@@ -1347,7 +1346,7 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
     else:
         steps.append(f"Keep {plan.example.name} as its example")
     steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
-    if args.publish or plan.released is None:
+    if args.hard or plan.released is None:
         steps.append(f"Create version {plan.version_name} in the {plan.label}")
     for number, step in enumerate(steps, 2):
         print(f"  {number}. {step}")
@@ -1355,13 +1354,13 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
         return 0
     if not args.yes:
         confirm("Versions can't be deleted.")
-    run_release(workspace, plan, args.description, args.publish)
+    run_release(workspace, plan, args.description, args.hard)
     print(f"Released {plan.version_name}.")
     if plan.released is None:
         return 0
     assert plan.studio.local_code is not None
-    if not args.publish:
-        print("It's final once its version is in the frontend document: `fs publish` creates it, and tags it in git.")
+    if not args.hard:
+        print(SOFT_RELEASED)
     elif is_repository(config.root):
         # In sync, so its code is what was released
         tag_release(workspace, plan.studio.path, plan.released, plan.studio.local_code, not args.no_push_tags)
@@ -1371,39 +1370,41 @@ def release(workspace: Workspace, args: argparse.Namespace) -> int:
 def release_part_set(workspace: Workspace, part_set: PartSet, document: Document, args: argparse.Namespace) -> int:
     from fs_cli.parts import plan_part_release, run_part_release
 
-    plan = plan_part_release(workspace, part_set, args.bump, document, args.publish)
+    plan = plan_part_release(workspace, part_set, args.bump, document)
+    kind = _release_kind(plan.released, args.hard)
     if plan.released:
         previous = plan.previous.name if plan.previous else "none"
-        print(f"Releasing the {part_set.name} part set to {document.name} as {plan.version_name} (previous release: {previous})")
+        print(f"{kind} of the {part_set.name} part set to {document.name} as {plan.version_name} (previous release: {previous})")
     else:
-        print(f"Releasing the {part_set.name} part set to {document.name} as {plan.version_name}")
+        print(f"{kind} of the {part_set.name} part set to {document.name} as {plan.version_name}")
     tabs = ", ".join(studio.tab_name for _, studios in plan.definitions for studio in studios)
     steps = [
         f"Create version {plan.version_name} in the backend document",
         f"Point {plan.studio.name} in the {plan.label} at that version",
         f"Build {tabs} in the {plan.label}, and write its manifest there",
     ]
-    if plan.released is None:
-        steps.append(f"Create version {plan.version_name} in the {plan.label}")
-    else:
+    if plan.released is not None:
         steps.append(
             "Record where its Part Studios are beside "
             + ", ".join(definition.name for definition, _ in plan.definitions)
-            + ", write their exports again, and tag the release"
+            + ", and write their exports again"
         )
+    if args.hard or plan.released is None:
+        steps.append(f"Create version {plan.version_name} in the {plan.label}" + (", and tag the release" if plan.released else ""))
     for number, step in enumerate(steps, 1):
         print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
         confirm("Versions can't be deleted.")
-    run_part_release(workspace, plan, args.description)
+    run_part_release(workspace, plan, args.description, args.hard)
     print(f"Released {plan.version_name}.")
     if plan.released is None:
         return 0
-    print(f"Version {document.name} in Onshape when you want FRCDesign to load it.")
     print("Commit the recorded locations and exports.")
-    if is_repository(workspace.config.root):
+    if not args.hard:
+        print(SOFT_RELEASED)
+    elif is_repository(workspace.config.root):
         assert plan.studio.local_code is not None
         tag_release(
             workspace,
@@ -1414,6 +1415,16 @@ def release_part_set(workspace: Workspace, part_set: PartSet, document: Document
             tagged=part_set.name,
         )
     return 0
+
+
+SOFT_RELEASED = (
+    "It's a soft release: its frontend isn't versioned, so people's documents don't update to it yet. Once it's "
+    "checked there, `fs publish` versions the frontend for it, and tags it in git, as a hard release (--hard) would have."
+)
+
+
+def _release_kind(released: object, hard: bool) -> str:
+    return "Test release" if released is None else "Hard release" if hard else "Soft release"
 
 
 def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -1430,7 +1441,7 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
         f"example (unless another feature's is it too) {DEPRECATED}...",
         f"Rename it {plan.frontend_name}",
     ]
-    if args.publish:
+    if args.hard:
         steps.append(f"Create version {plan.version_name} in the frontend document")
     if args.keep_backend:
         assert studio.remote
@@ -1445,31 +1456,33 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
         return 0
     if not args.yes:
         confirm("Versions can't be deleted.")
-    run_deprecate(workspace, plan, args.description, args.publish)
+    run_deprecate(workspace, plan, args.description, args.hard)
     print(f"Deprecated {studio.path}. Now rename any folders holding its tabs by hand (step {len(steps)}).")
     return 0
 
 
 def publish(workspace: Workspace, args: argparse.Namespace) -> int:
-    missing = unsynced_versions(workspace, {feature_name_for(name) for name in args.features} or None)
-    if not missing:
-        print("The frontend document already has every release version.")
+    """`fs publish`: versions the frontends for soft releases, leaving them as hard releases would."""
+    config = workspace.config
+    names = {each.title if (each := config.part_set(name)) else feature_name_for(name) for name in args.names}
+    releases = soft_releases(workspace, names or None)
+    if not releases:
+        print("There are no soft releases to publish: every frontend has its release versions.")
         return 0
-    print("Versions missing from the frontend document:")
-    for version in missing:
-        description = f": {version.description}" if version.description else ""
-        print(f"  {version.name}{description}")
+    print("Soft releases, whose frontends don't have their versions:")
+    for release in releases:
+        description = f": {release.version.description}" if release.version.description else ""
+        print(f"  {release.version.name} (to {release.document.name}){description}")
     if args.dry_run:
         return 0
     if not args.yes:
         confirm("Versions can't be deleted.")
-    document = frontend_document(workspace)
-    remote, target = workspace.remote_for(document), workspace.instance_of(document)
-    for version in missing:
-        remote.create_version(target, version.name, version.description)
-    print(f"Created {_plural(len(missing), 'version')}.")
-    # They're final now
-    tag_versions(workspace, missing, not args.no_push_tags)
+    for release in releases:
+        target = workspace.instance_of(release.document)
+        workspace.remote_for(release.document).create_version(target, release.version.name, release.version.description)
+    print(f"Created {_plural(len(releases), 'version')}.")
+    # They're hard releases now
+    tag_versions(workspace, releases, not args.no_push_tags)
     return 0
 
 

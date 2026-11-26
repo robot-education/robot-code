@@ -116,7 +116,8 @@ uv run fs check              # find problems in the FeatureScripts (--fix fixes 
 uv run fs format             # format them like the std library
 uv run fs gen                # regenerate lookup tables, profiles, and icons from their Python definitions
 uv run fs build SET           # build a part set's Part Studios in the backend, to try them
-uv run fs release NAME --minor -d "What changed"   # release a FeatureScript or part set to its frontend document
+uv run fs release NAME --minor -d "What changed"   # soft release a FeatureScript or part set to its frontend document
+uv run fs publish NAME        # version the frontend for its soft release, once it's checked (or release it --hard)
 uv run fs release NAME --to library   # release one to the library, for a test FRCDesignApp
 uv run pytest                # run the tests
 ```

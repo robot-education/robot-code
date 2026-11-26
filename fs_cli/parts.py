@@ -6,9 +6,10 @@ the same, but it's built and released with its Part Studios:
   `<tab> (TEST)`, from the FeatureScript as pushed, to try a change. Nothing else is written.
 - `fs release SET` versions the backend document, points the set's frontend document (one of FRCDesignLib's or
   ConfigLib's) at that version, builds each Part Studio there and writes the set's manifest beside them
-  (`<set>.parts.json`), records where they are beside their definition (`<definition>.studios.json`), writes the
-  definition's exports again, and tags the release in git. Its frontend's owner versions it by hand. With `--to`, it
-  does the same to a library document, to try it out, and versions it, but numbers, records, and tags nothing.
+  (`<set>.parts.json`), records where they are beside their definition (`<definition>.studios.json`), and writes the
+  definition's exports again. That's a soft release; a hard one (`--hard`) also versions the frontend and tags the
+  release in git, as `fs publish` does for a soft one later. With `--to`, it does the same to a library document, a
+  test release, and versions it, but numbers, records, and tags nothing.
 
 See docs/parts.md.
 """
@@ -234,21 +235,16 @@ def frontend_of(part_set: PartSet) -> Document:
 
 
 def plan_part_release(
-    workspace: Workspace, part_set: PartSet, bump: VersionType | None, document: Document, publish: bool = False
+    workspace: Workspace, part_set: PartSet, bump: VersionType | None, document: Document
 ) -> PartReleasePlan:
-    check_release_document(document, bump, publish)
-    if publish:
-        raise UsageError(
-            f"A part set's frontend ({document.name}) is versioned by its owner in Onshape, once they've checked its "
-            "Part Studios, so its release takes no --publish."
-        )
+    check_release_document(document, bump)
     definitions = part_set_definitions(workspace, part_set)
     studio = feature_studio(workspace, part_set, [each for _, studios in definitions for each in studios])
     target = workspace.instance_of(document)
     if document.role is Role.LIBRARY:
         name = test_version_name(workspace, part_set.title)
         return PartReleasePlan(part_set, studio, definitions, None, None, document, target, name)
-    # The frontend is versioned by hand, so its releases are numbered by the backend's
+    # Numbered by the backend's versions, as the frontend has only its hard releases'
     previous = latest_release(part_set.title, workspace.remote.versions(workspace.instance))
     try:
         version = next_version(previous, bump)
@@ -278,7 +274,7 @@ def released_manifests(definition: pathlib.Path, built: dict[str, Built]) -> dic
 
 
 def run_part_release(
-    workspace: Workspace, plan: PartReleasePlan, description: str, log: Callable[[str], None] = print
+    workspace: Workspace, plan: PartReleasePlan, description: str, hard: bool, log: Callable[[str], None] = print
 ) -> None:
     remote = workspace.remote_for(plan.document)
     assert plan.studio.remote
@@ -300,10 +296,11 @@ def run_part_release(
             log(f"Writing {tab} in the {plan.label}...")
             remote.put_file(plan.target, tab, manifest, "application/json")
 
-    if plan.released is None:
-        # A library is versioned, for a test FRCDesignApp to load
+    # A library is always versioned, for a test FRCDesignApp to load
+    if hard or plan.released is None:
         log(f"Creating version {plan.version_name} in the {plan.label}...")
         remote.create_version(plan.target, plan.version_name, description)
+    if plan.released is None:
         return
     for definition, studios in built.items():
         write_locations(definition, plan.target.document_id, {name: each.element_id for name, each in studios.items()})

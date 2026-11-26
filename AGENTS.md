@@ -60,6 +60,11 @@ keys must be public or link-shared (link sharing is enough), as fs refuses other
 works for documents anyone with the link can open. To try a release in a test FRCDesignApp, `fs release NAME --to
 library` releases it to the library, from any branch.
 
+Releases to a frontend are soft or hard (see `docs/fs-cli.md#soft-and-hard-releases`): a soft release, the default,
+updates the frontend's workspace but doesn't version it; a hard release (`--hard`, `hard = true` in a release file)
+versions it too, which is what people's documents update to; `fs publish` versions the frontend for soft releases
+later. A release to a library is a test release. Use these terms, not "publish a release" or "finalize".
+
 Every git branch pushes to the backend's main workspace. Releases are asked for in `releases/` files, which the Onshape
 workflow runs on main once they're merged: each pushes what it releases over Onshape's, as it is on GitHub, then
 versions it (see `docs/fs-cli.md#branches`).

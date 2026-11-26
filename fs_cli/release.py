@@ -7,13 +7,14 @@ A release (after pushing what it releases, see `cli.push_for_release`):
     3. Keeps the frontend document's side of FRCDesignApp's FeatureScripts tab (see fs_cli/frontend.py): creates an
        empty example Part Studio named for the feature if it has none, writes its icon, and its entry in
        featurescripts.json.
-    4. Optionally creates a version in the frontend document too, which publishes the release: it's final once it's
-       there (with `--publish`, or later by `fs publish`), and then it's tagged in git (see `tag_release`).
-       `--publish` is refused while the feature has no example, so an empty one is never published.
+    4. A hard release (`--hard`) also creates the version in the frontend document, which is what people's documents
+       update to, and tags it in git (see `tag_release`). A soft release, the default, stops at 3: `fs publish`
+       versions the frontend for it later, once its examples are updated, leaving it as a hard release would.
+       A hard release is refused while the feature has no example, so an empty one is never versioned.
 
-A release to a library document (`fs release NAME --to DOC`), for a test FRCDesignApp, does the same there, from any
-branch, but isn't numbered: its versions are named for the branch and commit (see `test_version_name`), the library
-is versioned at once so FRCDesignApp can load it, and nothing is marked released or tagged.
+A test release, to a library document (`fs release NAME --to DOC`) for a test FRCDesignApp, does the same there, from
+any branch, but isn't numbered: its versions are named for the branch and commit (see `test_version_name`), the
+library is always versioned at once so FRCDesignApp can load it, and nothing is marked released or tagged.
 
 A part set's FeatureScript (`[tool.fs.parts]`) is released with its Part Studios instead, by `fs release SET` (see
 parts.py).
@@ -34,7 +35,7 @@ from typing import Callable
 
 from fs_cli import frontend
 from fs_cli.branches import branch_name
-from fs_cli.config import Document, Role
+from fs_cli.config import Document, PartSet, Role
 from fs_cli.frontend import FrontendTab
 from fs_cli.git import commit_with_contents, create_tag, has_tag, head_commit, is_repository, push_tag
 from fs_cli.remote import Remote, RemoteStudio, Version
@@ -93,13 +94,13 @@ def test_version_name(workspace: Workspace, title: str) -> str:
     return f"{title} test - {branch_name(workspace.config) or 'no branch'} {commit}".rstrip()
 
 
-def check_release_document(document: Document, bump: VersionType | None, publish: bool) -> None:
-    """Refuses what a release to a library doesn't take: it's unnumbered, and versioned at once."""
-    if document.role is Role.LIBRARY:
-        if bump is not None:
-            raise UsageError(f"A release to a library ({document.name}) isn't numbered, so it takes no --major, --minor, or --patch.")
-        if publish:
-            raise UsageError(f"A release to a library ({document.name}) is versioned there at once, so it takes no --publish.")
+def check_release_document(document: Document, bump: VersionType | None) -> None:
+    """Refuses what a test release, to a library, doesn't take: it's unnumbered (and always versioned, so `--hard`
+    changes nothing)."""
+    if document.role is Role.LIBRARY and bump is not None:
+        raise UsageError(
+            f"A test release, to a library ({document.name}), isn't numbered, so it takes no --major, --minor, or --patch."
+        )
 
 
 @dataclasses.dataclass
@@ -129,9 +130,9 @@ class ReleasePlan:
 
 
 def plan_release(
-    workspace: Workspace, script: str, bump: VersionType | None, document: Document, publish: bool = False
+    workspace: Workspace, script: str, bump: VersionType | None, document: Document, hard: bool = False
 ) -> ReleasePlan:
-    check_release_document(document, bump, publish)
+    check_release_document(document, bump)
     studio = find_studio(workspace, script)
     _check_in_sync(studio, "releasing")
     assert studio.remote
@@ -154,11 +155,11 @@ def plan_release(
         except ValueError as error:
             raise UsageError(str(error)) from error
         name = released.name
-    if publish and previous is None:
-        # A new feature's frontend examples need making before it's final
+    if hard and released is not None and previous is None:
+        # A new feature's frontend examples need making before its frontend version
         raise UsageError(
-            f"{studio.path} has never been released, so its first release isn't published at once: release it "
-            "without --publish, and `fs publish` publishes it once its frontend examples are ready."
+            f"{studio.path} has never been released, so its first release is soft: release it without --hard, and "
+            "`fs publish` versions the frontend for it once its examples are ready."
         )
     display_name = frontend.feature_type_name(studio.local_code or "") or feature_name
     tabs = remote.frontend_tabs(target)
@@ -167,11 +168,11 @@ def plan_release(
         None,
     )
     example = frontend.find_example(tabs, studio_id, display_name)
-    if example is None and publish:
+    if example is None and hard and released is not None:
         raise UsageError(
-            f"{display_name} has no example in the frontend document, so it can't be published yet: "
-            f"release it without --publish, which creates an empty Part Studio named {display_name}, model an "
-            "example in it, then `fs publish` publishes it."
+            f"{display_name} has no example in the frontend document, so its release can't be hard yet: "
+            f"release it soft (without --hard), which creates an empty Part Studio named {display_name}, model an "
+            "example in it, then `fs publish` versions the frontend for it."
         )
     return ReleasePlan(studio, feature_name, previous, name, document, target, released, display_name, example)
 
@@ -180,7 +181,7 @@ def run_release(
     workspace: Workspace,
     plan: ReleasePlan,
     description: str,
-    publish: bool,
+    hard: bool,
     log: Callable[[str], None] = print,
 ) -> None:
     remote = workspace.remote_for(plan.document)
@@ -195,8 +196,8 @@ def run_release(
     remote.push(plan.target, target_studio.element_id, code)
     write_for_app(workspace, plan, target_studio.element_id, log)
 
-    # A library is versioned at once, for FRCDesignApp to load
-    if publish or plan.released is None:
+    # A library is always versioned, for FRCDesignApp to load
+    if hard or plan.released is None:
         log(f"Creating version {plan.version_name} in the {plan.label}...")
         remote.create_version(plan.target, plan.version_name, description)
     if plan.released is not None:
@@ -221,7 +222,7 @@ def write_for_app(
     remote, target, name = workspace.remote_for(plan.document), plan.target, plan.display_name
     code = plan.studio.local_code or ""
     if plan.example is None:
-        log(f"Created {name}; model an example in it before publishing.")
+        log(f"Created {name}; model an example in it before its release is hard (`fs publish`).")
         remote.create_part_studio(target, name)
     icon_id = None
     images = {element_id: image.file for element_id, image in workspace.state.images.items()}
@@ -370,7 +371,7 @@ def run_deprecate(
     workspace: Workspace,
     plan: DeprecatePlan,
     description: str,
-    make_version: bool,
+    hard: bool,
     log: Callable[[str], None] = print,
 ) -> None:
     remote, studio = workspace.remote_for(plan.document), plan.studio
@@ -388,7 +389,7 @@ def run_deprecate(
     unwrite_for_app(workspace, plan, name, log)
     log(f"Renaming it {plan.frontend_name}...")
     remote.rename(plan.target, plan.frontend_studio.element_id, plan.frontend_name)
-    if make_version:
+    if hard:
         log(f"Creating version {plan.version_name} in the frontend document...")
         remote.create_version(plan.target, plan.version_name, description)
 
@@ -458,7 +459,7 @@ def version_backend(
     )
     if released is None:
         raise RuntimeError(
-            f"{studio.remote.name} is unexpectedly missing from the new backend version; nothing was published."
+            f"{studio.remote.name} is unexpectedly missing from the new backend version; nothing was released."
         )
     return release_studio_code(
         name,
@@ -469,28 +470,55 @@ def version_backend(
     )
 
 
-def unsynced_versions(workspace: Workspace, features: set[str] | None = None) -> list[Version]:
-    """Returns the backend's release versions missing from the frontend, oldest first: each feature's newest, a release
-    or its deprecation (`DEPRECATED <Feature name>`), unless the frontend has it. Its older releases are left out, since
-    a frontend version made now holds the frontend as it is, importing the newest. A part set's releases aren't the
-    frontend's, so they're left out too. With `features` (feature names), only theirs."""
+@dataclasses.dataclass
+class SoftRelease:
+    """A soft release: a backend release version its frontend document doesn't have yet.
+
+    Attributes:
+        document: The frontend it's released to.
+        part_set: The part set it's of; None for a FeatureScript's.
+    """
+
+    version: Version
+    document: Document
+    part_set: PartSet | None = None
+
+
+def soft_releases(workspace: Workspace, names: set[str] | None = None) -> list[SoftRelease]:
+    """The soft releases, oldest first: the backend's release versions missing from their frontends. Each
+    FeatureScript's newest, a release or its deprecation (`DEPRECATED <Feature name>`), unless the frontend has it; its
+    older releases are left out, since a frontend version made now holds the frontend as it is, importing the newest.
+    Each part set's newest the same way, in its own frontend. With `names` (feature names or part set titles), only
+    theirs."""
     config, remote = workspace.config, workspace.remote
-    document = frontend_document(workspace)
-    frontend_names = {
-        version.name for version in workspace.remote_for(document).versions(workspace.instance_of(document))
+    frontends: dict[str | None, tuple[Document, PartSet | None]] = {
+        part_set.title: (part_set.frontend, part_set) for part_set in config.parts if part_set.frontend is not None
     }
-    part_sets = {part_set.title for part_set in config.parts}
+    titles = {part_set.title for part_set in config.parts}
+    if config.frontend is not None:
+        frontends[None] = (config.frontend, None)
+    versioned: dict[str, set[str]] = {}
+
+    def has(document: Document, name: str) -> bool:
+        if document.name not in versioned:
+            target = workspace.instance_of(document)
+            versioned[document.name] = {each.name for each in workspace.remote_for(document).versions(target)}
+        return name in versioned[document.name]
+
     missing = []
     seen = set()
     for version in reversed(remote.versions(workspace.instance)):
         feature = _versioned_feature(version.name)
-        if feature is None or feature in part_sets or feature in seen:
+        if feature is None or feature in seen or (names is not None and feature not in names):
             continue
-        if features is not None and feature not in features:
+        # A part set's own releases, or FeatureScripts' (whose deprecations are theirs too)
+        found = frontends.get(feature if feature in titles else None)
+        if found is None or (feature in titles and version.name.startswith(DEPRECATED)):
             continue
         seen.add(feature)
-        if version.name not in frontend_names:
-            missing.append(version)
+        document, part_set = found
+        if not has(document, version.name):
+            missing.append(SoftRelease(version, document, part_set))
     return missing[::-1]
 
 
@@ -537,7 +565,7 @@ def tag_release(
 ) -> str | None:
     """Tags the newest commit in which `path` (relative to the code folder) has `contents` (the released code) as the
     release, and pushes the tag to origin if `push`. Returns the tag, or None if no commit has it. Releases are tagged
-    once they're final: once their version is in the frontend document.
+    once they're hard: once their version is in the frontend document.
 
     Args:
         tagged: What the tag is named for, in place of `path`'s file: a part set, since sets share a FeatureScript.
@@ -560,11 +588,13 @@ def tag_release(
 
 
 def tag_versions(
-    workspace: Workspace, versions: list[Version], push: bool, log: Callable[[str], None] = print
+    workspace: Workspace, releases: list[SoftRelease], push: bool, log: Callable[[str], None] = print
 ) -> int:
-    """Tags the newest of each feature's final release versions (see `tag_release`; versions are oldest first), if it
+    """Tags the newest of each feature's and part set's hard release versions (see `tag_release`; oldest first), if it
     isn't tagged yet, from its studio's code in the backend version (an API call). Versions of studios which aren't
     synced with a file (like a deprecated one's) are skipped. Returns how many were tagged."""
+    from fs_cli.parts import part_set_script
+
     root = workspace.config.root
     if not is_repository(root):
         log("Not in a git repository, so releases aren't tagged.")
@@ -572,30 +602,40 @@ def tag_versions(
     remote = workspace.remote
     studios = {feature_name_for(studio.name): studio for studio in remote.list_studios(workspace.instance)}
     files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
-    newest: dict[str, Version] = {}
-    for version in versions:
-        released = parse_version_name(version.name)
+    ids = {file: element_id for element_id, file in files.items()}
+    newest: dict[str, SoftRelease] = {}
+    for release in releases:
+        released = parse_version_name(release.version.name)
         # A deprecation has no file to tag
         if released:
-            newest[released.feature_name] = version
+            newest[released.feature_name] = release
     tagged = 0
-    for version in newest.values():
+    for release in newest.values():
+        version = release.version
         released = parse_version_name(version.name)
         assert released
-        studio = studios.get(released.feature_name)
-        if studio is None or studio.element_id not in files:
+        if release.part_set is not None:
+            # A part set's FeatureScript, which it's tagged by the name of, since sets share one
+            path = pathlib.Path(part_set_script(workspace, release.part_set)).resolve()
+            path_name = path.relative_to(workspace.config.code_dir.resolve()).as_posix()
+            element_id = ids.get(path_name)
+            tag_name = release.part_set.name
+        else:
+            studio = studios.get(released.feature_name)
+            element_id = studio.element_id if studio is not None else None
+            path_name = files.get(element_id or "")
+            tag_name = None
+        if element_id is None or path_name is None:
             log(f"Skipping {version.name}: it isn't synced with a file.")
             continue
-        path = files[studio.element_id]
-        name = release_tag(path, released.version)
-        if has_tag(root, name):
+        if has_tag(root, release_tag(tag_name or path_name, released.version)):
             continue
         at_version = InstancePath(workspace.instance.document_id, version.id, InstanceType.VERSION)
-        code = _released_code(workspace, at_version, studio.element_id, released.feature_name)
+        code = _released_code(workspace, at_version, element_id, released.feature_name)
         if code is None:
             log(f"Skipping {version.name}: couldn't read its code in that version.")
             continue
-        if tag_release(workspace, path, released, code, push, log) is not None:
+        if tag_release(workspace, path_name, released, code, push, log, tagged=tag_name) is not None:
             tagged += 1
     return tagged
 
