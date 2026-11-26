@@ -1,4 +1,4 @@
-script = "robotFrame"
+name = "robotFrame"
 bump = "major"
 description = "Adds Face and Holes placement and Parts to trim to; Start and End offsets now extend the ends"
-publish = false
+hard = false
