@@ -30,7 +30,7 @@ the user's say-so).
    bearings), it shows each of its Part Studios' configuration panels instead, as Onshape will (see docs/parts.md).
 
 The page also lists every option of each lookup table the feature's parameters use (a row per path through its
-levels, without values), to glance through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> -n <table> --md`
+levels, without values), to glance through rather than clicking through the dialog. For a writeup, `uv run fs table <file or folder> --name <table> --md`
 prints one as Markdown.
 
 Say in the reply what wasn't checked: nothing here runs the feature in Onshape, so its geometry, and whether its

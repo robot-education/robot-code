@@ -35,13 +35,13 @@ Onshape answers some requests without credentials about documents anyone with th
 count against the API limits of the keys' owner. That's a **public** document or a **link-shared** one: link sharing
 is enough. Onshape reports both with `"permission": "ANONYMOUS_ACCESS"` to an anonymous `GET /documents/{did}`, a
 public one with `"public": true` and a link-shared one with `"public": false`. As of November 2026 the backend and
-frontend documents are public, and FRCDesign's Enterprise test document (`fs push --test`'s) is link-shared, which
+frontend documents are public, and FRCDesign's Enterprise test document (the `enterprise` backend, which `fs push --to` reaches) is link-shared, which
 answered an anonymous tab listing just the same.
 
 Endpoints which can pass `anonymous=True` to `api.get`: `KeyApi` sends the request unsigned, and if the document is
 neither (401, 403, or 404), sends it again signed, and signs every later request about that document from the start.
 With `fallback=False` too, it raises the refusal instead, to find out for free whether anyone can open a document
-(`documents.get_document`, which `fs push --test` checks a test document with).
+(`documents.get_document`, which `fs push --to` checks another backend with).
 
 Tested in October 2026 (API v16), on public documents (and `GET /documents/{did}` and the elements listing in
 November 2026, on a link-shared one too):

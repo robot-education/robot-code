@@ -6,11 +6,9 @@ FeatureScript here (including selections, editing logic, and manipulator change 
 ## Onshape API calls
 
 Ask before anything that calls Onshape, and run it only once the user says yes, every time: the Onshape FeatureScript
-MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `release`, `parts`, `configuration`,
-`deprecate`, `sync-versions`, `run-releases`, `features`, `pull-std`,
-`update-std`, `released --detect`, and the
-rest). Each call spends the
-user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
+MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `status`, `release`, `build`,
+`publish`, `deprecate`, `releases --run`, `configuration`, `features`, `pull-std`, `update-std`, and the rest). Each call
+spends the user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
 asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. Nor does regenerating the API reference (`uv run python -m onshape_api.reference.generate`): it downloads Onshape's
 OpenAPI definition unsigned, which spends no allocation. When the
 user runs a command themselves, say exactly what to run.
@@ -47,16 +45,20 @@ before stating how FeatureScript or Onshape behaves, or adding a rule here or to
 For FeatureScript names, `fs doc NAME` shows a std or project symbol's signature and documentation, `fs refs NAME`
 where it's used, and `fs rename NAME NEW` renames it everywhere; `fs check --fix` fixes problems with one right answer.
 
-FeatureScript-backed parts (FRCDesign's fasteners) are part sets, tried and released by `fs parts`, never `fs release`;
-see `docs/parts.md`.
+fs works with the documents named in `[tool.fs.documents]`, each a backend (FeatureScripts' and part sets' source, to
+try them in), a library (for loading into a test FRCDesignApp), or a frontend (user facing: what releases go to); see
+`docs/fs-cli.md#documents`. Commands name them with `--to DOC`; don't write to documents not listed there.
 
-To try a change in Onshape, push just the FeatureScripts being tested (they bring what they import) to the test
-document with `fs push NAME --test`, rather than everything to the backend with plain `fs push`, unless the test
-needs every FeatureScript in one document; see `docs/fs-cli.md#test-documents`. It needs the user's yes like any
-push. The test documents are the ones in `[tool.fs.test_documents]` (FRCDesign's Enterprise document, with its own
-keys, is `--test`'s); don't push to other documents. One reached with the usual keys must be public or link-shared
-(link sharing is enough), as fs refuses others: it lists tabs anonymously, which only works for documents anyone with
-the link can open.
+FeatureScript-backed parts (FRCDesign's fasteners) are part sets, built by `fs build SET` and released by
+`fs release SET`, each into its own frontend document; see `docs/parts.md`.
+
+To try a change in Onshape, push just the FeatureScripts being tested (they bring what they import) to another backend
+with `fs push NAME --to enterprise` (FRCDesign's Enterprise document, with its own keys), rather than everything to the
+backend with plain `fs push`, unless the test needs every FeatureScript in one document; see
+`docs/fs-cli.md#pushing-to-another-backend`. It needs the user's yes like any push. A backend reached with the usual
+keys must be public or link-shared (link sharing is enough), as fs refuses others: it lists tabs anonymously, which only
+works for documents anyone with the link can open. To try a release in a test FRCDesignApp, `fs release NAME --to
+library` releases it to the library, from any branch.
 
 Every git branch pushes to the backend's main workspace. Releases are asked for in `releases/` files, which the Onshape
 workflow runs on main once they're merged: each pushes what it releases over Onshape's, as it is on GitHub, then

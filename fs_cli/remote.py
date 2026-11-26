@@ -17,13 +17,12 @@ from onshape_api.endpoints import (
     metadata,
     part_studios,
     versions,
-    workspaces,
 )
 from onshape_api.api.key_api import ANONYMOUS_REFUSALS
 from onshape_api.exceptions import ApiError
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
-from onshape_api.types import ElementGroup, ElementType, MergeStrategy
+from onshape_api.types import ElementGroup, ElementType
 
 
 @dataclasses.dataclass
@@ -102,21 +101,12 @@ class Version:
 
 @dataclasses.dataclass
 class RemoteDocument:
-    """A document anyone with its link can open (public or link-shared), as `fs push --test` checks it before writing
+    """A document anyone with its link can open (public or link-shared), as `fs push --to` checks it before writing
     to it: fs lists tabs anonymously, which only works for those."""
 
     name: str
     # Whether it's public, rather than only link-shared
     public: bool
-
-
-@dataclasses.dataclass
-class RemoteWorkspace:
-    """A workspace (a branch) of a document."""
-
-    id: str
-    name: str
-    description: str = ""
 
 
 class Remote(Protocol):
@@ -194,22 +184,6 @@ class Remote(Protocol):
 
     def read_file(self, instance: InstancePath, name: str) -> bytes | None:
         """The file in the blob tab named `name`, or None without one."""
-        ...
-
-    def element_ids(self, instance: InstancePath) -> set[str]:
-        """Every tab's element id (anonymous for public documents)."""
-        ...
-
-    def workspaces(self, document_id: str) -> list[RemoteWorkspace]: ...
-
-    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
-        """Branches a workspace from a version (1 call)."""
-        ...
-
-    def delete_workspace(self, instance: InstancePath) -> None: ...
-
-    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
-        """Merges a workspace of the same document into target (1 call)."""
         ...
 
     def build_studio(
@@ -355,27 +329,6 @@ class OnshapeRemote:
         if not tabs:
             return None
         return blob_elements.download_file(self.api, ElementPath.from_path(instance, tabs[0]))
-
-    def element_ids(self, instance: InstancePath) -> set[str]:
-        return {element["id"] for element in documents.get_document_elements(self.api, instance)}
-
-    def workspaces(self, document_id: str) -> list[RemoteWorkspace]:
-        return [
-            RemoteWorkspace(workspace["id"], workspace["name"], workspace.get("description") or "")
-            for workspace in workspaces.get_workspaces(self.api, DocumentPath(document_id))
-        ]
-
-    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
-        created = workspaces.create_workspace(self.api, DocumentPath(document_id), version_id, name, description)
-        return RemoteWorkspace(created["id"], created["name"], description)
-
-    def delete_workspace(self, instance: InstancePath) -> None:
-        workspaces.delete_workspace(self.api, instance)
-
-    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
-        merged = workspaces.merge_into_workspace(self.api, target, source_workspace_id, strategy)
-        if merged.get("libraryVersionMismatch"):
-            raise ValueError("Onshape won't merge workspaces at different FeatureScript versions.")
 
     def build_studio(
         self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str

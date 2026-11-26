@@ -26,8 +26,6 @@ from typing import IO
 
 STATE_VERSION = 4
 STUDIOS_VERSION = 1
-# Before version 4, the state also held each studio's file
-_STATE_VERSION_WITH_FILES = 3
 
 # An import of another tab in the same document: import(path : "<element id>", version : "<id>")
 _SAME_DOCUMENT_IMPORT = re.compile(
@@ -128,23 +126,12 @@ class State:
         self.released = released if released is not None else set()
         # element id -> state, for image tabs; their hashes are of their bytes (see `image_hash`)
         self.images = images if images is not None else {}
-        self.workspace: str | None = None
 
     @classmethod
-    def load(cls, path: pathlib.Path, studios_path: pathlib.Path, workspace: str | None = None) -> State:
-        """Args:
-        workspace: The workspace the state is of, when it's a branch's: a state of another, which the branch had
-            before its workspace was made again, is dropped. None reads it whichever it is.
-        """
+    def load(cls, path: pathlib.Path, studios_path: pathlib.Path) -> State:
         files = load_studio_files(studios_path)
         synced = _read_json(path)
-        if workspace is not None and synced.get("workspace") != workspace:
-            synced = {}
-        if synced.get("version") == _STATE_VERSION_WITH_FILES:
-            for element_id, studio in synced.get("studios", {}).items():
-                if isinstance(studio, dict) and "file" in studio:
-                    files.setdefault(element_id, studio["file"])
-        elif synced.get("version") != STATE_VERSION:
+        if synced.get("version") != STATE_VERSION:
             synced = {}
         def states(files: dict[str, str], key: str) -> dict[str, StudioState]:
             result = {}
@@ -161,7 +148,6 @@ class State:
             load_released(studios_path),
             states(load_image_files(studios_path), "images"),
         )
-        state.workspace = workspace
         return state
 
     def save(self) -> None:
@@ -182,19 +168,9 @@ class State:
             }
 
         data: dict = {"version": STATE_VERSION, "studios": synced(studios)}
-        if self.workspace is not None:
-            data["workspace"] = self.workspace
         if images:
             data["images"] = synced(images)
         _write_json(self.path, data)
-
-
-def migrate(path: pathlib.Path, studios_path: pathlib.Path) -> None:
-    """Moves which file each studio is synced with out of a state file from before version 4, holding the state's
-    lock if it does (see `state_lock`), so call it before taking the lock."""
-    if _read_json(path).get("version") == _STATE_VERSION_WITH_FILES:
-        with state_lock(studios_path):
-            State.load(path, studios_path).save()
 
 
 def load_studio_files(studios_path: pathlib.Path) -> dict[str, str]:

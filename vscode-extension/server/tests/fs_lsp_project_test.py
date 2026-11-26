@@ -68,7 +68,7 @@ export function run(context is Context)
 @pytest.fixture
 def project(tmp_path) -> Project:
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     for path, code in FILES.items():
         file = tmp_path / "featurescripts" / path

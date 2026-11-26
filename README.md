@@ -66,14 +66,15 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
 
     # Optional
     API_LOGGING=false            # Log every request
-    API_BASE_URL=https://cad.onshape.com
 
-    # For `fs push --test`: API keys of FRCDesign's Enterprise, which reach its test document
+    # For the documents in FRCDesign's Enterprise (`keys = "FRCDESIGN"` in pyproject.toml), like the `enterprise`
+    # backend `fs push NAME --to enterprise` pushes to: its own API keys
     FRCDESIGN_API_ACCESS_KEY=<Its API Access Key>
     FRCDESIGN_API_SECRET_KEY=<Its API Secret Key>
     ```
 
-    The same variables can be set directly in the environment instead (e.g. in CI).
+    The same variables can be set directly in the environment instead (e.g. in CI). Which Onshape each document is on
+    comes from its url in `[tool.fs.documents]`.
 
 4. Install the FeatureScript VS Code extension, then reload VS Code:
 
@@ -108,13 +109,15 @@ whole files. `fs ui` (screenshots of a feature's dialog) needs Chrome, Edge, or 
 
 ```
 uv run fs push               # push local changes to the backend document (and commit them)
-uv run fs push NAME --test   # push a FeatureScript, with what it imports, to the test document
+uv run fs push NAME --to enterprise   # push a FeatureScript, with what it imports, to another backend to try it
 uv run fs status             # what differs between the repo and Onshape
 uv run fs pull               # bring changes made in Onshape into the repo
 uv run fs check              # find problems in the FeatureScripts (--fix fixes the obvious ones)
 uv run fs format             # format them like the std library
 uv run fs gen                # regenerate lookup tables, profiles, and icons from their Python definitions
-uv run fs release NAME --minor -d "What changed"   # release a FeatureScript to the frontend document
+uv run fs build SET           # build a part set's Part Studios in the backend, to try them
+uv run fs release NAME --minor -d "What changed"   # release a FeatureScript or part set to its frontend document
+uv run fs release NAME --to library   # release one to the library, for a test FRCDesignApp
 uv run pytest                # run the tests
 ```
 

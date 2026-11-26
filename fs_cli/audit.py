@@ -126,7 +126,7 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
             f"<h3>{html.escape(label)}</h3>" + _frame(label, frame_shell, frame_script) for label, frame_shell, frame_script in configurations
         )
         dialog_section = (
-            "<h2>Configurations</h2>\n<p class=\"limit\">Its Part Studios' configurations, as <code>fs parts</code> writes them to Onshape: "
+            "<h2>Configurations</h2>\n<p class=\"limit\">Its Part Studios' configurations, as <code>fs build</code> writes them to Onshape: "
             "choose options to see what each shows. Setting an input back to its default unsets it.</p>\n" + frames
         )
     else:

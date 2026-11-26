@@ -6,7 +6,7 @@ imperial sizes only (`fastenerTables.py`'s `SIZES`), so this is the catalog the 
 
 ## What teams insert
 
-From ConfigLib, FTC's library in FRCDesign, over the last year (`fs cots 'screw|nut|washer' -l config -d`):
+From ConfigLib, FTC's library in FRCDesign, over the last year (`fs cots 'screw|nut|washer' --library config --details`):
 
 | Part | Inserts | Options chosen |
 | --- | --- | --- |

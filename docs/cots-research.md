@@ -12,9 +12,9 @@ FRCDesign's public API (no sign-in, and no Onshape API calls):
 
 ```
 uv run fs cots 'hex shaft'                 # FRC parts matching a regular expression, most used first
-uv run fs cots 'channel|beam' -l config    # ConfigLib, FTC's library (-l mkcad for MKCad's)
-uv run fs cots 'hex shaft' -d              # also each part's configuration usage, and part numbers with the options they're for
-uv run fs cots --days 90 -n 100            # the top 100 parts over the last 90 days
+uv run fs cots 'channel|beam' --library config   # ConfigLib, FTC's library (--library mkcad for MKCad's)
+uv run fs cots 'hex shaft' --details       # also each part's configuration usage, and part numbers with the options they're for
+uv run fs cots --days 90 --limit 100       # the top 100 parts over the last 90 days
 ```
 
 Read the numbers relative to each other: a part used 400 times a year (like WCP box tube) is core, 40 is worth

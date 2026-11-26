@@ -9,7 +9,7 @@ the chosen size and head. A whole input can be shown only for some, too; hidden,
 option is fixed: it's left out of the configuration, and its parameter set to that option when the feature's inserted.
 
 The definition is the source of both sides: the feature's enums and data (`fs gen`), and the configuration
-(`fs parts`, see docs/parts.md), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
+(`fs build` and `fs release`, see docs/parts.md), so they can't drift apart. Option ids are FeatureScript identifiers, since Onshape makes each
 List input an enum (`<input id>_conf`) whose values are its option ids.
 """
 
