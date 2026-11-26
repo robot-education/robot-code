@@ -22,7 +22,7 @@ from fs_lsp.project import Module, Project
 
 from fs_cli.branches import Access, BranchError, check_synced_with_origin
 from fs_cli.branches import resolve as resolve_backend
-from fs_cli.config import Config, ConfigError, load_config
+from fs_cli.config import Config, ConfigError, PushTarget, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
 from fs_cli.git import commit_all, commit_paths, file_at, has_tag, is_clean, is_repository
@@ -150,10 +150,15 @@ def make_parser() -> argparse.ArgumentParser:
         "over Onshape's (as --force), deleting nothing",
     )
     push.add_argument(
+        "--test",
+        action="store_true",
+        help="push the targets (FeatureScripts), and every studio and image they import, to the test document "
+        "([tool.fs] test_document) instead: tabs are matched by name, and nothing local changes or is committed",
+    )
+    push.add_argument(
         "--to",
-        metavar="URL",
-        help="push the targets (FeatureScripts), and every studio and image they import, to this public document "
-        "instead, like a test document: tabs are matched by name, and nothing local changes or is committed",
+        metavar="NAME",
+        help="as --test, to another of [tool.fs.test_documents]",
     )
     dry_run(push)
     yes_to_deletes(push)
@@ -598,6 +603,9 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
         migrate(config.state_path, config.studios_path)
         if args.command in OFFLINE_COMMANDS and args.command not in STATE_COMMANDS and not getattr(args, "detect", False):
             return OFFLINE_COMMANDS[args.command](config, args)
+        if pushes_to_test(args):
+            # Changes nothing local, nor the backend, so needs neither its keys nor the state's lock
+            return push_to(config, args, remote)
         # Commands which change the state hold its lock, so two at once don't lose each other's changes
         with state_lock(config.studios_path):
             if args.command in OFFLINE_COMMANDS and not getattr(args, "detect", False):
@@ -632,13 +640,16 @@ def command_access(args: argparse.Namespace) -> Access:
     return Access.MAIN if args.command in MAIN_COMMANDS else Access.ANY
 
 
-def _onshape_remote(log: bool) -> OnshapeRemote:
+def _onshape_remote(log: bool, target: PushTarget | None = None) -> OnshapeRemote:
+    """Onshape, through the usual keys, or a test document's own (on its domain, every request signed)."""
     from onshape_api.api.key_api import make_key_api
 
     if log:
         os.environ["API_LOGGING"] = "true"
     try:
-        return OnshapeRemote(make_key_api())
+        if target is not None and target.keys is not None:
+            return OnshapeRemote(make_key_api(prefix=target.keys, base_url=target.base_url, anonymous=False))
+        return OnshapeRemote(make_key_api(base_url=target.base_url if target else None))
     except KeyError as error:
         # Missing API credentials
         raise ConfigError(error.args[0]) from error
@@ -709,8 +720,6 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
 
 
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
-    if getattr(args, "to", None):
-        return push_to(workspace, args)
     releasing = getattr(args, "release", False)
     if releasing:
         if not args.targets:
@@ -777,19 +786,26 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
     return pushed or not_deleted or not_recreated or skipped
 
 
-def push_to(workspace: Workspace, args: argparse.Namespace) -> int:
-    """`fs push --to URL`: the targets, with what they import, to another document (see fs_cli/push_to.py)."""
+def pushes_to_test(args: argparse.Namespace) -> bool:
+    return args.command == "push" and (args.test or args.to is not None)
+
+
+def push_to(config: Config, args: argparse.Namespace, remote: Remote | None) -> int:
+    """`fs push --test`: the targets, with what they import, to a test document (see fs_cli/push_to.py). Reaches it with
+    its own keys if it has them (`remote` stands in for either, in tests)."""
     from fs_cli.push_to import plan_push_to, run_push_to
 
     if not args.targets:
-        raise UsageError("Name the FeatureScripts to push, e.g. `fs push robotFrame --to URL`.")
-    if getattr(args, "release", False):
-        raise UsageError("--release pushes to the backend document, so it doesn't go with --to.")
-    config = workspace.config
+        raise UsageError("Name the FeatureScripts to push, e.g. `fs push robotFrame --test`.")
+    if args.release:
+        raise UsageError("--release pushes to the backend document, so it doesn't go with --test.")
+    target = config.find_test_document(args.to)
+    if remote is None:
+        remote = _onshape_remote(args.log, target)
     scripts = [module.path for module in _select_modules(_project(config), args.targets)]
-    plan = plan_push_to(config, workspace.remote, args.to, scripts)
+    plan = plan_push_to(config, remote, target, scripts)
     verb = "Would push" if args.dry_run else "Pushing"
-    print(f"{verb} to {plan.document_name or 'the document'} ({plan.url}):")
+    print(f"{verb} to {target.name} ({plan.url}):")
     unchanged = [image.path for image in plan.unchanged_images]
     for tab in [*plan.images, *plan.studios]:
         if tab.path not in unchanged:
@@ -798,9 +814,9 @@ def push_to(workspace: Workspace, args: argparse.Namespace) -> int:
         print(f"  ({_plural(len(unchanged), 'image')} already the same: {', '.join(unchanged)})")
     if args.dry_run:
         return 0
-    run_push_to(workspace.remote, plan)
+    run_push_to(remote, plan)
     pushed = len(plan.studios) + len(plan.images) - len(unchanged)
-    print(f"Pushed {_plural(pushed, 'tab')} to {plan.url}.")
+    print(f"Pushed {_plural(pushed, 'tab')} to {target.name}.")
     return 0
 
 

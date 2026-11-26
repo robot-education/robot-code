@@ -101,7 +101,7 @@ class Version:
 
 @dataclasses.dataclass
 class RemoteDocument:
-    """A document, as `fs push --to` checks it before writing to it."""
+    """A document, as `fs push --test` checks it before writing to it."""
 
     name: str
     # Whether anyone can open it; fs lists tabs anonymously, which only works for public documents

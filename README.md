@@ -67,6 +67,10 @@ The Robot Manager Onshape app previously lived here; its final state is preserve
     # Optional
     API_LOGGING=false            # Log every request
     API_BASE_URL=https://cad.onshape.com
+
+    # For `fs push --test`: API keys of FRCDesign's Enterprise, which reach its test document
+    FRCDESIGN_API_ACCESS_KEY=<Its API Access Key>
+    FRCDESIGN_API_SECRET_KEY=<Its API Secret Key>
     ```
 
     The same variables can be set directly in the environment instead (e.g. in CI).
@@ -104,7 +108,7 @@ whole files. `fs ui` (screenshots of a feature's dialog) needs Chrome, Edge, or 
 
 ```
 uv run fs push               # push local changes to the backend document (and commit them)
-uv run fs push NAME --to URL # push a FeatureScript, with what it imports, to a (public) test document
+uv run fs push NAME --test   # push a FeatureScript, with what it imports, to the test document
 uv run fs status             # what differs between the repo and Onshape
 uv run fs pull               # bring changes made in Onshape into the repo
 uv run fs check              # find problems in the FeatureScripts (--fix fixes the obvious ones)

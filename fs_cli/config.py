@@ -60,6 +60,29 @@ class PartSet:
 
 
 @dataclasses.dataclass
+class PushTarget:
+    """A document `fs push --test` pushes FeatureScripts to, with what they import, to try them out (see
+    docs/fs-cli.md#test-documents): `[tool.fs.test_documents.<name>]`.
+
+    Attributes:
+        name: Its key in [tool.fs.test_documents], which `--to` names it by.
+        instance: Its workspace.
+        base_url: The Onshape it's on, like https://cad.onshape.com, or an Enterprise's own domain.
+        keys: Where its API keys are: the prefix of `<keys>_API_ACCESS_KEY` and `<keys>_API_SECRET_KEY`, like an
+            Enterprise's, whose every request is signed; None for the usual keys, with which it must be public.
+    """
+
+    name: str
+    instance: InstancePath
+    base_url: str
+    keys: str | None = None
+
+    @property
+    def url(self) -> str:
+        return f"{self.base_url}/documents/{self.instance.document_id}/w/{self.instance.instance_id}"
+
+
+@dataclasses.dataclass
 class Config:
     """
     Attributes:
@@ -73,6 +96,7 @@ class Config:
         main_branch: The git branch releases run on, and only once it's what origin has (see
             docs/fs-cli.md#branches); None to release from any branch, unchecked.
         default_icon: The `.svg` FRCDesignApp shows for a released feature with no icon of its own.
+        test_documents: The documents `fs push --test` can push to, the default (`test_document`) first.
     """
 
     root: pathlib.Path
@@ -84,6 +108,19 @@ class Config:
     github: str | None = None
     main_branch: str | None = None
     default_icon: pathlib.Path | None = None
+    test_documents: tuple[PushTarget, ...] = ()
+
+    def find_test_document(self, name: str | None) -> PushTarget:
+        """The test document of that name, or the default one."""
+        if not self.test_documents:
+            raise ConfigError("Name a test document to push to in [tool.fs.test_documents] (see docs/fs-cli.md).")
+        if name is None:
+            return self.test_documents[0]
+        found = next((each for each in self.test_documents if each.name == name), None)
+        if found is None:
+            names = ", ".join(each.name for each in self.test_documents)
+            raise ConfigError(f"No test document named {name} in [tool.fs.test_documents] (there's {names}).")
+        return found
 
     def find_part_set(self, name: str) -> PartSet:
         found = next((part_set for part_set in self.parts if part_set.name == name), None)
@@ -127,7 +164,7 @@ def load_config(start: pathlib.Path | None = None) -> Config:
 def parse_config(root: pathlib.Path, data: dict) -> Config:
     if "backend" not in data:
         raise ConfigError("[tool.fs] must set backend to the backend document's url.")
-    return Config(
+    config = Config(
         root=root,
         code_dir=root / data.get("path", "featurescripts"),
         std_dir=root / data.get("std", "std"),
@@ -140,15 +177,51 @@ def parse_config(root: pathlib.Path, data: dict) -> Config:
             root / data.get("path", "featurescripts") / data["default_icon"] if "default_icon" in data else None
         ),
     )
+    config.test_documents = _test_documents(config, data)
+    return config
+
+
+def _test_documents(config: Config, data: dict) -> tuple[PushTarget, ...]:
+    entries = data.get("test_documents", {})
+    if not isinstance(entries, dict):
+        raise ConfigError("[tool.fs.test_documents] must hold a table for each test document.")
+    targets = [_test_document(config, name, entry) for name, entry in entries.items()]
+    default = data.get("test_document")
+    if default is None:
+        if len(targets) > 1:
+            raise ConfigError("[tool.fs] test_document must name the default of [tool.fs.test_documents].")
+        return tuple(targets)
+    found = next((each for each in targets if each.name == default), None)
+    if found is None:
+        raise ConfigError(f"[tool.fs] test_document names {default}, which isn't in [tool.fs.test_documents].")
+    return (found, *(each for each in targets if each is not found))
+
+
+def _test_document(config: Config, name: str, entry: object) -> PushTarget:
+    where = f"[tool.fs.test_documents.{name}]"
+    url = entry.get("url") if isinstance(entry, dict) else None
+    found = _WORKSPACE_URL.match(url) if isinstance(url, str) else None
+    if found is None or not isinstance(entry, dict):
+        raise ConfigError(f"{where} url must be its workspace's url, like https://cad.onshape.com/documents/<id>/w/<id>.")
+    keys = entry.get("keys")
+    if keys is not None and (not isinstance(keys, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]*", keys)):
+        raise ConfigError(f"{where} keys must be the prefix of its keys' variables, like ENTERPRISE.")
+    document_id = found.group(2)
+    # Only releases write these
+    released = {
+        config.frontend.document_id if config.frontend else None: "the frontend document",
+        **{part_set.main_document_id: f"the {part_set.name} part set's main document" for part_set in config.parts},
+        config.backend.document_id: "the backend document",
+    }
+    if document_id in released:
+        raise ConfigError(f"{where} is {released[document_id]}, which isn't for testing.")
+    return PushTarget(name, InstancePath(document_id, found.group(3)), found.group(1), keys)
+
+
+_WORKSPACE_URL = re.compile(r"(https://[a-z0-9-]+\.onshape\.com)/documents/([0-9a-f]{24})/w/([0-9a-f]{24})(?:/|$)")
 
 
 _DOCUMENT_URL = re.compile(r"/documents/([0-9a-f]{24})(?:/|$)")
-
-
-def document_id_in(url: str) -> str | None:
-    """The id of the document an Onshape url names, if it names one."""
-    found = _DOCUMENT_URL.search(url)
-    return found.group(1) if found else None
 
 
 def _part_set(name: str, entry: dict) -> PartSet:

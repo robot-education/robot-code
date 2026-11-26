@@ -51,6 +51,10 @@ Tested in October 2026 (API v16), on public documents:
 | `GET /partstudios/d/{did}/{wvm}/{wvmid}/e/{eid}/boundingboxes` | No (401) | |
 | `GET /parts/d/{did}/{wvm}/{wvmid}/e/{eid}` | No (401) | |
 
+`make_key_api(prefix=..., base_url=..., anonymous=False)` makes an `Api` of other keys (an Onshape Enterprise's,
+from `<prefix>_API_ACCESS_KEY` and `<prefix>_API_SECRET_KEY`) on their own domain, which signs every request: an
+Enterprise's documents aren't public, so anonymous requests about them are only refused.
+
 Anything that changes a document always needs credentials. To check an endpoint, request it with `curl` and no
 credentials (e.g. `curl -sS "https://cad.onshape.com/api/v16/documents/d/{did}/w/{wid}/elements"`); when one
 works, pass `anonymous=True` in its function, and add it to this table.

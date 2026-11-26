@@ -1166,14 +1166,26 @@ def test_push_release_pushes_only_what_a_release_needs(repo, onshape, capsys):
 
 MAIN = "abcdef0123456789abcdef01"
 TEST_DOCUMENT = "0123456789abcdef01234567"
-TEST_URL = f"https://cad.onshape.com/documents/{TEST_DOCUMENT}"
+ENTERPRISE_DOCUMENT = "89abcdef0123456789abcdef"
+
+
+def with_test_documents(repo: pathlib.Path) -> None:
+    """A public test document reached with the usual keys (the default), and an Enterprise's, with keys of its own."""
+    pyproject = repo / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text().replace("[tool.fs]\n", '[tool.fs]\ntest_document = "public"\n')
+        + f'\n[tool.fs.test_documents.public]\nurl = "https://cad.onshape.com/documents/{TEST_DOCUMENT}/w/{"1" * 24}"\n'
+        + f'\n[tool.fs.test_documents.enterprise]\nurl = "https://frcdesign.onshape.com/documents/{ENTERPRISE_DOCUMENT}/w/{"2" * 24}"\n'
+        + 'keys = "FRCDESIGN"\n'
+    )
 
 
 def writes(onshape: FakeOnshape) -> int:
     return sum(onshape.calls[call] for call in ("push", "create", "upload_image", "update_image", "delete"))
 
 
-def test_push_to_pushes_a_script_and_what_it_imports_to_another_document(repo, onshape, capsys):
+def test_push_test_pushes_a_script_and_what_it_imports_to_the_test_document(repo, onshape, capsys):
+    with_test_documents(repo)
     utils = onshape.add("utils.fs", "FeatureScript 1;\nutils\n")
     icon = onshape.add_image("robotIcon.svg", b"<svg/>")
     onshape.add("other.fs", "other")
@@ -1190,10 +1202,10 @@ def test_push_to_pushes_a_script_and_what_it_imports_to_another_document(repo, o
     studios_json = (repo / "fs-studios.json").read_text()
     capsys.readouterr()
 
-    assert run(onshape, "push", "robotFrame", "--to", TEST_URL) == 0
+    assert run(onshape, "push", "robotFrame", "--test") == 0
     out = capsys.readouterr().out
-    assert "core/helper.fs (new)" in out and "other.fs" not in out
-    target = onshape.studios(TEST_DOCUMENT, "lw")
+    assert "Pushing to public" in out and "core/helper.fs (new)" in out and "other.fs" not in out
+    target = onshape.studios(TEST_DOCUMENT, "1" * 24)
     by_name = {studio["name"]: (element_id, studio) for element_id, studio in target.items()}
     assert sorted(by_name) == ["helper.fs", "robotFrame.fs", "utils.fs"]
     assert by_name["utils.fs"][1]["code"] == "FeatureScript 1;\nutils 2\n"
@@ -1202,7 +1214,7 @@ def test_push_to_pushes_a_script_and_what_it_imports_to_another_document(repo, o
     target_utils, target_helper = by_name["utils.fs"][0], by_name["helper.fs"][0]
     assert f'import(path : "{target_utils}", version : "{by_name["utils.fs"][1]["mv"]}")' in pushed_frame
     assert f'import(path : "{target_helper}", version : "{by_name["helper.fs"][1]["mv"]}")' in pushed_frame
-    [(target_icon, image)] = onshape.images(TEST_DOCUMENT, "lw").items()
+    [(target_icon, image)] = onshape.images(TEST_DOCUMENT, "1" * 24).items()
     assert image["name"] == "robotIcon.svg"
     assert f'Icon::import(path : "{target_icon}", version : "{image["mv"]}")' in pushed_frame
     # Nothing local, and nothing in the backend, changed
@@ -1213,65 +1225,86 @@ def test_push_to_pushes_a_script_and_what_it_imports_to_another_document(repo, o
     # Again: the tabs of the same names are updated, and the unchanged image isn't uploaded
     local(repo, "utils.fs").write_text("FeatureScript 1;\nutils 3\n")
     before = dict(onshape.calls)
-    assert run(onshape, "push", "robotFrame", "--to", f"{TEST_URL}/w/lw/e/{target_utils}") == 0
+    assert run(onshape, "push", "robotFrame", "--test") == 0
     assert onshape.calls["create"] == before["create"]
     assert onshape.calls["upload_image"] == before["upload_image"]
     assert onshape.calls["update_image"] == before.get("update_image", 0)
-    assert len(onshape.studios(TEST_DOCUMENT, "lw")) == 3
-    assert onshape.code("utils.fs", TEST_DOCUMENT, "lw") == "FeatureScript 1;\nutils 3\n"
+    assert len(onshape.studios(TEST_DOCUMENT, "1" * 24)) == 3
+    assert onshape.code("utils.fs", TEST_DOCUMENT, "1" * 24) == "FeatureScript 1;\nutils 3\n"
     assert "1 image already the same" in capsys.readouterr().out
 
 
-def test_push_to_dry_run_changes_nothing(repo, onshape, capsys):
-    onshape.add("robotFrame.fs", "frame")
-    run(onshape, "pull")
-    assert run(onshape, "push", "robotFrame", "--to", TEST_URL, "--dry-run") == 0
+def test_push_to_a_test_document_with_keys_of_its_own_does_not_check_it_is_public(repo, onshape, capsys):
+    with_test_documents(repo)
+    write(repo, "robotFrame.fs", "frame")
+    onshape.private.add(ENTERPRISE_DOCUMENT)
+    assert run(onshape, "push", "robotFrame", "--to", "enterprise") == 0
+    assert onshape.code("robotFrame.fs", ENTERPRISE_DOCUMENT, "2" * 24) == "frame"
+    assert onshape.calls["document"] == 0
+
+
+def test_a_test_documents_keys_reach_its_domain_signing_every_request(repo, monkeypatch):
+    from onshape_api.api import key_api
+
+    with_test_documents(repo)
+    monkeypatch.setenv("FRCDESIGN_API_ACCESS_KEY", "access")
+    monkeypatch.setenv("FRCDESIGN_API_SECRET_KEY", "secret")
+    target = cli.load_config().find_test_document("enterprise")
+    api = cli._onshape_remote(False, target).api
+    assert isinstance(api, key_api.KeyApi)
+    assert api._base_url.startswith("https://frcdesign.onshape.com/api") and api._access_key == "access"
+    assert not api._anonymous
+    monkeypatch.delenv("FRCDESIGN_API_SECRET_KEY")
+    with pytest.raises(cli.ConfigError, match="FRCDESIGN_API_SECRET_KEY"):
+        cli._onshape_remote(False, target)
+
+
+def test_push_test_dry_run_changes_nothing(repo, onshape, capsys):
+    with_test_documents(repo)
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "robotFrame", "--test", "--dry-run") == 0
     assert "Would push" in capsys.readouterr().out
-    assert onshape.studios(TEST_DOCUMENT, "lw") == {}
+    assert writes(onshape) == 0
 
 
-def test_push_to_refuses_documents_which_are_not_public(repo, onshape, capsys):
-    onshape.add("robotFrame.fs", "frame")
-    run(onshape, "pull")
+def test_push_test_refuses_a_document_reached_with_the_usual_keys_which_is_not_public(repo, onshape, capsys):
+    with_test_documents(repo)
+    write(repo, "robotFrame.fs", "frame")
     onshape.private.add(TEST_DOCUMENT)
-    pushes = writes(onshape)
-    assert run(onshape, "push", "robotFrame", "--to", TEST_URL) == 2
+    assert run(onshape, "push", "robotFrame", "--test") == 2
     assert "isn't public" in capsys.readouterr().err
-    assert writes(onshape) == pushes
-    assert onshape.calls["list_studios"] == 1  # Just the pull's: the target isn't listed
+    assert writes(onshape) == 0
+    assert onshape.calls["list_studios"] == 0
 
 
-BACK_HEX, FRONT_HEX = "b" * 24, "f" * 24
+def test_push_test_needs_scripts_and_a_test_document(repo, onshape, capsys):
+    write(repo, "robotFrame.fs", "frame")
+    assert run(onshape, "push", "robotFrame", "--test") == 2
+    assert "[tool.fs.test_documents]" in capsys.readouterr().err
+    with_test_documents(repo)
+    assert run(onshape, "push", "--test") == 2
+    assert "Name the FeatureScripts" in capsys.readouterr().err
+    assert run(onshape, "push", "robotFrame", "--to", "nowhere") == 2
+    assert "No test document named nowhere" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
     "url, error",
     [
-        (f"https://cad.onshape.com/documents/{BACK_HEX}/w/{"1" * 24}", "the backend document"),
-        (f"https://cad.onshape.com/documents/{FRONT_HEX}", "the frontend document"),
-        (f"https://cad.onshape.com/documents/{MAIN}", "part set's main document"),
-        (f"{TEST_URL}/v/{"a" * 24}", "a version"),
-        ("https://example.com", "isn't an Onshape document"),
+        (BACKEND, "url must be its workspace's url"),
+        (f"https://cad.onshape.com/documents/{"b" * 24}/w/{"1" * 24}", "the backend document"),
+        (f"https://cad.onshape.com/documents/{MAIN}/w/{"1" * 24}", "part set's main document"),
+        (f"https://cad.onshape.com/documents/{TEST_DOCUMENT}/v/{"1" * 24}", "url must be its workspace's url"),
     ],
 )
-def test_push_to_refuses_the_repos_documents_and_versions(repo, onshape, capsys, url, error):
+def test_test_documents_must_be_workspaces_other_than_the_repos_documents(repo, onshape, capsys, url, error):
     (repo / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "https://cad.onshape.com/documents/{BACK_HEX}/w/{"1" * 24}"\n'
-        f'frontend = "https://cad.onshape.com/documents/{FRONT_HEX}/w/{"2" * 24}"\n'
+        f'[tool.fs]\nbackend = "https://cad.onshape.com/documents/{"b" * 24}/w/{"1" * 24}"\n'
+        f'\n[tool.fs.test_documents.test]\nurl = "{url}"\n'
     )
     with_part_set(repo)
-    write(repo, "robotFrame.fs", "frame")
-    assert run(onshape, "push", "robotFrame", "--to", url) == 2
+    assert run(onshape, "status") == 2
     assert error in capsys.readouterr().err
-    assert writes(onshape) == 0
-    assert onshape.calls["document"] == 0
-
-
-def test_push_to_needs_scripts(repo, onshape, capsys):
-    assert run(onshape, "push", "--to", TEST_URL) == 2
-    assert "Name the FeatureScripts" in capsys.readouterr().err
-
-
 
 
 def with_part_set(repo: pathlib.Path) -> None:

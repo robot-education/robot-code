@@ -20,36 +20,53 @@ from onshape_api.api.api_base import Api, ApiArgs, get_api_base_args
 from onshape_api.utils import env_utils
 
 
-def make_key_api(load_dotenv: bool = True) -> KeyApi:
+def make_key_api(
+    load_dotenv: bool = True, prefix: str = "", base_url: str | None = None, anonymous: bool = True
+) -> KeyApi:
     """
     Constructs an instance of an ApiKey API using credentials read from a .env file.
 
     The variables API_ACCESS_KEY and API_SECRET_KEY are required.
     The variables API_BASE_URL and API_LOGGING may also be set.
+
+    Args:
+        prefix: Reads the keys from `<prefix>_API_ACCESS_KEY` and `<prefix>_API_SECRET_KEY` instead, like another
+            account's (an Onshape Enterprise's keys, say).
+        base_url: The Onshape the keys are for (an Enterprise's own domain, like https://frcdesign.onshape.com),
+            over API_BASE_URL.
+        anonymous: False to sign every request, never trying one without credentials (see `KeyApi`).
     """
     if load_dotenv:
         env_utils.load_env()
     kwargs = get_api_base_args()
-    access_key = os.getenv("API_ACCESS_KEY")
-    secret_key = os.getenv("API_SECRET_KEY")
+    if base_url:
+        kwargs["base_url"] = base_url
+    names = [f"{prefix}_{name}" if prefix else name for name in ("API_ACCESS_KEY", "API_SECRET_KEY")]
+    access_key = os.getenv(names[0])
+    secret_key = os.getenv(names[1])
 
     if not access_key or not secret_key:
         raise KeyError(
-            "API_ACCESS_KEY and API_SECRET_KEY must be set, either in the environment or in a .env file"
+            f"{names[0]} and {names[1]} must be set, either in the environment or in a .env file"
         )
 
-    return KeyApi(access_key, secret_key, **kwargs)
+    return KeyApi(access_key, secret_key, anonymous=anonymous, **kwargs)
 
 
 class KeyApi(Api):
     """Provides access to the Onshape API using API keys."""
 
     def __init__(
-        self, access_key: str, secret_key: str, **kwargs: Unpack[ApiArgs]
+        self, access_key: str, secret_key: str, anonymous: bool = True, **kwargs: Unpack[ApiArgs]
     ) -> None:
+        """Args:
+        anonymous: False to sign every request, even those endpoints ask to try without credentials first. For keys
+            whose documents aren't public (an Onshape Enterprise's), where anonymous requests are only refused.
+        """
         super().__init__(**kwargs)
         self._access_key = access_key
         self._secret_key = secret_key
+        self._anonymous = anonymous
         # Documents anonymous requests were refused for (see `Api._request`)
         self._private_documents: set[str | None] = set()
 
@@ -68,7 +85,7 @@ class KeyApi(Api):
         raw: bool = False,
     ):
         document_id = _document_id(path)
-        if anonymous and document_id not in self._private_documents:
+        if anonymous and self._anonymous and document_id not in self._private_documents:
             try:
                 return self._send(method, path, query, body, headers, signed=False, raw=raw)
             except exceptions.ApiError as error:

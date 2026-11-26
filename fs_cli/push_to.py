@@ -1,5 +1,5 @@
-"""`fs push --to URL SCRIPT...`: pushes FeatureScripts, and every studio and image they import from the repo, to a
-document other than the backend, like a test document of your own.
+"""`fs push --test SCRIPT...`: pushes FeatureScripts, and every studio and image they import from the repo, to a test
+document named in [tool.fs.test_documents] (see `PushTarget`), rather than the backend.
 
 The target's tabs are matched with files by name (a studio's file name, like `robotFrame.fs`, or its stem), not by
 fs-studios.json, which is the backend's: a tab of the same name is overwritten, and a missing one is created. Imports
@@ -7,19 +7,19 @@ are pointed at the target's tabs as each is pushed, in import order, so the targ
 those FeatureScripts need. Nothing local changes: no file, fs-studios.json, or .fs-state.json is written, and nothing
 is committed. Nothing in the target is deleted.
 
-The target must be public: tabs are listed with anonymous requests (see onshape_api/README.md#anonymous-requests),
-which only work for public documents. See docs/fs-cli.md#pushing-to-another-document.
+A test document with keys of its own (an Onshape Enterprise's) is reached with them, on its own domain, and every
+request is signed. Otherwise it must be public: with the usual keys, tabs are listed with anonymous requests (see
+onshape_api/README.md#anonymous-requests), which only work for public documents. See
+docs/fs-cli.md#test-documents.
 """
 
 from __future__ import annotations
 
 import dataclasses
 import pathlib
-import re
 from concurrent import futures
-from typing import Callable
 
-from fs_cli.config import Config, document_id_in
+from fs_cli.config import Config, PushTarget
 from fs_cli.remote import Remote, RemoteImage, RemoteStudio, image_type, is_local
 from fs_cli.state import (
     import_versions,
@@ -30,10 +30,7 @@ from fs_cli.state import (
     retarget_imports,
 )
 from fs_cli.workspace import MAX_WORKERS, UsageError
-from onshape_api.paths.paths import InstancePath, path_to_url
-
-_INSTANCE = re.compile(r"/documents/[0-9a-f]{24}/([wvm])/([0-9a-f]{24})")
-
+from onshape_api.paths.paths import InstancePath
 
 @dataclasses.dataclass
 class Tab:
@@ -54,6 +51,7 @@ class Tab:
 @dataclasses.dataclass
 class PushToPlan:
     instance: InstancePath
+    url: str
     document_name: str
     # In import order: each studio after the studios it imports
     studios: list[Tab]
@@ -65,40 +63,22 @@ class PushToPlan:
     # Images whose tabs in the target already hold the same file, so aren't uploaded
     unchanged_images: list[Tab] = dataclasses.field(default_factory=list)
 
-    @property
-    def url(self) -> str:
-        return path_to_url(self.instance)
 
 
-def target_instance(config: Config, remote: Remote, url: str) -> tuple[InstancePath, str]:
-    """The workspace a url names (the document's default one, if it names none), and the document's name. Refuses the
-    repo's own documents, versions, and documents which aren't public (1 call)."""
-    document_id = document_id_in(url)
-    if document_id is None:
-        raise UsageError(f"{url} isn't an Onshape document's url.")
-    if document_id == config.backend.document_id:
-        raise UsageError("That's the backend document: push to it with `fs push`, without --to.")
-    if config.frontend is not None and document_id == config.frontend.document_id:
-        raise UsageError("That's the frontend document, which only releases write (`fs release`).")
-    for part_set in config.parts:
-        if document_id == part_set.main_document_id:
-            raise UsageError(
-                f"That's the {part_set.name} part set's main document, which only its releases write "
-                f"(`fs parts {part_set.name} --release`)."
-            )
-    instance = _INSTANCE.search(url)
-    if instance is not None and instance[1] != "w":
-        raise UsageError(f"{url} is a version or microversion, which can't be changed: name a workspace (/w/...).")
-    document = remote.document(document_id)
+def check_target(remote: Remote, target: PushTarget) -> str:
+    """Refuses a test document reached with the usual keys which isn't public (1 call); its name. One with keys of its
+    own is reached with them, and every request signed, so isn't checked."""
+    if target.keys is not None:
+        return target.name
+    document = remote.document(target.instance.document_id)
     if not document.public:
         raise UsageError(
-            f"{document.name or document_id} isn't public, and `fs push --to` only pushes to public documents: fs lists "
-            "a document's tabs (and their microversions) with anonymous requests, which only work for public ones. "
-            "Make it public in its Share dialog, on the Public tab, or push to a public test document."
+            f"{target.name} ({document.name}) isn't public, so `fs push --test` can't push to it with the usual keys: "
+            "fs lists a document's tabs (and their microversions) with anonymous requests, which only work for public "
+            "ones. Make it public in its Share dialog, on the Public tab, or give it keys of its own "
+            f"([tool.fs.test_documents.{target.name}] keys)."
         )
-    if instance is None:
-        return document.default_workspace, document.name
-    return InstancePath(document_id, instance[2]), document.name
+    return document.name
 
 
 def needed_files(
@@ -172,11 +152,13 @@ def _import_order(imports: dict[str, list[str]]) -> list[str]:
     return ordered
 
 
-def plan_push_to(config: Config, remote: Remote, url: str, scripts: list[pathlib.Path]) -> PushToPlan:
-    """Matches what pushing scripts needs with the target's tabs: 1 call (see `target_instance`), then anonymous
-    listings, and anonymous downloads of images with tabs of the same names, to skip those already the same."""
+def plan_push_to(config: Config, remote: Remote, target: PushTarget, scripts: list[pathlib.Path]) -> PushToPlan:
+    """Matches what pushing scripts needs with the target's tabs: `check_target`, then listings, and downloads of
+    images with tabs of the same names, to skip those already the same (anonymous, unless the target has keys of its
+    own)."""
     studios, images, imports = needed_files(config, scripts)
-    instance, name = target_instance(config, remote, url)
+    name = check_target(remote, target)
+    instance = target.instance
     backend_ids = {
         file: element_id
         for element_id, file in {
@@ -184,7 +166,7 @@ def plan_push_to(config: Config, remote: Remote, url: str, scripts: list[pathlib
             **load_studio_files(config.studios_path),
         }.items()
     }
-    plan = PushToPlan(instance, name, studios, images, imports, backend_ids)
+    plan = PushToPlan(instance, target.url, name, studios, images, imports, backend_ids)
     _match(studios, remote.list_studios(instance))
     if images:
         _match(images, remote.list_images(instance))
