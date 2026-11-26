@@ -11,7 +11,8 @@ MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync
 `update-std`, `released --detect`, and the
 rest). Each call spends the
 user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
-asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. When the
+asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. Nor does regenerating the API reference (`uv run python -m onshape_api.reference.generate`): it downloads Onshape's
+OpenAPI definition unsigned, which spends no allocation. When the
 user runs a command themselves, say exactly what to run.
 
 `README.md` is for users: an overview of the repo, setup, and links. How the tools work, and anything else written for
