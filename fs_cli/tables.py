@@ -122,16 +122,17 @@ def _without_single_leaves(node: Node) -> Node:
     return dataclasses.replace(node, entries=entries)
 
 
-def _single_run(node: Node, path: list[str]) -> list[str]:
-    """The path to the first two levels in a row with one option each, those as `level = option`, or [] for none."""
-    if len(node.entries) == 1 and node.entries[0].next is not None and len(node.entries[0].next.entries) == 1:
-        below = node.entries[0].next
-        return path + [f"{node.display_name} = {node.entries[0].name}", f"{below.display_name} = {below.entries[0].name}"]
+def _single_option(node: Node, path: list[str]) -> list[str]:
+    """The path to the first level below `node` with one option, ending `level = option`, or [] for none."""
     for entry in node.entries:
-        if entry.next is not None:
-            found = _single_run(entry.next, path + [entry.name])
-            if found:
-                return found
+        below = entry.next
+        if below is None:
+            continue
+        if len(below.entries) == 1:
+            return path + [entry.name, f"{below.display_name} = {below.entries[0].name}"]
+        found = _single_option(below, path + [entry.name])
+        if found:
+            return found
     return []
 
 
@@ -149,11 +150,9 @@ class Table:
                 raise ValueError(f"{self.name}: its vendor is a level below its first; vendor goes first")
         # A last choice with one option isn't a choice (docs/featurescript-style.md, "One option")
         self.node = _without_single_leaves(self.node)
-        run = _single_run(self.node, [])
-        if run:
-            raise ValueError(
-                f"{self.name}: {' > '.join(run)} are one option each, in a row; ask what they say once, or not at all"
-            )
+        single = _single_option(self.node, [])
+        if single:
+            raise ValueError(f"{self.name}: {' > '.join(single)} is its level's one option; leave the level out")
 
     def render(self) -> str:
         lines = [f"export const {self.name} = {{"]

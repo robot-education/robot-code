@@ -254,30 +254,39 @@ def spline(spline_type: str) -> dict[str, str]:
 
 
 def vendor(name: str, shafts: list[Shaft]) -> Value:
-    """A vendor's shafts, chosen by type (only where it sells several), then size (for a hex), then material (only where
-    the type and size come in several), in the order they're listed."""
-    if len({item.type for item in shafts}) == 1:
-        following = _next_level(shafts, "type")
-        if following is None:
-            # One shaft: its preset lengths, if any, are the choice
-            return Value(name, {"vendor": string(name), **shafts[0].values}, shafts[0].presets)
-        return Value(name, {"vendor": string(name)}, Node(following, _choices(shafts, following), display_name=following.capitalize()))
-    return Value(name, {"vendor": string(name)}, Node("type", _choices(shafts, "type"), display_name="Type"))
+    """A vendor's shafts, chosen by type, then size (for a hex), then material (only where the type and size come in
+    several), in the order they're listed, skipping a level with one option."""
+    node = _level(shafts, "type")
+    if node is None:
+        # One shaft: its preset lengths, if any, are the choice
+        return Value(name, {"vendor": string(name), **shafts[0].values}, shafts[0].presets)
+    return Value(name, {"vendor": string(name)}, node)
+
+
+def _level(shafts: list[Shaft], level: str) -> Node | None:
+    """The choice at `level` (type, size, or material) between `shafts`, or the next level's where they share one
+    option, or None for one shaft."""
+    options = {getattr(item, level) for item in shafts}
+    following = _next_level(shafts, level)
+    if len(options) == 1:
+        return None if following is None else _level(shafts, following)
+    return Node(level, _choices(shafts, level), display_name=level.capitalize())
 
 
 def _choices(shafts: list[Shaft], level: str) -> list[Value]:
-    """The options at `level` (type, size, or material) for `shafts`, each leading to the next level, or a leaf."""
+    """The options at `level` for `shafts`, each leading to the next level with several options, or a leaf."""
     groups: dict[str, list[Shaft]] = {}
     for item in shafts:
         groups.setdefault(getattr(item, level), []).append(item)
     choices = []
     for option, group in groups.items():
         following = _next_level(group, level)
-        if following is None:
+        node = None if following is None else _level(group, following)
+        if node is None:
             assert len(group) == 1, f"{option} needs a size or material to tell its shafts apart"
             choices.append(Value(option, group[0].values, group[0].presets))
         else:
-            choices.append(Value(option, {}, Node(following, _choices(group, following), display_name=following.capitalize())))
+            choices.append(Value(option, {}, node))
     return choices
 
 

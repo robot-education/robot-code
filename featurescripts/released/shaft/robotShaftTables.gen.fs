@@ -168,17 +168,11 @@ export const frcShaftTable = {
                 },
             },
             "Swyft" : {
-                "name" : "size",
-                "displayName" : "Size",
+                "name" : "material",
+                "displayName" : "Material",
                 "entries" : {
-                    "1/2 in." : {
-                        "name" : "material",
-                        "displayName" : "Material",
-                        "entries" : {
-                            "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEX-0.5in-36in-AL7075", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
-                            "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
-                        },
-                    },
+                    "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEX-0.5in-36in-AL7075", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
+                    "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
                 },
             },
             "VEX" : {

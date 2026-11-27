@@ -187,9 +187,9 @@ A choice with one option isn't a choice. In a lookup table:
 - A last level with one option is left out: its values go on the option above it. Then the level above may be left with
   one option, and goes too. `fs gen` does this to every table it generates, so write the table as the parts are, and
   let it fold them.
-- Two levels in a row with one option each say one thing twice. `fs gen` refuses them; ask it once, or not at all (as
-  Robot shaft skips Type for a vendor selling one).
-- A table's first level stays, even with one option, as a table needs a level.
+- Any other level with one option is left out too, so its option's next level is asked in its place (as Robot shaft
+  skips Type and Size for Swyft, which sells one of each). `fs gen` refuses a table with one; its definition skips it.
+- A table's first level can have one option, as a table needs a level.
 
 Taking a level out is safe for documents: `getLookupTable` walks the table's own levels, so a saved path's extra key is
 ignored. Adding a level back isn't: a path saved without it finds nothing.

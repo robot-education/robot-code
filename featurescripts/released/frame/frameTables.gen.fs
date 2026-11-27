@@ -1178,17 +1178,11 @@ export const frcFrameTable = {
                 },
             },
             "ThriftyBot" : {
-                "name" : "size",
-                "displayName" : "Size",
+                "name" : "wall",
+                "displayName" : "Wall",
                 "entries" : {
-                    "2x1" : {
-                        "name" : "wall",
-                        "displayName" : "Wall",
-                        "entries" : {
-                            "0.080 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 0.080 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0291", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.08 * inch, "wallY" : 0.08 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                            "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0094", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                        },
-                    },
+                    "0.080 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 0.080 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0291", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.08 * inch, "wallY" : 0.08 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                    "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0094", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                 },
             },
             "Swyft" : {

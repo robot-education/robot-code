@@ -269,8 +269,10 @@ def test_a_last_level_with_one_option_is_folded_into_the_option_above():
     assert single.node.name == "vendor" and single.node.entries[0].next is None
 
 
-def test_two_levels_with_one_option_in_a_row_are_refused():
+def test_a_level_with_one_option_below_the_first_is_refused():
     materials = Node("material", [Value("7075", {"x": "1"}), Value("6061", {"x": "2"})])
     sizes = Node("size", [Value("1/2 in", next=materials)])
-    with pytest.raises(ValueError, match="Swyft > Type = Rounded hex > Size = 1/2 in"):
-        Table("t", Node("vendor", [Value("Swyft", next=Node("type", [Value("Rounded hex", next=sizes)])), Value("WCP", {"x": "3"})]))
+    with pytest.raises(ValueError, match="Swyft > Size = 1/2 in is its level's one option"):
+        Table("t", Node("vendor", [Value("Swyft", next=sizes), Value("WCP", {"x": "3"})]))
+    # The first level can have one
+    Table("t", Node("vendor", [Value("Swyft", next=materials)]))
