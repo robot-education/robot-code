@@ -509,10 +509,10 @@ app's next load. A release keeps that side of the frontend document (`fs_cli/fro
   neither is its entry's `iconElementId` null, which the app shows as a generic icon.
 - **Its entry in `featurescripts.json`**, replacing the one for the same frontend studio: the exported constant, the
   name, the description (the `"Feature Type Description"` literal, so `~ CREDIT` is cut, with each `<br>` a line break),
-  the version, the icon tab, whether it declares parts for Auto Assembly and allows simplification (`autoAssembly`
-  and `simplification`, from its `"Auto Assembly"` and `"Simplification"` annotation keys; see
-  [auto-assembly.md](auto-assembly.md)), and with `github` set, the file on GitHub's main branch (the latest code, so
-  it doesn't depend on tags, which older releases lack). A studio exporting no `defineFeature` gets none.
+  the version, the icon tab, whether it declares parts for Auto Assembly (`autoAssembly`, from its `"Auto Assembly"`
+  annotation key; see [auto-assembly.md](auto-assembly.md)), and with `github` set, the file on GitHub's main branch
+  (the latest code, so it doesn't depend on tags, which older releases lack). A studio exporting no `defineFeature`
+  gets none.
 
 The API can't make or move folders, so a first release's studio and example land at the top level until they're filed
 by hand. `fs deprecate` takes a feature back out: its entry goes, and its icon and its example (unless another

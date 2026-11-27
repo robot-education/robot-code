@@ -15,8 +15,6 @@ export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714
 // Exports Program, a parameter type
 export import(path : "3651d7ff6d8577f322b85723", version : "e98af2e09fb061040ac8dc07");
 export import(path : "aea74aaed887198c6e06badf", version : "886391893349d3d2d8007fb9");
-import(path : "core/autoAssembly.fs", version : "");
-import(path : "core/simplify.fs", version : "");
 // FRCDesign's Block Motor (in its FRC library), a configurable Part Studio
 BlockMotor::import(path : "5e3874e07384706ec3840340/5657eb187a0b8ed8fb95125a/c0895459c41bc1da9850fd7e", version : "4173ef57af8115dabb532b5d");
 
@@ -43,15 +41,12 @@ const HOLE_INDEX_BOUNDS = { (unitless) : [1, 1, 1e5] } as IntegerBoundSpec;
 
 /**
  * Cuts a motor's or gearbox's mounting face into parts (its screws' holes, and a hole for its pilot), and builds a block
- * model of a motor: its envelope, pilot, and shaft. An FRC motor or gearbox is declared for Auto Assembly: on the part
- * it's mounted to, and on its block motor, the block motor's Auto Assembly body (see `docs/auto-assembly.md`).
+ * model of a motor: its envelope, pilot, and shaft.
  */
 annotation { "Feature Type Name" : "Robot motor",
         "Feature Type Description" : "Cut the mounting holes of a motor or gearbox, and model a block motor." ~ CREDIT,
         "Editing Logic Function" : "robotMotorEditLogic",
         "Manipulator Change Function" : "robotMotorManipulatorChange",
-        "Auto Assembly" : true,
-        "Simplification" : true,
         "Icon" : RobotIcon::BLOB_DATA
     }
 export const robotMotor = defineFeature(function(context is Context, id is Id, definition is map)
@@ -144,12 +139,9 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
 
         if (showBlockMotor(definition))
         {
-            autoAssemblyBodyPredicate(definition);
-        }
-
-        annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
-        {
-            simplificationPredicate(definition);
+            annotation { "Name" : "Block motor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Bring in a block model of the motor: its body's envelope, its pilot, and its shaft." }
+            definition.blockMotor is boolean;
         }
     }
     {
@@ -174,23 +166,14 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
             }
         }
 
-        const hasScope = !isQueryEmpty(context, definition.scope);
-        // Simplified, a block motor is left out where a part to cut carries the declaration; alone, it's all there is
-        const buildBlock = showBlockMotor(definition) && definition.autoAssemblyBody && !(hasScope && isSimplified(context, definition));
+        const buildBlock = showBlockMotor(definition) && definition.blockMotor;
         if (buildBlock && !hasBlockModel(face))
         {
             // Has block model is stale: the motor was changed some way other than in the dialog
-            throw regenError("There's no block model of the " ~ face.partName ~ ".", ["autoAssemblyBody"]);
+            throw regenError("There's no block model of the " ~ face.partName ~ ".", ["blockMotor"]);
         }
 
-        const declaration = face.product == undefined ? undefined :
-            autoAssemblyDeclaration(isMotor(definition) ? AutoAssemblyKind.MOTOR : AutoAssemblyKind.GEARBOX, face.product as Product, {
-                    "screw" : face.screw,
-                    "pilotDiameter" : face.pilotDiameter
-                });
-        const connector = faceConnector(plane);
-
-        if (!hasScope)
+        if (isQueryEmpty(context, definition.scope))
         {
             // A block motor alone needs nothing to cut
             if (!buildBlock)
@@ -201,20 +184,11 @@ export const robotMotor = defineFeature(function(context is Context, id is Id, d
         else
         {
             cutMountingFace(context, id + "cut", definition, face, plane, keptHolePositions(definition, positions));
-            if (declaration != undefined)
-            {
-                declarePart(context, id + "face", {
-                            "owner" : partBehind(context, definition.scope, plane),
-                            "coordSystem" : connector,
-                            "connector" : "face",
-                            "declaration" : declaration
-                        });
-            }
         }
 
         if (buildBlock)
         {
-            buildBlockMotor(context, id + "block", face, plane, declaration);
+            buildBlockMotor(context, id + "block", face, plane);
         }
 
         cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
@@ -246,7 +220,6 @@ export type MotorFace typecheck canBeMotorFace;
  *      @field pilotHeight {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} the pilot, this tall,
  *      @field shaftDiameter {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} and a shaft this wide,
  *      @field shaftLength {ValueWithUnits} : @requiredif {`bodyDiameter` is given.} going this far past the face.
- *      @field product {Product} : @optional The library's motor or gearbox, which it's declared as for Auto Assembly.
  * }}
  */
 export predicate canBeMotorFace(value)
@@ -272,7 +245,6 @@ export predicate canBeMotorFace(value)
         }
     }
     isLength(value.pilotDiameter);
-    value.product == undefined || canBeProduct(value.product);
     if (value.blockMotor != undefined)
     {
         value.blockMotor is string;
@@ -445,20 +417,11 @@ function cutMountingFace(context is Context, id is Id, definition is map, face i
 }
 
 /**
- * The `face` connector of the motor's convention: the face's center, its z axis into the motor (the plane's normal), and
- * its x axis to the right of the face as its drawing shows it.
- */
-export function faceConnector(plane is Plane) returns CoordSystem
-{
-    return coordSystem(plane.origin, -plane.x, plane.normal);
-}
-
-/**
  * Builds a block model of a motor on `plane`, its body behind the face (along the plane's normal), and its pilot and
- * shaft in front, as one part, with a mate connector on its face: FRCDesign's Block Motor, or for motors it doesn't
- * have, a model of our own. Declared, it's the motor's Auto Assembly body; otherwise it's named for the motor.
+ * shaft in front, as one part named for the motor, with a mate connector on its face: FRCDesign's Block Motor, or for
+ * motors it doesn't have, a model of our own.
  */
-function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane, declaration)
+function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane is Plane)
 {
     if (face.blockMotor != undefined)
     {
@@ -487,16 +450,7 @@ function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane 
                 });
     }
 
-    const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID)->qNthElement(0);
-    if (declaration != undefined)
-    {
-        makeAutoAssemblyBody(context, id + "autoAssemblyBody", {
-                    "body" : motor,
-                    "connectors" : { "face" : faceConnector(plane) },
-                    "declaration" : declaration
-                });
-        return;
-    }
+    const motor = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
     setProperty(context, { "entities" : motor, "propertyType" : PropertyType.NAME, "value" : face.partName });
     if (face.blockMotor == undefined)
     {
@@ -505,7 +459,7 @@ function buildBlockMotor(context is Context, id is Id, face is MotorFace, plane 
 
     opMateConnector(context, id + "mateConnector", {
                 "coordSystem" : coordSystem(plane),
-                "owner" : motor
+                "owner" : motor->qNthElement(0)
             });
 }
 
@@ -538,7 +492,7 @@ function deriveBlockMotor(context is Context, id is Id, face is MotorFace, plane
     }
     catch
     {
-        throw regenError("Failed to bring in FRCDesign's Block Motor.", ["autoAssemblyBody"]);
+        throw regenError("Failed to bring in FRCDesign's Block Motor.", ["blockMotor"]);
     }
 }
 

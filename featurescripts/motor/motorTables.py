@@ -6,53 +6,13 @@ looking at the face (its shaft toward you): angles go counterclockwise from the 
 
 A motor's block model is FRCDesign's Block Motor (its `blockMotor` option, turned `blockAngle` to line up with its
 holes), or for motors that has none, an envelope of the motor's own (`bodyDiameter` and the rest).
-
-Each FRC entry declares the library's own motor or gearbox for Auto Assembly (`product`, see `fs_cli/library.py`), from
-the snapshot in `vendor/frcdesign-motors.json`, which `uv run python featurescripts/motor/motorTables.py fetch` refreshes.
-FTC's come from ConfigLib, which FRCDesignApp doesn't load yet, so they declare nothing.
 """
 
 from __future__ import annotations
 
 import dataclasses
-import pathlib
-import sys
 
-from fs_cli import library
 from fs_cli.tables import Node, Table, Value, inch, mm, string
-
-SNAPSHOT = pathlib.Path(__file__).parent / "vendor" / "frcdesign-motors.json"
-# The library parts the entries declare, as FRCDesign names them
-LIBRARY_PARTS = [
-    "Kraken X60 Brushless Motor",
-    "Kraken X44 Brushless Motor",
-    "Falcon 500 Brushless Motor (V1/2)",
-    "Falcon 500 Brushless Motor (V3)",
-    "NEO Brushless Motor",
-    "NEO 2.0 Brushless Motor",
-    "NEO Vortex Brushless Motor",
-    "NEO 550 Brushless Motor",
-    "CIM Motor",
-    "Mini CIM Motor",
-    "RS-775 Motor",
-    "Minion Brushless Motor",
-    "Thrifty Pulsar 775 Brushless Motor",
-    "MAXPlanetary (REV)",
-    "PlanetaryX (WCP)",
-    "UltraPlanetary (REV)",
-    "VersaPlanetary v2 (VEX)",
-]
-
-if __name__ == "__main__" and sys.argv[1:] == ["fetch"]:
-    library.fetch(SNAPSHOT, LIBRARY_PARTS)
-    sys.exit()
-
-PARTS = library.load(SNAPSHOT)
-
-
-def product(name: str, options: dict[str, str] | None = None) -> dict[str, str]:
-    """The library's part an entry declares (see `fs_cli/library.py`)."""
-    return {"product": library.product(PARTS, name, options)}
 
 
 @dataclasses.dataclass
@@ -102,30 +62,15 @@ def block_motor(option: str, angle: float = 0) -> dict[str, str]:
     return {"blockMotor": string(option), "blockAngle": f"{angle:g} * degree"}
 
 
-def leaf(
-    name: str,
-    part_name: str,
-    holes: Holes,
-    pilot: str,
-    block: dict[str, str] | None = None,
-    declared: dict[str, str] | None = None,
-) -> Value:
-    return Value(
-        name, {"partName": string(part_name), **holes.values(), "pilotDiameter": pilot, **(block or {}), **(declared or {})}
-    )
+def leaf(name: str, part_name: str, holes: Holes, pilot: str, block: dict[str, str] | None = None) -> Value:
+    return Value(name, {"partName": string(part_name), **holes.values(), "pilotDiameter": pilot, **(block or {})})
 
 
-def patterns(
-    part_name: str,
-    pilot: str,
-    options: dict[str, Holes],
-    block: dict[str, str] | None = None,
-    declared: dict[str, str] | None = None,
-) -> Node:
+def patterns(part_name: str, pilot: str, options: dict[str, Holes], block: dict[str, str] | None = None) -> Node:
     """A choice between a face's hole patterns, for faces with several."""
     return Node(
         "pattern",
-        [leaf(name, part_name, holes, pilot, block, declared) for name, holes in options.items()],
+        [leaf(name, part_name, holes, pilot, block) for name, holes in options.items()],
         display_name="Hole pattern",
     )
 
@@ -143,7 +88,7 @@ CIM_PILOT = inch(0.75)
 KRAKEN_BLOCK_ANGLE = -90
 
 
-def kraken(name: str, bolt_circle: str, option: str, declared: dict[str, str]) -> Value:
+def kraken(name: str, bolt_circle: str, option: str) -> Value:
     options = {
         "All": Holes("#10", bolt_circle, KRAKEN_ANGLES),
         "Falcon 500": Holes("#10", bolt_circle, FALCON_ANGLES),
@@ -151,16 +96,16 @@ def kraken(name: str, bolt_circle: str, option: str, declared: dict[str, str]) -
     }
     if bolt_circle != inch(2):
         # The X44's bolt circle is its own
-        return leaf(name, name, options["All"], CIM_PILOT, block_motor(option, KRAKEN_BLOCK_ANGLE), declared)
-    return Value(name, next=patterns(name, CIM_PILOT, options, block_motor(option, KRAKEN_BLOCK_ANGLE), declared))
+        return leaf(name, name, options["All"], CIM_PILOT, block_motor(option, KRAKEN_BLOCK_ANGLE))
+    return Value(name, next=patterns(name, CIM_PILOT, options, block_motor(option, KRAKEN_BLOCK_ANGLE)))
 
 
 FALCON = Holes("#10", inch(2), FALCON_ANGLES)
 FALCON_VERSIONS = Node(
     "version",
     [
-        leaf("V1/2", "Falcon 500", FALCON, CIM_PILOT, block_motor("KrakenX60"), product("Falcon 500 Brushless Motor (V1/2)")),
-        leaf("V3", "Falcon 500", FALCON, CIM_PILOT, block_motor("Falcon_500_V3"), product("Falcon 500 Brushless Motor (V3)")),
+        leaf("V1/2", "Falcon 500", FALCON, CIM_PILOT, block_motor("KrakenX60")),
+        leaf("V3", "Falcon 500", FALCON, CIM_PILOT, block_motor("Falcon_500_V3")),
     ],
 )
 
@@ -169,17 +114,10 @@ NEO = Holes("#10", inch(2), [0, 90, 180, 270])
 NEO_VERSIONS = Node(
     "version",
     [
-        leaf("V1.1", "NEO", NEO, mm(19.1), block_motor("NEO_V1_1"), product("NEO Brushless Motor", {"Version": "V1.1"})),
+        leaf("V1.1", "NEO", NEO, mm(19.1), block_motor("NEO_V1_1")),
         # REV-21-1653-DR: a 19 mm pilot, with holes but at its flats
-        leaf(
-            "V2.0",
-            "NEO 2.0",
-            Holes("#10", inch(2), FLATS_ANGLES),
-            mm(19),
-            block_motor("Copy_of_NEO_Vortex"),
-            product("NEO 2.0 Brushless Motor"),
-        ),
-        leaf("V1.0", "NEO", NEO, mm(19.1), block_motor("NEO_V1_0"), product("NEO Brushless Motor", {"Version": "V1.0"})),
+        leaf("V2.0", "NEO 2.0", Holes("#10", inch(2), FLATS_ANGLES), mm(19), block_motor("Copy_of_NEO_Vortex")),
+        leaf("V1.0", "NEO", NEO, mm(19.1), block_motor("NEO_V1_0")),
     ],
 )
 
@@ -196,7 +134,6 @@ MINION = patterns(
         "775": Holes("M4", mm(29), [53.5, 233.5]),
     },
     Envelope(mm(38), mm(49.5), mm(2), mm(7.94), mm(23)).values(),
-    product("Minion Brushless Motor"),
 )
 
 # The Thrifty Bot's TTB-0350 drawing: #10-32 on a 1.375 in. bolt circle at 45°, M4 on a 29 mm one at 0°, a 19 mm pilot
@@ -208,32 +145,24 @@ PULSAR = patterns(
         "775": Holes("M4", mm(29), [0, 90, 180, 270]),
     },
     block_motor("Copy_of_NEO_V1_1"),
-    product("Thrifty Pulsar 775 Brushless Motor"),
 )
 
 FRC_MOTORS = Node(
     "motor",
     [
-        kraken("Kraken X60", inch(2), "Kraken_X60", product("Kraken X60 Brushless Motor")),
+        kraken("Kraken X60", inch(2), "Kraken_X60"),
         Value("Falcon 500", next=FALCON_VERSIONS),
-        kraken("Kraken X44", inch(1.375), "Kraken_X44", product("Kraken X44 Brushless Motor")),
+        kraken("Kraken X44", inch(1.375), "Kraken_X44"),
         Value("NEO", next=NEO_VERSIONS),
         # REV-21-1652-REV-11-2159-DR; its pilot isn't dimensioned: 1.25 in. is measured from the drawing
-        leaf(
-            "NEO Vortex",
-            "NEO Vortex",
-            Holes("#10", inch(2), FLATS_ANGLES),
-            inch(1.25),
-            block_motor("NEO_Vortex"),
-            product("NEO Vortex Brushless Motor"),
-        ),
+        leaf("NEO Vortex", "NEO Vortex", Holes("#10", inch(2), FLATS_ANGLES), inch(1.25), block_motor("NEO_Vortex")),
         # REV-21-1651-DR: M3 on a 25 mm bolt circle, a 13 mm pilot
-        leaf("NEO 550", "NEO 550", Holes("M3", mm(25), [90, 270]), mm(13), block_motor("NEO_550"), product("NEO 550 Brushless Motor")),
-        leaf("CIM", "CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT, declared=product("CIM Motor")),
+        leaf("NEO 550", "NEO 550", Holes("M3", mm(25), [90, 270]), mm(13), block_motor("NEO_550")),
+        leaf("CIM", "CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT),
         # 2x M4 (REV's MAXPlanetary 775 guide); 29 mm and 17.5 mm are from the previous version of Robot motor
-        leaf("RS-775", "RS-775", Holes("M4", mm(29), [0, 180]), mm(17.5), declared=product("RS-775 Motor")),
+        leaf("RS-775", "RS-775", Holes("M4", mm(29), [0, 180]), mm(17.5)),
         Value("Minion", next=MINION),
-        leaf("Mini CIM", "Mini CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT, declared=product("Mini CIM Motor")),
+        leaf("Mini CIM", "Mini CIM", Holes("#10", inch(2), CIM_ANGLES), CIM_PILOT),
         Value("Thrifty Pulsar", next=PULSAR),
     ],
 )
@@ -243,31 +172,13 @@ FRC_GEARBOXES = Node(
     [
         # REV-21-2100-DR: 4x #10-32 on a 2 in. bolt circle, in two orientations; the output's boss isn't dimensioned:
         # 1.25 in. is measured from the drawing
-        leaf(
-            "MAXPlanetary",
-            "MAXPlanetary",
-            Holes("#10", inch(2), [0, 135, 180, 315]),
-            inch(1.25),
-            declared=product("MAXPlanetary (REV)"),
-        ),
+        leaf("MAXPlanetary", "MAXPlanetary", Holes("#10", inch(2), [0, 135, 180, 315]), inch(1.25)),
         # WCP's "Basic Features": 6x #10-32 on a 2 in. bolt circle; the output's 1.5 in. is measured from its picture
-        leaf("PlanetaryX", "PlanetaryX", Holes("#10", inch(2), FLATS_ANGLES), inch(1.5), declared=product("PlanetaryX (WCP)")),
+        leaf("PlanetaryX", "PlanetaryX", Holes("#10", inch(2), FLATS_ANGLES), inch(1.5)),
         # REV-41-1600-DR: 6x M3 at the hex's corners on a 32 mm bolt circle, around a 22 mm boss
-        leaf(
-            "UltraPlanetary",
-            "UltraPlanetary",
-            Holes("M3", mm(32), [30, 90, 150, 210, 270, 330]),
-            mm(22),
-            declared=product("UltraPlanetary (REV)"),
-        ),
+        leaf("UltraPlanetary", "UltraPlanetary", Holes("M3", mm(32), [30, 90, 150, 210, 270, 330]), mm(22)),
         # #10-32 on a 2 in. bolt circle (VEX); the pilot is from the previous version of Robot motor
-        leaf(
-            "VersaPlanetary",
-            "VersaPlanetary",
-            Holes("#10", inch(2), [45, 135, 225, 315]),
-            inch(0.75),
-            declared=product("VersaPlanetary v2 (VEX)"),
-        ),
+        leaf("VersaPlanetary", "VersaPlanetary", Holes("#10", inch(2), [45, 135, 225, 315]), inch(0.75)),
     ],
 )
 

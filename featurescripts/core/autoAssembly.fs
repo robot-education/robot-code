@@ -20,18 +20,10 @@ export const AUTO_ASSEMBLY_VERSION = 1;
  */
 export enum AutoAssemblyKind
 {
-    SCREW,
-    NUT,
-    WASHER,
-    SHAFT_END_SCREW,
-    RETAINING_RING,
-    E_CLIP,
-    GEAR,
-    MOTOR,
-    GEARBOX,
     BEARING,
     BUSHING,
-    BEARING_HAT
+    BEARING_HAT,
+    SCREW
 }
 
 /**

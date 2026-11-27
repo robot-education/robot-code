@@ -79,7 +79,7 @@ ANNOTATION_KEYS = frozenset(
         # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`)
         "Set By",
         # Ours, which Onshape ignores: what a feature supports, for FRCDesignApp (see `_support_annotation_problems`)
-        "Auto Assembly", "Simplification",
+        "Auto Assembly",
     ]
 )
 # Our feature annotation keys saying what a feature supports, and what it must do for each
@@ -87,10 +87,6 @@ SUPPORT_ANNOTATION_KEYS = {
     "Auto Assembly": (
         "declares no parts (it never calls declarePart, from core/autoAssembly.fs)",
         "declares parts",
-    ),
-    "Simplification": (
-        "doesn't allow simplification (its precondition never calls simplificationPredicate, from core/simplify.fs)",
-        "allows simplification",
     ),
 }
 DECLARE_PART = "declarePart"
@@ -1393,10 +1389,9 @@ class Project:
         return problems
 
     def _support_annotation_problems(self, module: Module) -> list[Problem]:
-        """`"Auto Assembly"` and `"Simplification"`, our own keys in a feature's annotation, which `fs release` writes
-        into FRCDesignApp's manifest: each is `true` or `false`, only in a feature's annotation, and true exactly when
-        the feature does it: declares parts (`declarePart` is called in its file or a project file it imports), or
-        follows Simplified (its precondition declares `allowSimplification`, `simplificationPredicate`'s)."""
+        """`"Auto Assembly"`, our own key in a feature's annotation, which `fs release` writes into FRCDesignApp's
+        manifest: `true` or `false`, only in a feature's annotation, and true exactly when the feature declares parts
+        (`declarePart` is called in its file or a project file it imports)."""
         problems = []
         feature_annotations = []
         for feature in module.parsed.nodes:
@@ -1427,12 +1422,7 @@ class Project:
                     values[key] = value
             if name_token is None:
                 continue
-            does = {
-                "Auto Assembly": self._declares_parts(module),
-                "Simplification": any(
-                    parameter.name == "allowSimplification" for parameter in self.feature_parameters(module, feature)
-                ),
-            }
+            does = {"Auto Assembly": self._declares_parts(module)}
             for key, (lacks, has) in SUPPORT_ANNOTATION_KEYS.items():
                 value = values.get(key)
                 said = value is not None and value.value == "true"

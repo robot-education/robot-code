@@ -1,7 +1,6 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "motor/robotMotor.fs", version : "");
-import(path : "core/autoAssembly.fs", version : "");
 import(path : "testing.fs", version : "");
 
 function faces() returns array
@@ -147,33 +146,4 @@ export function testManipulatorChange()
     const offset = robotMotorManipulatorChange(newContext(), definition, { "startOffsetManipulator" : { "offset" : -0.25 * inch } });
     expectNear(offset.startOffsetDistance, 0.25 * inch, 1e-9 * meter);
     expectTrue(offset.startOffsetOppositeDirection, "Dragging back doesn't flip the offset");
-}
-
-export function testEveryFrcEntryDeclaresItsLibraryPart()
-{
-    for (var table in [frcMotorTable, frcGearboxTable])
-    {
-        for (var face in leaves(table))
-        {
-            expectTrue(face.product != undefined && canBeProduct(face.product), face.partName ~ " declares no library part");
-        }
-    }
-    for (var table in [ftcMotorTable, ftcGearboxTable])
-    {
-        for (var face in leaves(table))
-        {
-            // ConfigLib's parts aren't loaded by FRCDesignApp yet
-            expectEqual(face.product, undefined);
-        }
-    }
-}
-
-export function testTheFaceConnectorPointsIntoTheMotor()
-{
-    const plane = plane(vector(1, 2, 3) * inch, Z_DIRECTION, X_DIRECTION);
-    const connector = faceConnector(plane);
-    expectEqual(connector.origin, plane.origin);
-    expectEqual(connector.zAxis, plane.normal);
-    // Looking at the face, the plane's x axis points left, and the drawing's right is the connector's
-    expectEqual(connector.xAxis, -plane.x);
 }

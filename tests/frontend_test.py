@@ -5,7 +5,6 @@ from fs_cli.frontend import (
     feature_description,
     find_example,
     supports_auto_assembly,
-    supports_simplification,
     tabs_in_order,
 )
 
@@ -83,8 +82,7 @@ def test_the_description_is_its_literal_without_the_credit():
     assert feature_description(code) == 'Add "tube".\n\nOr channel.'
 
 
-def test_support_comes_from_the_features_own_annotation_keys():
-    code = '"Feature Type Name" : "Robot motor", "Auto Assembly" : true, "Simplification" : false,'
-    assert supports_auto_assembly(code)
-    assert not supports_simplification(code)
+def test_auto_assembly_comes_from_the_features_own_annotation_key():
+    assert supports_auto_assembly('"Feature Type Name" : "Robot bearing", "Auto Assembly" : true,')
+    assert not supports_auto_assembly('"Feature Type Name" : "Robot bearing", "Auto Assembly" : false,')
     assert not supports_auto_assembly('"Feature Type Name" : "Robot grid",')
