@@ -77,7 +77,8 @@ It's set in up to two places, each with its own job: on a host connector, and on
 Where the part attaches to a part the feature cut, the feature puts a mate connector on that part, carrying the
 declaration: the plate, for a bearing or bushing in its bore. It comes into the assembly with that part, so Auto
 Assembly can place and fasten every bearing on it with nobody mating anything. It's named by the feature's id and a
-fixed name (`place` then `mateConnector`), so a mate to it survives the feature being edited.
+fixed name (`place` then `mateConnector`), so a mate to it survives the feature being edited. A fasten mate names a
+connector by its whole id, each part joined with `.`: Robot bearing's is `<featureId>.place.mateConnector`.
 
 ### Auto Assembly bodies
 
@@ -109,19 +110,24 @@ studios make them, and its manifest names them, as the fasteners' do.
 
 ### Placing declared parts
 
-FRCDesignApp's **Assemble FeatureScript parts**, a button on its Auto Assembly page, places every declared part in the
-assembly, nothing picked. Its run:
+FRCDesignApp's **Assemble FeatureScript parts**, a button on its Auto Assembly page, opens a dialog listing every
+declared part in the assembly. Each can be left out, and one whose hole has a far side can be **flipped**: seated on
+the host's other face, facing the other way, as a plate mirrored in the assembly needs. Its run:
 
 1. **Scan.** `part-scan.fs` returns each mate connector carrying an `frcAutoAssembly` attribute on a part: the part's
    id, the connector's declaration, its coordinate system, and its id as a fasten mate names it
-   (`lastModifyingOperationId`, joined with `.`). A connector on an Auto Assembly body is left out. It's cached by the
-   same immutable keys as the hole scan.
+   (`lastModifyingOperationId`, joined with `.`). It also returns the connector's far side: the host's circular edge on
+   its axis farthest behind it. A connector on an Auto Assembly body is left out. It's cached by the same immutable
+   keys as the hole scan.
 2. **Resolve.** Each declaration's document and element are looked up among the loaded insertables, giving the
    version the library loaded last, and its configuration is parsed as any selection is (`toSelection`). A studio the
    library doesn't have, a configuration it doesn't offer, a part with no connector, or a screw of automatic length,
    gets no part, with why. A connector with its part already on it is left alone.
-3. **Insert** each part at its host connector, from that version, in the run's one `transformedinstances` call.
-4. **Mate** each part's connector to its host connector with a fasten mate.
+3. **Insert** each part chosen at its host connector, or a flipped one at its far side, from that version, in the
+   run's one `transformedinstances` call.
+4. **Mate** each part's connector to its host connector with a fasten mate; a flipped part's to the implicit connector
+   at the center of the hole's far rim, which points out of the far face. A flip needs nothing more from the
+   feature.
 5. **Record** one use per part placed, as an insert from Auto Assembly's FeatureScript parts, so the dashboard shows
    them apart from fastened holes.
 
@@ -418,9 +424,9 @@ Library parts whose admin marked a simplification parameter show the Simplified 
 
 Each of these is unverified, and the run leans on it:
 
-1. A fasten mate made through the API to a connector a custom feature made with a nested id (`id + "place" +
-   "mateConnector"`) names it as `<featureId>.place.mateConnector`, and keeps resolving after the feature is edited.
-2. `lastModifyingOperationId` of that connector, in an evaluated script, gives the same id.
+1. A fasten mate to a connector a custom feature made keeps resolving after the feature is edited. (It's named by its
+   whole id joined with `.`, as `<featureId>.place.mateConnector`, by the owner.)
+2. `lastModifyingOperationId` of that connector, in an evaluated script, gives that id (the owner expects so).
 3. An attribute set on a solid and on a mate connector body can be read back by an evaluated script, and
    `qMateConnectorsOfParts` finds a connector a feature attached to a part with `owner`.
 4. An Auto Assembly body with Exclude from BOM is left out of an assembly's bill of materials.
