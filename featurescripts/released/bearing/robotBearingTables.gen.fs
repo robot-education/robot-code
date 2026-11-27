@@ -2444,7 +2444,7 @@ export const bushingTable = {
         },
     };
 
-export const wcpHatTable = {
+export const hatTable = {
         "name" : "bore",
         "displayName" : "Bore",
         "entries" : {
@@ -2452,16 +2452,16 @@ export const wcpHatTable = {
                 "name" : "centers",
                 "displayName" : "Centers",
                 "entries" : {
-                    "1.25 in" : { "product" : { "documentId" : "871d0cad06b1c23db69c5d1e", "elementId" : "c5041a53e6746dbc5de1296e", "configuration" : { "List_33chXAse2hzXm2" : "Default" }, "name" : "Bearing Retention Hat (WCP)" } },
-                    "2 in" : { "product" : { "documentId" : "871d0cad06b1c23db69c5d1e", "elementId" : "c5041a53e6746dbc5de1296e", "configuration" : { "List_33chXAse2hzXm2" : "_0_875__Bore__2__C_C" }, "name" : "Bearing Retention Hat (WCP)" } },
+                    "1.25 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_1_25" }, "name" : "0.875\" OD Bearing Retention Plate (1.25\" C-C)" }, "thickness" : 0.09 * inch },
+                    "2 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_2" }, "name" : "0.875\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
                 },
             },
             "1.125 in" : {
                 "name" : "centers",
                 "displayName" : "Centers",
                 "entries" : {
-                    "1.5 in" : { "product" : { "documentId" : "871d0cad06b1c23db69c5d1e", "elementId" : "c5041a53e6746dbc5de1296e", "configuration" : { "List_33chXAse2hzXm2" : "_1_125__Bore__1_5__C_C" }, "name" : "Bearing Retention Hat (WCP)" } },
-                    "2 in" : { "product" : { "documentId" : "871d0cad06b1c23db69c5d1e", "elementId" : "c5041a53e6746dbc5de1296e", "configuration" : { "List_33chXAse2hzXm2" : "_1_125__Bore__2__C_C" }, "name" : "Bearing Retention Hat (WCP)" } },
+                    "1.5 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_1_5" }, "name" : "1.125\" OD Bearing Retention Plate (1.5\" C-C)" }, "thickness" : 0.09 * inch },
+                    "2 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_2" }, "name" : "1.125\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
                 },
             },
         },
@@ -2472,5 +2472,6 @@ export const screwStudioTable = {
         "displayName" : "Studio",
         "entries" : {
             "Screw" : { "documentId" : "77461d97ef7c9d816f0c7351", "elementId" : "33a58862fedc0f265077f7dd" },
+            "Nut" : { "documentId" : "77461d97ef7c9d816f0c7351", "elementId" : "7ea1af35e52d2ba86db5870a" },
         },
     };

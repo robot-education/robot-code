@@ -2,11 +2,11 @@
 
 **Status: Robot motor, Robot bearing and Robot bushing declare their parts; FRCDesignApp places them.** Built here: the
 `"Auto Assembly"` and `"Simplification"` annotations and their checks, `core/autoAssembly.fs`, `core/simplify.fs`,
-`core/bearing.fs`, the library snapshots (`fs_cli/library.py`), the bushings part set, Robot motor (on main), Robot
-bearing and Robot bushing. Built in FRCDesignApp: **Assemble
-FeatureScript parts**, on its Auto Assembly page, which inserts each declared part and fastens it to its host connector
-(FRCDesignApp's `docs/architecture/auto-assembly.md`). Not yet: swapping an Auto Assembly body for its part, and every
-other feature (see [Later](#later)).
+`core/bearing.fs`, the library snapshots (`fs_cli/library.py`), the bushings and bearing hats part sets, Robot motor (on
+main), Robot bearing and Robot bushing. Built in FRCDesignApp: **Assemble FeatureScript parts**, on its Auto Assembly
+page, which inserts each declared part and fastens it to its host connector (FRCDesignApp's
+`docs/architecture/auto-assembly.md`). Not yet: swapping an Auto Assembly body for its part, and every other feature
+(see [Later](#later)).
 
 This is the contract between robot-code's FeatureScripts and FRCDesignApp for two things built together:
 
@@ -65,7 +65,11 @@ A declaration is an attribute, `frcAutoAssembly`, naming a library Part Studio a
   stays good while the studio keeps those ids, which [Keeping referenced parts stable](#keeping-referenced-parts-stable)
   guards. A FeatureScript is released only to offer a new product, or a new kind.
 - **`spec`** is what the feature built for the part, so the app can say a product doesn't fit rather than insert it.
-  The app doesn't check it yet.
+  The app doesn't check it yet. A screw's says how far below its seat the Part Studio's holes start, through a part
+  that isn't in it, and that part's hole (`seatHeight`, `seatHoleDiameter`): a COTS hat's, which Auto Assembly places
+  in the same run.
+- **`nut`**, on a screw's alone, is the nut to put where it comes out the far side: the fasteners' Nut studio and its
+  type. Without one, a screw through its holes gets no nut; a tapped hole's declares none.
 - **`version`** is the attribute's format. A new optional field leaves it as it is; a field changing meaning bumps
   it, and the app reads every version it has read before (the attribute exception in `AGENTS.md`). The app leaves out
   a connector whose version it doesn't know.
@@ -102,7 +106,7 @@ as the part's connector it takes, so it's fastened to the same way.
 | --- | --- |
 | Motor, gearbox | `face`: the center of its mounting face, Z into the motor, X to the right of its face as its drawing shows it (Robot motor's tables' convention) |
 | Bearing, bushing | `mateConnector`: where it seats, as FRCDesign's bearings part set's is (`featurescripts/bearings/`): on its axis, at a flange's underside or a radial bearing's top face, Z out of the hole |
-| Bearing hat | `face`: the center of its bore on the face it sits on, Z out of the face, X toward a mounting hole |
+| Bearing hat | `mateConnector`: the center of its bore on the face it sits on, Z out of the face, X toward a mounting hole (the bearing hats part set's) |
 | Screw | `mateConnector`: the center of the head's underside, Z from shank to head (the fasteners' convention) |
 
 The library's own studios name their connectors with Mate connector features of those names; a generated part set's
@@ -121,14 +125,18 @@ the host's other face, facing the other way, as a plate mirrored in the assembly
    keys as the hole scan.
 2. **Resolve.** Each declaration's document and element are looked up among the loaded insertables, giving the
    version the library loaded last, and its configuration is parsed as any selection is (`toSelection`). A studio the
-   library doesn't have, a configuration it doesn't offer, a part with no connector, or a screw of automatic length,
-   gets no part, with why. A connector with its part already on it is left alone.
-3. **Insert** each part chosen at its host connector, or a flipped one at its far side, from that version, in the
-   run's one `transformedinstances` call.
-4. **Mate** each part's connector to its host connector with a fasten mate; a flipped part's to the implicit connector
-   at the center of the hole's far rim, which points out of the far face. A flip needs nothing more from the
-   feature.
-5. **Record** one use per part placed, as an insert from Auto Assembly's FeatureScript parts, so the dashboard shows
+   library doesn't have, a configuration it doesn't offer, or a part with no connector, gets no part, with why. A
+   connector with its part already on it is left alone.
+3. **Plan screws.** A screw is planned as Auto Assembly plans a picked hole, from its connector into the holes behind
+   it, through a hole as deep as its `seatHeight` first. Its length is the one declared, or with none, the one its
+   holes need. Where it comes out the far side, it gets its declared nut, in its size, from its vendor where it makes
+   that nut. Into threads, it gets none. A screw whose holes don't fit it gets no part, with the planner's reason.
+4. **Insert** each part chosen at its host connector, or a flipped one at its far side, and each screw's nut at the
+   far side of its holes, from that version, in the run's one `transformedinstances` call.
+5. **Mate** each part's connector to its host connector with a fasten mate; a flipped part's to the implicit connector
+   at the center of the hole's far rim, which points out of the far face; a nut's to the implicit connector at the
+   center of its holes' far edge. A flip needs nothing more from the feature.
+6. **Record** one use per part placed, as an insert from Auto Assembly's FeatureScript parts, so the dashboard shows
    them apart from fastened holes.
 
 Later, picking an Auto Assembly body, a part with host connectors, or a whole instance takes only the declarations in
@@ -151,11 +159,13 @@ generated part set never changes a released option id (`AGENTS.md`).
 
 ### Where the products come from
 
-- **Generated part sets**, for bearings and bushings (`featurescripts/bearings/`, `featurescripts/bushings/`). Each
+- **Generated part sets**, for bearings, bushings and WCP's bearing hats (`featurescripts/bearings/`,
+  `featurescripts/bushings/`, `featurescripts/bearingHats/`), and screws and nuts (`featurescripts/fasteners/`). Each
   studio has its connector where the convention says, and one catalog writes the feature's table, the studios'
-  configurations and the manifest. Until a set is released, its parts have no document, and the features declare
-  nothing and say so.
-- **The library's own studios**, for WCP's bearing hats, from a snapshot of FRCDesignLib (`fs_cli/library.py`). A
+  configurations and the manifest, so a feature knows a part's sizes, as Robot bearing knows a hat's thickness. Until
+  a set is released, its parts have no document, and the features declare nothing and say so. The hats' sizes are
+  estimates until confirmed against FRCDesignLib's model.
+- **The library's own studios**, for Robot motor's motors, from a snapshot of FRCDesignLib (`fs_cli/library.py`). A
   studio whose connector a configuration loses is caught by the library's load as it is today
   (`UNSTABLE_MATE_CONNECTOR`).
 

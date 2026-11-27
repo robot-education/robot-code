@@ -9,7 +9,7 @@ custom) or with two or three screws whose heads overlap it. Formerly Robot beari
 | --- | --- |
 | `robotBearing.fs` | The feature: its dialog, the retention (hat or screws), the hat, and the screws it declares |
 | `../../core/bearing.fs` | The placement Robot bushing shares: Position and Bore, the bore, the declaration, and the Auto Assembly body |
-| `robotBearingTables.py` | The bearings part set's FRC bearings (from `../../bearings/bearingTables.py`), the bushings part set's bushings (from `../../bushings/bushingTables.py`), WCP's hats (from `vendor/frcdesign-hats.json`, `robotBearingTables.py fetch`), and the fasteners' Screw studio; generates `robotBearingTables.gen.fs` |
+| `robotBearingTables.py` | The bearings part set's FRC bearings (from `../../bearings/bearingTables.py`), the bushings part set's bushings (from `../../bushings/bushingTables.py`), the bearing hats part set's hats with their thickness and holes (from `../../bearingHats/hatTables.py`), and the fasteners' Screw and Nut studios; generates `robotBearingTables.gen.fs` |
 | `../../bearings/bearings.fs`, `bearingTables.gen.fs` | FRCDesign's bearings part set: the bearings' sizes, flanges and bores (`BEARINGS`, `BEARING_BORES`, `boreRadius`) |
 | `bearingHatTables.py` | The hats' hole tables; generates `bearingHatTables.gen.fs` |
 | `../../core/autoAssembly.fs` | Declarations and Auto Assembly bodies |
@@ -26,8 +26,9 @@ Since Robot bearing hat's last release:
   Screws (two or three screws over the bearing). Hat type is a dropdown in the group, not a horizontal enum at the top.
 - A standard or COTS hat's size is its Hat centers; its bore is the bearing's. A custom hat's bore is the bearing's too
   (no Bore table).
-- The bearing, a COTS hat, and the screws in a standard or custom hat or a screw retention are declared for Auto
-  Assembly; a Auto Assembly body (Other options) shows the bearing.
+- The bearing, a COTS hat, and the screws in any hat or a screw retention are declared for Auto Assembly, each screw
+  with the nut chosen where its holes aren't tapped; an Auto Assembly body (Other options) shows the bearing. A COTS
+  hat is FRCDesign's bearing hats part set's.
 
 ## Strings
 
@@ -44,10 +45,12 @@ Since Robot bearing hat's last release:
 | --- | --- |
 | Declare screws | Declare a screw in each hole, for FRCDesign's Auto Assembly to insert. |
 | Automatic length | Let Auto Assembly choose each screw's length from what its hole goes through. |
+| Nut | The nut on each screw, where it comes out the far side. |
 | Auto Assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
 
 Has clearance is hidden: editing logic sets it (its "Set By" function, `hasTappedHoles`), whether the holes are tapped,
-which shows Tap drill diameter. Editing logic also sets Hole diameter and Tap drill diameter from the hole table when
+which shows Tap drill diameter. So is Holes tapped (`isTappedHoles`): whether the mounting holes are tapped, any hole
+table's, which hides Nut. Editing logic also sets Hole diameter and Tap drill diameter from the hole table when
 its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`, as Robot motor's).
 
 ### Errors, warnings, and info
@@ -56,6 +59,7 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 | --- | --- | --- | --- | --- |
 | Choose a different bearing. | error | the saved Bearing path isn't a whole table entry | `bearing` | none |
 | FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly. | info | the bearings part set isn't released, so its studio has no document | | none |
+| FRCDesign's library doesn't have this hat yet, so it isn't declared for Auto Assembly. | info | COTS hat, before the bearing hats part set is released | | none |
 | `core/location.fs`'s, `core/startOffset.fs`'s and `core/mounting.fs`'s errors | error | the location, starting offset, or angle reference | (theirs) | (theirs) |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope | `scope` | (std's) |
 | The parts to cut aren't behind the sketch point. Flip the primary axis. | error | none of the merge scope is behind the plane | `oppositeDirection`, `scope`, the merge scope | none |
@@ -70,7 +74,7 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 
 ### Execution order
 
-1. **Editing logic** (`robotBearingHatEditLogic`): sets Has clearance; when the hole table's path changes, Hole
+1. **Editing logic** (`robotBearingHatEditLogic`): sets Has clearance and Holes tapped; when the hole table's path changes, Hole
    diameter and Tap drill diameter from it; then `mountingEditLogic`.
 2. **Body**:
    1. The bearing (`libraryBearing`): its `robotBearingTable` entry's enums (Vendor, Type, Bore, Size, Dimensions, and
@@ -87,8 +91,11 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
       into the bore, and its flange on the face (`buildBearingBody`, `makeAutoAssemblyBody`).
    4. With Retention, Hole diameter's info if it's overridden, then:
       - **Hat** (`retainWithHat`): its mounting locations (Custom hat's selections, or Hat centers apart on the plane's
-        x axis). A COTS hat is declared on the bearing's part (`wcpHat`: WCP's hat for the bearing's outside diameter
-        at Hat centers, or the error above), on a `face` connector at the bore's center. A standard or custom hat is
+        x axis). A COTS hat is declared on the bearing's part (`cotsHat`: the hats set's hat for the bearing's outside
+        diameter at Hat centers, or the error above), on a `mateConnector` connector at the bore's center, x toward a
+        mounting hole. With Declare screws, a screw is declared at each mounting hole, seated as high as the hat is
+        thick, with `seatHeight` and `seatHoleDiameter` in its spec: the hat isn't in the Part Studio, so Auto
+        Assembly goes through a hole that size first. A standard or custom hat is
         modeled as Robot bearing hat modeled it (`createBearingHat`), around the bearing's outside diameter, and with
         Declare screws, a screw is declared at each mounting hole, seated on the hat's top. The mounting holes are cut
         (std's `hole`) for a COTS hat, or with Cut mounting holes.
@@ -97,7 +104,8 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
         declared at each, seated on the bearing's part's face.
       Declared screws (`declareScrews`) are FRCDesign's fasteners' #10-32, in Screw vendor, Screw head and Screw
       finish, and Screw length unless Automatic length; each on a connector named for the fasteners' own
-      (`mateConnector`), z out of its hole.
+      (`mateConnector`), z out of its hole. Where the holes aren't tapped, the declaration's `nut` is the fasteners'
+      Nut studio in Nut's type; Auto Assembly picks its vendor and size from the screw's.
    5. Sketches are deleted.
 3. **Manipulator change** (`bearingManipulatorChange`): the starting offset's and the angle's.
 
@@ -112,8 +120,6 @@ its path changes, and the Merge scope and Flip primary axis (`mountingEditLogic`
 
 - None of the geometry has run in Onshape: the bore, the Auto Assembly body, the screws' places, and the hats on the new plane
   (whose normal points away from the parts, as the old bearing edge's did) are reasoned out.
-- A COTS hat's screws aren't declared: WCP's hat's thickness isn't in the library's data, so where they seat isn't
-  known; Auto Assembly's hole fastening can fasten them.
-- The screws a clearance hole declares need a nut, which isn't declared; Auto Assembly's planner adds nuts to holes
-  it fastens through.
+- A COTS hat's thickness, and its holes, are the hats set's estimates (see `featurescripts/bearingHats/hatTables.py`):
+  WCP publishes none.
 - Only #10 holes: the hole tables are #10's, as the hat's were.

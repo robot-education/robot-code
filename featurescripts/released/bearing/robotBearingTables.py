@@ -4,33 +4,24 @@
   `featurescripts/bushings/`): every one their FRC studios offer, from their catalogs, by what the part is and then who
   makes it, by vendor first, each with its studio's configuration (its record's values) and the studio's location once the set is
   released. Before then, a part's product has no document, and the feature declares nothing.
-- WCP's bearing hats are FRCDesignLib's own, from the snapshot in `vendor/frcdesign-hats.json`, which `uv run python
-  featurescripts/released/bearing/robotBearingTables.py fetch` refreshes (see `fs_cli/library.py`).
+- Bearing hats are FRCDesign's bearing hats part set's (`featurescripts/bearingHats/`): WCP's retention plates, by the
+  bearing's outer diameter and their centers, each with its studio's configuration and its sizes.
+- Screws and nuts are the fasteners part set's Screw and Nut studios, where they're released.
 """
 
 from __future__ import annotations
 
 import json
 import pathlib
-import re
 import runpy
-import sys
 
-from fs_cli import library
 from fs_cli.gen import Import
-from fs_cli.tables import Node, Table, Value, string
+from fs_cli.tables import Node, Table, Value, inch, string
 
-SNAPSHOT = pathlib.Path(__file__).parent / "vendor" / "frcdesign-hats.json"
-HAT = "Bearing Retention Hat (WCP)"
-
-if __name__ == "__main__" and sys.argv[1:] == ["fetch"]:
-    library.fetch(SNAPSHOT, [HAT])
-    sys.exit()
-
-PARTS = library.load(SNAPSHOT)
 _FEATURESCRIPTS = pathlib.Path(__file__).parents[2]
 BEARING_SET = runpy.run_path(str(_FEATURESCRIPTS / "bearings" / "bearingTables.py"))
 BUSHING_SET = runpy.run_path(str(_FEATURESCRIPTS / "bushings" / "bushingTables.py"))
+HAT_SET = runpy.run_path(str(_FEATURESCRIPTS / "bearingHats" / "hatTables.py"))
 
 def _product(location: dict | None, configuration: dict[str, str], name: str) -> str:
     entries = ", ".join(f"{json.dumps(key)} : {json.dumps(value)}" for key, value in configuration.items())
@@ -104,13 +95,22 @@ def bushing_node() -> Node:
 
 
 def hat_node() -> Node:
-    """WCP's hats by their bore and centers, as `Robot bearing` names them ("1.125 in", "2 in")."""
+    """The hats set's hats by the bearing's outer diameter and their centers, as Robot bearing names them ("1.125 in",
+    "2 in"): each its product, and the sizes a screw through it needs."""
+    location = HAT_SET["LOCATIONS"].get("bearingHat")
+    shape = HAT_SET["SHAPE"]
     hats: dict[str, list[Value]] = {}
-    for record in library.records(PARTS[HAT]):
-        match = re.match(r'^([\d.]+)" Bore, ([\d.]+)" C-C$', record["options"]["Configuration"])
-        assert match is not None, record
-        hats.setdefault(f"{match[1]} in", []).append(
-            Value(f"{match[2]} in", {"product": library.product(PARTS, HAT, record["options"])})
+    for record in HAT_SET["RECORDS"]["bearingHat"].values():
+        hat = record.hat
+        hats.setdefault(f"{hat.outer_diameter:g} in", []).append(
+            Value(
+                f"{HAT_SET['_CENTERS'][hat.centers]:g} in",
+                {
+                    "product": _product(location, record.values, hat.name),
+                    "thickness": inch(shape.thickness),
+                    "holeDiameter": inch(shape.hole_diameter),
+                },
+            )
         )
     return Node("bore", [Value(bore, next=Node("centers", centers)) for bore, centers in hats.items()])
 
@@ -123,12 +123,13 @@ SCREW_STUDIO = Node(
     "studio",
     [
         Value(
-            "Screw",
+            name,
             {
                 "documentId": string(FASTENER_STUDIOS["documentId"]),
-                "elementId": string(FASTENER_STUDIOS["elements"]["screw"]),
+                "elementId": string(FASTENER_STUDIOS["elements"][element]),
             },
         )
+        for name, element in (("Screw", "screw"), ("Nut", "nut"))
     ],
 )
 
@@ -138,6 +139,6 @@ CONTENTS = [
     Table("robotBearingTable", bearing_node()),
     Import("bushings/bushingTables.gen.fs"),
     Table("bushingTable", bushing_node()),
-    Table("wcpHatTable", hat_node()),
+    Table("hatTable", hat_node()),
     Table("screwStudioTable", SCREW_STUDIO),
 ]

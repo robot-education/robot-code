@@ -2,6 +2,7 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 import(path : "released/bearing/robotBearing.fs", version : "");
 import(path : "bearings/bearingTables.gen.fs", version : "");
+import(path : "bearingHats/bearingHats.fs", version : "");
 import(path : "testing.fs", version : "");
 
 // Every option's values, through every level
@@ -31,7 +32,7 @@ export function testWcpMakesHatsForItsTwoBores()
 {
     for (var bore in ["0.875 in", "1.125 in"])
     {
-        expectTrue(canBeProduct(leaves(wcpHatTable.entries[bore])[0].product), bore);
+        expectTrue(canBeProduct(leaves(hatTable.entries[bore])[0].product), bore);
     }
 }
 
@@ -52,4 +53,34 @@ export function testScrewHolesClearTheBore()
     }
     const overridden = screwPositions({ "retentionScrewCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, part);
     expectNear(norm(overridden[1]), 1 * inch, 1e-9 * meter);
+}
+
+export function testEveryCotsHatIsOneTheHatSetMakes()
+{
+    for (var bore in ["0.875 in", "1.125 in"])
+    {
+        for (var entry in leaves(hatTable.entries[bore]))
+        {
+            const configuration = entry.product.configuration;
+            const made = BEARING_HATS[BearingHatVendor.WCP][BearingHatSize[configuration.size]][BearingHatCenters[configuration.centers]];
+            expectTrue(made != undefined, entry.product.name);
+            expectEqual(entry.thickness, made.thickness);
+            expectEqual(entry.holeDiameter, made.holeDiameter);
+        }
+    }
+}
+
+export function testEveryHatReachesOverItsBearingAndHasItsHolesAtItsCenters()
+{
+    for (var _, bySize in BEARING_HATS[BearingHatVendor.WCP])
+    {
+        for (var _, hat in bySize)
+        {
+            expectTrue(hat.innerDiameter < hat.outerDiameter, hat.name);
+            const holes = hatHoles(hat);
+            expectNear(norm(holes[1] - holes[0]), hat.centers, 1e-12 * meter);
+            // Each hole clears the outline about the bore
+            expectTrue(hat.centers / 2 - hat.holeDiameter / 2 > hat.outerDiameter / 2, hat.name);
+        }
+    }
 }

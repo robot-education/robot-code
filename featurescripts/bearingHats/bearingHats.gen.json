@@ -1,0 +1,97 @@
+{
+  "source": "featurescripts/bearingHats/hatTables.py",
+  "studios": {
+    "bearingHat": {
+      "feature": "libraryBearingHat",
+      "mateConnector": "mateConnector",
+      "topMateConnector": "topMateConnector",
+      "location": null,
+      "records": [
+        {
+          "values": {
+            "size": "OD_0_875",
+            "centers": "IN_1_25"
+          },
+          "name": "0.875\" OD Bearing Retention Plate (1.25\" C-C)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0487",
+          "material": "Aluminum - 6061"
+        },
+        {
+          "values": {
+            "size": "OD_0_875",
+            "centers": "IN_2"
+          },
+          "name": "0.875\" OD Bearing Retention Plate (2\" C-C)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0327",
+          "material": "Aluminum - 6061"
+        },
+        {
+          "values": {
+            "size": "OD_1_125",
+            "centers": "IN_1_5"
+          },
+          "name": "1.125\" OD Bearing Retention Plate (1.5\" C-C)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0488",
+          "material": "Aluminum - 6061"
+        },
+        {
+          "values": {
+            "size": "OD_1_125",
+            "centers": "IN_2"
+          },
+          "name": "1.125\" OD Bearing Retention Plate (2\" C-C)",
+          "vendor": "West Coast Products",
+          "partNumber": "WCP-0328",
+          "material": "Aluminum - 6061"
+        }
+      ]
+    }
+  },
+  "vendors": [
+    {
+      "id": "WCP",
+      "name": "WCP"
+    }
+  ],
+  "hats": [
+    {
+      "vendor": "WCP",
+      "size": "OD_0_875",
+      "centers": "IN_1_25",
+      "outerDiameter": 0.022225,
+      "centerDistance": 0.03175,
+      "thickness": 0.002286,
+      "partNumber": "WCP-0487"
+    },
+    {
+      "vendor": "WCP",
+      "size": "OD_0_875",
+      "centers": "IN_2",
+      "outerDiameter": 0.022225,
+      "centerDistance": 0.0508,
+      "thickness": 0.002286,
+      "partNumber": "WCP-0327"
+    },
+    {
+      "vendor": "WCP",
+      "size": "OD_1_125",
+      "centers": "IN_1_5",
+      "outerDiameter": 0.028575,
+      "centerDistance": 0.0381,
+      "thickness": 0.002286,
+      "partNumber": "WCP-0488"
+    },
+    {
+      "vendor": "WCP",
+      "size": "OD_1_125",
+      "centers": "IN_2",
+      "outerDiameter": 0.028575,
+      "centerDistance": 0.0508,
+      "thickness": 0.002286,
+      "partNumber": "WCP-0328"
+    }
+  ]
+}

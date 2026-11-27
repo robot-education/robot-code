@@ -72,10 +72,13 @@ predicate useSingleClearanceHoleTable(definition is map)
     !definition.cutMountingHoles;
 }
 
-predicate declaresScrews(definition is map)
+/**
+ * Whether the mounting holes are tapped, so a screw needs no nut: in the part behind, or a hat's alone when the part's
+ * aren't cut.
+ */
+export function isTappedHoles(definition is map) returns boolean
 {
-    definition.retention;
-    definition.retentionType == RetentionType.SCREWS || definition.hatType != HatType.COTS;
+    return definition.retention && !useSingleClearanceHoleTable(definition) && getHolePathAndValue(definition).path.holeType == "Tapped";
 }
 
 /**
@@ -107,6 +110,13 @@ predicate screwPredicate(definition is map)
             annotation { "Name" : "Screw length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
             definition.screwLength is ScrewLength;
         }
+
+        if (!definition.holesTapped)
+        {
+            annotation { "Name" : "Nut", "Default" : NutType.NYLOCK, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "The nut on each screw, where it comes out the far side." }
+            definition.screwNut is NutType;
+        }
     }
 }
 
@@ -125,6 +135,9 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
         // Set by editing logic, as conditions can't read lookup tables
         annotation { "Name" : "Has clearance", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "hasTappedHoles" }
         definition.hasClearance is boolean;
+
+        annotation { "Name" : "Holes tapped", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isTappedHoles" }
+        definition.holesTapped is boolean;
 
         annotation { "Group Name" : "Bearing", "Collapsed By Default" : false }
         {
@@ -224,10 +237,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
                     isLength(definition.tapDrillDiameter, HOLE_DIAMETER_BOUNDS);
                 }
 
-                if (declaresScrews(definition))
-                {
-                    screwPredicate(definition);
-                }
+                screwPredicate(definition);
             }
         }
 
@@ -299,14 +309,33 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
 
     if (definition.hatType == HatType.COTS)
     {
-        declarePart(context, id + "hat", {
-                    "owner" : host,
-                    "coordSystem" : coordSystem(plane.origin, plane.x, plane.normal),
-                    "connector" : "face",
-                    "declaration" : autoAssemblyDeclaration(AutoAssemblyKind.BEARING_HAT, wcpHat(part, definition.hatCenters), {
-                                "outerDiameter" : part.outerDiameter
-                            })
-                });
+        const hat = cotsHat(part, definition.hatCenters);
+        if (hat.product.documentId == "")
+        {
+            reportFeatureInfo(context, id, "FRCDesign's library doesn't have this hat yet, so it isn't declared for Auto Assembly.");
+        }
+        else
+        {
+            declarePart(context, id + "hat", {
+                        "owner" : host,
+                        "coordSystem" : coordSystem(plane.origin, plane.x, plane.normal),
+                        "connector" : "mateConnector",
+                        "declaration" : autoAssemblyDeclaration(AutoAssemblyKind.BEARING_HAT, hat.product as Product, {
+                                    "outerDiameter" : part.outerDiameter,
+                                    "thickness" : hat.thickness
+                                })
+                    });
+        }
+        if (definition.declareScrews)
+        {
+            // Seated on the hat's top, which isn't in the Part Studio: Auto Assembly goes through as thick a hole as it
+            var top = plane;
+            top.origin += plane.normal * hat.thickness;
+            declareScrews(context, id + "screws", definition, top, mountingLocations, host, {
+                        "seatHeight" : hat.thickness,
+                        "seatHoleDiameter" : hat.holeDiameter
+                    });
+        }
     }
     else
     {
@@ -316,7 +345,7 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
             // Seated on the hat's top
             var top = plane;
             top.origin += plane.normal * BEARING_HAT_DEPTH;
-            declareScrews(context, id + "screws", definition, top, mountingLocations, hat);
+            declareScrews(context, id + "screws", definition, top, mountingLocations, hat, {});
         }
     }
 
@@ -327,18 +356,18 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
 }
 
 /**
- * WCP's hat for a bearing at a hat's centers.
+ * The hats set's hat for a bearing at a hat's centers: its `product`, `thickness` and mounting holes' `holeDiameter`.
  */
-function wcpHat(part is BearingPart, centers is HatCenters) returns Product
+export function cotsHat(part is BearingPart, centers is HatCenters) returns map
 {
     const bore = roundToPrecision(part.outerDiameter / inch, 3) ~ " in";
-    const byBore = wcpHatTable.entries[bore];
+    const byBore = hatTable.entries[bore];
     const hat = byBore == undefined ? undefined : byBore.entries[hatCentersName(centers)];
     if (hat == undefined)
     {
         throw regenError("WCP makes no hat for this bearing at these centers. Use a standard or custom hat, or screws.", ["hatCenters", "bearing"]);
     }
-    return hat.product as Product;
+    return hat;
 }
 
 function hatCenters(centers is HatCenters) returns ValueWithUnits
@@ -380,15 +409,21 @@ function retainWithScrews(context is Context, id is Id, definition is map, plane
     cutMountingHoles(context, id, definition, plane, positions, definition.scope);
     if (definition.declareScrews)
     {
-        declareScrews(context, id + "screws", definition, plane, positions, host);
+        declareScrews(context, id + "screws", definition, plane, positions, host, {});
     }
 }
 
 /**
  * Declares a screw at each position, seated on `plane` (its z axis out of the hole), on `owner`: FRCDesign's fasteners'
- * #10-32, as the holes are. Without a length, Auto Assembly picks each from what its hole goes through.
+ * #10-32, as the holes are, and the nut chosen where they aren't tapped. Without a length, Auto Assembly picks each
+ * from what its hole goes through.
+ * @param seat {{
+ *      @field seatHeight {ValueWithUnits} : @optional How far below the seat the Part Studio's holes start, through a
+ *              part that isn't in it (a COTS hat).
+ *      @field seatHoleDiameter {ValueWithUnits} : @requiredif {`seatHeight` is given.} That part's hole.
+ * }}
  */
-function declareScrews(context is Context, id is Id, definition is map, plane is Plane, positions is array, owner is Query)
+function declareScrews(context is Context, id is Id, definition is map, plane is Plane, positions is array, owner is Query, seat is map)
 {
     const path = getHoleTableAndPath(definition).path;
     if (path.holeType == "Tapped" && path.pitch != "32 tpi (UNF)")
@@ -413,7 +448,25 @@ function declareScrews(context is Context, id is Id, definition is map, plane is
             "configuration" : configuration,
             "name" : "#10-32 Screw"
         } as Product;
-    const declaration = autoAssemblyDeclaration(AutoAssemblyKind.SCREW, product, { "holeType" : path.holeType });
+    var spec = { "holeType" : path.holeType };
+    if (seat.seatHeight != undefined)
+    {
+        spec.seatHeight = seat.seatHeight;
+        spec.seatHoleDiameter = seat.seatHoleDiameter;
+    }
+    var declaration = autoAssemblyDeclaration(AutoAssemblyKind.SCREW, product, spec);
+    if (!definition.holesTapped)
+    {
+        const nutStudio = getLookupTable(screwStudioTable, lookupTablePath({ "studio" : "Nut" }));
+        var nutConfiguration = {};
+        nutConfiguration["type"] = toString(definition.screwNut);
+        declaration.nut = {
+                "documentId" : nutStudio.documentId,
+                "elementId" : nutStudio.elementId,
+                "configuration" : nutConfiguration,
+                "name" : "#10-32 Nut"
+            };
+    }
     for (var i, position in positions)
     {
         declarePart(context, id + ("screw" ~ (i + 1)), {
@@ -696,6 +749,7 @@ export function robotBearingHatEditLogic(context is Context, id is Id, oldDefini
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
     definition.hasClearance = hasTappedHoles(definition);
+    definition.holesTapped = isTappedHoles(definition);
     if (getActivePath(oldDefinition) != getActivePath(definition))
     {
         const pathAndValue = getHolePathAndValue(definition);

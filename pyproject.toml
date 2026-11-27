@@ -105,6 +105,13 @@ title = "Bushings"
 folder = "bushings"
 definition = "bushingTables.py"
 
+# WCP's bearing retention plates, which Robot bearing's COTS hats declare. Not released yet: give it its FRCDesignLib
+# document as its frontend.
+[tool.fs.parts.bearingHats]
+title = "Bearing Hats"
+folder = "bearingHats"
+definition = "hatTables.py"
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "vscode-extension/server/tests"]
 python_files = ["*test*.py"]
