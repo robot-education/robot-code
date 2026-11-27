@@ -180,6 +180,20 @@ which part it is (a bore, a size) still shows.
 its first; `fs check` reports a feature's `vendor` that isn't its first shown parameter after its horizontal enums, and
 a `<part>Vendor` after another of its part's (`vendor-order`).
 
+## One option
+
+A choice with one option isn't a choice. In a lookup table:
+
+- A last level with one option is left out: its values go on the option above it. Then the level above may be left with
+  one option, and goes too. `fs gen` does this to every table it generates, so write the table as the parts are, and
+  let it fold them.
+- Two levels in a row with one option each say one thing twice. `fs gen` refuses them; ask it once, or not at all (as
+  Robot shaft skips Type for a vendor selling one).
+- A table's first level stays, even with one option, as a table needs a level.
+
+Taking a level out is safe for documents: `getLookupTable` walks the table's own levels, so a saved path's extra key is
+ignored. Adding a level back isn't: a path saved without it finds nothing.
+
 ## Horizontal enums go at the top
 
 As in std features, a horizontal enum (`"UIHint" : ["HORIZONTAL_ENUM"]`) belongs at the top of the feature: it may

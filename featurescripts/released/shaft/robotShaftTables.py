@@ -254,8 +254,14 @@ def spline(spline_type: str) -> dict[str, str]:
 
 
 def vendor(name: str, shafts: list[Shaft]) -> Value:
-    """A vendor's shafts, chosen by type, then size (for a hex), then material (only where the type and size come in
-    several), in the order they're listed."""
+    """A vendor's shafts, chosen by type (only where it sells several), then size (for a hex), then material (only where
+    the type and size come in several), in the order they're listed."""
+    if len({item.type for item in shafts}) == 1:
+        following = _next_level(shafts, "type")
+        if following is None:
+            # One shaft: its preset lengths, if any, are the choice
+            return Value(name, {"vendor": string(name), **shafts[0].values}, shafts[0].presets)
+        return Value(name, {"vendor": string(name)}, Node(following, _choices(shafts, following), display_name=following.capitalize()))
     return Value(name, {"vendor": string(name)}, Node("type", _choices(shafts, "type"), display_name="Type"))
 
 

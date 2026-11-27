@@ -106,6 +106,35 @@ def _nodes(node: Node) -> list[Node]:
     return found
 
 
+def _without_single_leaves(node: Node) -> Node:
+    """`node`, with each last level that has one option folded into the option above it, from the leaves up, so a
+    level left with one option is folded too. `node` itself stays, as a table needs a level."""
+    entries = []
+    for entry in node.entries:
+        if entry.next is not None:
+            below = _without_single_leaves(entry.next)
+            if len(below.entries) == 1 and below.entries[0].next is None:
+                # Values chosen closer to the root take precedence, as `_render_node` gives them
+                entry = dataclasses.replace(entry, values={**below.entries[0].values, **entry.values}, next=None)
+            else:
+                entry = dataclasses.replace(entry, next=below)
+        entries.append(entry)
+    return dataclasses.replace(node, entries=entries)
+
+
+def _single_run(node: Node, path: list[str]) -> list[str]:
+    """The path to the first two levels in a row with one option each, those as `level = option`, or [] for none."""
+    if len(node.entries) == 1 and node.entries[0].next is not None and len(node.entries[0].next.entries) == 1:
+        below = node.entries[0].next
+        return path + [f"{node.display_name} = {node.entries[0].name}", f"{below.display_name} = {below.entries[0].name}"]
+    for entry in node.entries:
+        if entry.next is not None:
+            found = _single_run(entry.next, path + [entry.name])
+            if found:
+                return found
+    return []
+
+
 @dataclasses.dataclass
 class Table:
     """An exported constant holding a lookup table."""
@@ -118,6 +147,13 @@ class Table:
         for node in _nodes(self.node):
             if node is not self.node and node.name == VENDOR:
                 raise ValueError(f"{self.name}: its vendor is a level below its first; vendor goes first")
+        # A last choice with one option isn't a choice (docs/featurescript-style.md, "One option")
+        self.node = _without_single_leaves(self.node)
+        run = _single_run(self.node, [])
+        if run:
+            raise ValueError(
+                f"{self.name}: {' > '.join(run)} are one option each, in a row; ask what they say once, or not at all"
+            )
 
     def render(self) -> str:
         lines = [f"export const {self.name} = {{"]

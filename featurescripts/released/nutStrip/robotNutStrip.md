@@ -38,6 +38,8 @@ Since v1.0.0 (`fs changes robotNutStrip`).
 - Trim nut strip ends has Parts to trim to, as std's Frame does: each part cuts off the end it's nearer, and Trim nut
   strip ends is offered on faces and between holes too.
 - Its description mentions faces and holes.
+- Nut strip asks no question with one answer: a last level with one option is gone (REV's and WCP's #10-32 thread,
+  and FTC's REV size and thread). Existing documents' nut strips still resolve.
 
 ## Strings
 

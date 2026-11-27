@@ -64,7 +64,7 @@ def test_render():
 
 
 def test_values_closer_to_the_root_win():
-    leaf = Node("b", [Value("x", {"key": "2"})])
+    leaf = Node("b", [Value("x", {"key": "2"}), Value("z", {"key": "3"})])
     node = Node("a", [Value("y", {"key": "1"}, leaf)])
     assert '"x" : { "key" : 1 }' in render([Table("t", node)], "1", "t.py")
 
@@ -255,3 +255,22 @@ def test_a_tables_vendor_is_its_first_level():
     Table("t", Node("vendor", [Value("WCP", next=sizes)]))
     with pytest.raises(ValueError, match="vendor goes first"):
         Table("t", Node("size", [Value("1/2 in", next=Node("vendor", [Value("WCP", {"x": "1"})]))]))
+
+
+def test_a_last_level_with_one_option_is_folded_into_the_option_above():
+    seals = Node("seal", [Value("Shielded", {"seal": "1"})])
+    sizes = Node("size", [Value("1/2 in", {"size": "2"}, seals), Value("3/8 in", {"size": "3"})])
+    table = Table("t", Node("vendor", [Value("WCP", {"vendor": "4"}, sizes)]))
+    # Seal goes into 1/2 in; Size has two options, so it stays
+    half = table.node.entries[0].next.entries[0]
+    assert half.next is None and half.values == {"seal": "1", "size": "2"}
+    # A level left with one option is folded too, but the first level stays
+    single = Table("t", Node("vendor", [Value("REV", {}, Node("size", [Value("8 mm", {"x": "1"})]))]))
+    assert single.node.name == "vendor" and single.node.entries[0].next is None
+
+
+def test_two_levels_with_one_option_in_a_row_are_refused():
+    materials = Node("material", [Value("7075", {"x": "1"}), Value("6061", {"x": "2"})])
+    sizes = Node("size", [Value("1/2 in", next=materials)])
+    with pytest.raises(ValueError, match="Swyft > Type = Rounded hex > Size = 1/2 in"):
+        Table("t", Node("vendor", [Value("Swyft", next=Node("type", [Value("Rounded hex", next=sizes)])), Value("WCP", {"x": "3"})]))

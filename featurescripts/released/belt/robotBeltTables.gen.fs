@@ -486,13 +486,7 @@ export const beltTable = {
                             "Custom" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 15 * millimeter },
                         },
                     },
-                    "18 mm" : {
-                        "name" : "supplier",
-                        "displayName" : "Belt supplier",
-                        "entries" : {
-                            "Custom" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 18 * millimeter },
-                        },
-                    },
+                    "18 mm" : { "beltType" : BeltType._5_MM_HTD, "beltWidth" : 18 * millimeter },
                 },
             },
             "RT25" : {

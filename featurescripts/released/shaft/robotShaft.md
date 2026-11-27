@@ -20,6 +20,8 @@ Since v3.0.0 (`fs changes robotShaft`).
 
 - The description is now "Create shafts used for both FRC and FTC." (was "Create the shafts FRC and FTC teams buy, or
   custom ones.").
+- Shaft asks no question with one answer: a last level with one option is gone (as AndyMark's Churro size), and a
+  vendor selling one type skips Type (Swyft's, and FTC's AndyMark's). Existing documents' shafts still resolve.
 
 ## Strings
 

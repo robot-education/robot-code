@@ -145,20 +145,8 @@ export const frcShaftTable = {
                 "name" : "type",
                 "displayName" : "Type",
                 "entries" : {
-                    "Rounded hex" : {
-                        "name" : "size",
-                        "displayName" : "Size",
-                        "entries" : {
-                            "1/2 in." : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "REV-21-1135", "url" : "https://www.revrobotics.com/search.php?search_query=REV-21-1135&section=product" }], "vendor" : "REV" },
-                        },
-                    },
-                    "UltraHex" : {
-                        "name" : "size",
-                        "displayName" : "Size",
-                        "entries" : {
-                            "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ULTRA_HEX, "material" : ALUMINUM, "partName" : "UltraHex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 72 * inch, "partNumber" : "REV-41-3205", "url" : "https://www.revrobotics.com/rev-41-3205/" }], "vendor" : "REV" },
-                        },
-                    },
+                    "Rounded hex" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "REV-21-1135", "url" : "https://www.revrobotics.com/search.php?search_query=REV-21-1135&section=product" }], "vendor" : "REV" },
+                    "UltraHex" : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ULTRA_HEX, "material" : ALUMINUM, "partName" : "UltraHex Shaft (REV 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 72 * inch, "partNumber" : "REV-41-3205", "url" : "https://www.revrobotics.com/rev-41-3205/" }], "vendor" : "REV" },
                     "MAXSpline" : { "appearance" : MEDIUM_GRAY, "material" : ALUMINUM, "partName" : "MAXSpline Shaft (REV)", "shaftType" : ShaftType.SPLINE, "splineType" : SplineType.MAX_SPLINE, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-2520", "url" : "https://www.revrobotics.com/search.php?search_query=REV-21-2520&section=product" }], "vendor" : "REV" },
                     "SplineXS" : { "appearance" : STEEL_GRAY, "material" : STAINLESS_STEEL, "partName" : "SplineXS Shaft (REV)", "shaftType" : ShaftType.SPLINE, "splineType" : SplineType.SPLINE_XS, "stock" : [{ "length" : 480 * millimeter, "partNumber" : "REV-41-6457", "url" : "https://www.revrobotics.com/rev-41-6457/" }], "vendor" : "REV" },
                 },
@@ -167,13 +155,7 @@ export const frcShaftTable = {
                 "name" : "type",
                 "displayName" : "Type",
                 "entries" : {
-                    "Churro" : {
-                        "name" : "size",
-                        "displayName" : "Size",
-                        "entries" : {
-                            "1/2 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Shaft (AndyMark 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2.48 * inch, "partNumber" : "am-3399", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.375 * inch, "partNumber" : "am-2569", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.875 * inch, "partNumber" : "am-3087", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 6.25 * inch, "partNumber" : "am-5724", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 11.25 * inch, "partNumber" : "am-3398", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 12 * inch, "partNumber" : "am-3101-1", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.313 * inch, "partNumber" : "am-5218", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.8 * inch, "partNumber" : "am-3101-1780", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 24 * inch, "partNumber" : "am-3101-2", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3101-3", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3101-4700", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }], "vendor" : "AndyMark" },
-                        },
-                    },
+                    "Churro" : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Shaft (AndyMark 1/2 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2.48 * inch, "partNumber" : "am-3399", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.375 * inch, "partNumber" : "am-2569", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 3.875 * inch, "partNumber" : "am-3087", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 6.25 * inch, "partNumber" : "am-5724", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 11.25 * inch, "partNumber" : "am-3398", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 12 * inch, "partNumber" : "am-3101-1", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.313 * inch, "partNumber" : "am-5218", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 17.8 * inch, "partNumber" : "am-3101-1780", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 24 * inch, "partNumber" : "am-3101-2", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3101-3", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3101-4700", "url" : "https://andymark.com/products/1-2-in-churro-different-lengths" }], "vendor" : "AndyMark" },
                     "Hex" : {
                         "name" : "size",
                         "displayName" : "Size",
@@ -182,31 +164,19 @@ export const frcShaftTable = {
                             "3/8 in." : { "appearance" : STEEL_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Hex Shaft (AndyMark 3/8 in., steel)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 1.85 * inch, "partNumber" : "am-2356", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 12 * inch, "partNumber" : "am-2356-1", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 36 * inch, "partNumber" : "am-2356-3", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }, { "length" : 47 * inch, "partNumber" : "am-2356-4700", "url" : "https://andymark.com/products/3-8-in-steel-hex-shaft-stock" }], "vendor" : "AndyMark" },
                         },
                     },
-                    "Churro Lite" : {
-                        "name" : "size",
-                        "displayName" : "Size",
-                        "entries" : {
-                            "3/8 in." : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Lite Shaft (AndyMark 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 10.5 * inch, "partNumber" : "am-5867", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3666-3", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3666-4700", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }], "vendor" : "AndyMark" },
-                        },
-                    },
+                    "Churro Lite" : { "appearance" : MEDIUM_GRAY, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.CHURRO, "material" : ALUMINUM, "partName" : "Churro Lite Shaft (AndyMark 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 10.5 * inch, "partNumber" : "am-5867", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 36 * inch, "partNumber" : "am-3666-3", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }, { "length" : 47 * inch, "partNumber" : "am-3666-4700", "url" : "https://andymark.com/products/3-8-in-churro-lite-different-lengths" }], "vendor" : "AndyMark" },
                 },
             },
             "Swyft" : {
-                "name" : "type",
-                "displayName" : "Type",
+                "name" : "size",
+                "displayName" : "Size",
                 "entries" : {
-                    "Rounded hex" : {
-                        "name" : "size",
-                        "displayName" : "Size",
+                    "1/2 in." : {
+                        "name" : "material",
+                        "displayName" : "Material",
                         "entries" : {
-                            "1/2 in." : {
-                                "name" : "material",
-                                "displayName" : "Material",
-                                "entries" : {
-                                    "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEX-0.5in-36in-AL7075", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
-                                    "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
-                                },
-                            },
+                            "7075" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM_7075, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 7075)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEX-0.5in-36in-AL7075", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
+                            "6061" : { "appearance" : BLACK, "hexSize" : HexSize._1_2_IN, "hexType" : HexType.ROUNDED_HEX, "material" : ALUMINUM, "partName" : "Rounded Hex Shaft (Swyft 1/2 in., 6061)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 36 * inch, "partNumber" : "SR-AXLE-HEXtoSPLINE-0.5in-36in-AL6061", "url" : "https://swyftrobotics.com/structure/swyft-axles" }], "vendor" : "Swyft" },
                         },
                     },
                 },
@@ -401,24 +371,18 @@ export const ftcShaftTable = {
                 },
             },
             "AndyMark" : {
-                "name" : "type",
-                "displayName" : "Type",
+                "name" : "length",
+                "displayName" : "Length",
+                "default" : "2 in.",
                 "entries" : {
-                    "3/8 in. Robits hex" : {
-                        "name" : "length",
-                        "displayName" : "Length",
-                        "default" : "2 in.",
-                        "entries" : {
-                            "Custom" : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2 * inch, "partNumber" : "am-5003-0200", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 3 * inch, "partNumber" : "am-5003-0300", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 4 * inch, "partNumber" : "am-5003-0400", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 6 * inch, "partNumber" : "am-5003-0600", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 8 * inch, "partNumber" : "am-5003-0800", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 10 * inch, "partNumber" : "am-5003-1000", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 12 * inch, "partNumber" : "am-5003-1200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "2 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 2 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2 * inch, "partNumber" : "am-5003-0200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "3 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 3 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 3 * inch, "partNumber" : "am-5003-0300", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "4 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 4 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 4 * inch, "partNumber" : "am-5003-0400", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "6 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 6 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 6 * inch, "partNumber" : "am-5003-0600", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "8 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 8 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 8 * inch, "partNumber" : "am-5003-0800", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "10 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 10 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 10 * inch, "partNumber" : "am-5003-1000", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                            "12 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 12 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 12 * inch, "partNumber" : "am-5003-1200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
-                        },
-                    },
+                    "Custom" : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2 * inch, "partNumber" : "am-5003-0200", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 3 * inch, "partNumber" : "am-5003-0300", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 4 * inch, "partNumber" : "am-5003-0400", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 6 * inch, "partNumber" : "am-5003-0600", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 8 * inch, "partNumber" : "am-5003-0800", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 10 * inch, "partNumber" : "am-5003-1000", "url" : "https://andymark.com/products/robits-hex-shafts" }, { "length" : 12 * inch, "partNumber" : "am-5003-1200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "2 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 2 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 2 * inch, "partNumber" : "am-5003-0200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "3 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 3 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 3 * inch, "partNumber" : "am-5003-0300", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "4 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 4 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 4 * inch, "partNumber" : "am-5003-0400", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "6 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 6 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 6 * inch, "partNumber" : "am-5003-0600", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "8 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 8 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 8 * inch, "partNumber" : "am-5003-0800", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "10 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 10 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 10 * inch, "partNumber" : "am-5003-1000", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
+                    "12 in." : { "appearance" : STEEL_GRAY, "factoryGrooves" : [], "factoryHole" : { "metric" : false, "size" : "#10", "pitch" : "32 tpi (UNF)", "depth" : 0.7 * inch }, "hexSize" : HexSize._3_8_IN, "hexType" : HexType.STOCK, "material" : STEEL, "partName" : "Robits Hex Shaft (AndyMark 3/8 in.)", "presetLength" : 12 * inch, "shaftType" : ShaftType.HEX, "stock" : [{ "length" : 12 * inch, "partNumber" : "am-5003-1200", "url" : "https://andymark.com/products/robits-hex-shafts" }], "vendor" : "AndyMark" },
                 },
             },
         },
