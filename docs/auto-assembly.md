@@ -81,12 +81,13 @@ It's set in up to two places, each with its own job: on a host connector, and on
 Where the part attaches to a part the feature cut, the feature puts a mate connector on that part, carrying the
 declaration: the plate, for a bearing or bushing in its bore. It comes into the assembly with that part, so Auto
 Assembly can place and fasten every bearing on it with nobody mating anything. It's named by the feature's id and a
-fixed name (`place` then `mateConnector`), so a mate to it survives the feature being edited. A fasten mate names a
+fixed name (`place`, then `bearing<n>` for its location, then `mateConnector`), so a mate to it survives the feature
+being edited. A fasten mate names a
 connector by its whole id, each part joined with `.`: Robot bearing's first is `<featureId>.place.bearing1.mateConnector`.
 
 ### Auto Assembly bodies
 
-A feature declaring a bearing or bushing has an **Auto Assembly body** checkbox, on by default and remembered. An Auto
+A feature declaring a bearing or bushing has an **Auto assembly body** checkbox, on by default and remembered. An Auto
 Assembly body is a separate, simple solid part for the part's envelope, which carries the declaration too: a ring at
 the part's outside diameter, with its bore, and a flanged part's flange.
 
@@ -324,7 +325,7 @@ predicates:
 | --- | --- |
 | Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Vendor, Type, Bore, Size, Dimensions and Seal, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Vendor, Bore, Size, Material and Dimensions, the same way (`bushingTable`). Robot bearing's then has Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`); Robot bushing's has none, as a COTS bushing is pressed in |
 | Position | **Sketch points to place bearings** (bushings): any number of sketch points, circles, or mate connectors (`bearingPositionPredicate`), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
-| Other options | Auto Assembly body |
+| Other options | Auto assembly body |
 
 What they do:
 
@@ -351,10 +352,11 @@ What they do:
 
 It takes **Bearing edge to place retention**: a bore's circular edge, as Robot bearing hat did. The bore's diameter is
 the edge's, and its plane is the edge's, its normal out of the hole. Flip primary axis, Reorient secondary axis, Angle
-reference and Angle turn it, but for a custom hat, whose mounting locations place it. Its holes are cut into the
+reference and Angle turn it, but for a custom hat or custom screws, whose selections place them. Its holes are cut into the
 edge's part, which is the host of what it declares.
 
-A top level **Retention type** is Hat or Screws. Under Hat, a second, **Hat type**: COTS, Standard or Custom hat.
+A top level **Retention type** is Hat or Screws. Under it, a second: **Hat type** (COTS, Standard hat or Custom hat),
+or **Screws type** (Standard screws or Custom screws).
 
 **Hat** is the old feature's hats, with their mounting holes and hole tables:
 
@@ -366,22 +368,27 @@ A top level **Retention type** is Hat or Screws. Under Hat, a second, **Hat type
 
 **Screws** retains the bearing with screw heads over its outer race or flange:
 
-- **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart), from the plane's X axis.
-- **Hole circle**: the bore's diameter, plus the hole, plus a 0.03 in. wall each side, so each hole clears the bore and
-  a head over it overlaps the bearing (`screwPositions`); **Override hole circle** sets it by hand.
+- **Standard screws**: 2 or 3 (**Screw count**), evenly around the bore (180 or 120 degrees apart), from the plane's X
+  axis. Their hole circle is the bore's diameter, plus the hole, plus a 0.03 in. wall each side, so each hole clears
+  the bore and a head over it overlaps the bearing (`screwPositions`); **Override hole circle** sets it by hand.
+- **Custom screws**: one at each of **Screw locations**, any number of vertices, circles or mate connectors, as a
+  custom hat's mounting locations are picked.
 
 **Mounting holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
 
-**Declare screws** (its Auto Assembly group): a screw at each mounting hole, from the fasteners part set: Screw vendor,
-Screw head, Screw finish, and Screw length or **Automatic length** (no length in the declaration, for Auto Assembly to
-size from what the hole goes through).
+**Auto assembly**, a checkbox driving its own group, on by default and remembered, declares a screw at each mounting
+hole. Its screw and nut are lookup tables of the fasteners part set's #10-32s, as the set's records configure them
+(`screwTable`, `nutTable`):
 
-- #10-32 only, as the holes are; 24 tpi tapped holes declare none, with an info saying why.
-- Each is on a connector named as the fasteners' own (`mateConnector`), Z out of the hole.
+- **Screw**: Vendor, Head and Finish, skipping a level with one option, then Length. Length lists only the lengths
+  made in those, after **Automatic**: no length in the declaration, for Auto Assembly to size from what the hole goes
+  through.
+- **Nut**, where the holes aren't tapped: the nut declared on each screw.
+- 24 tpi tapped holes declare no screws, with an info saying why: the set has no #10-24s.
+- Each screw is on a connector named as the fasteners' own (`mateConnector`), Z out of the hole.
 - A standard or custom hat's screws seat on its top. A COTS hat's seat as high as it is thick, with `seatHeight` and
   `seatHoleDiameter` in their spec, so Auto Assembly goes through the hat it places in the same run. A screw
   retention's seat on the host's face.
-- Where the holes aren't tapped, **Nut** declares the fasteners' Nut studio in that type on each screw.
 
 `"Auto Assembly" : true`.
 

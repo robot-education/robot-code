@@ -6,13 +6,15 @@
   released. Before then, a part's product has no document, and the feature declares nothing.
 - Bearing hats are FRCDesign's bearing hats part set's (`featurescripts/bearingHats/`): WCP's retention plates, by the
   bearing's outer diameter and their centers, each with its studio's configuration and its sizes.
-- Screws and nuts are the fasteners part set's Screw and Nut studios, where they're released.
+- Screws and nuts are the fasteners part set's #10-32s, by vendor first, each with its studio's configuration. A screw's
+  Length can be Automatic, with no length in its configuration.
 """
 
 from __future__ import annotations
 
 import json
 import pathlib
+import re
 import runpy
 
 from fs_cli.gen import Import
@@ -22,6 +24,7 @@ _FEATURESCRIPTS = pathlib.Path(__file__).parents[2]
 BEARING_SET = runpy.run_path(str(_FEATURESCRIPTS / "bearings" / "bearingTables.py"))
 BUSHING_SET = runpy.run_path(str(_FEATURESCRIPTS / "bushings" / "bushingTables.py"))
 HAT_SET = runpy.run_path(str(_FEATURESCRIPTS / "bearingHats" / "hatTables.py"))
+FASTENER_SET = runpy.run_path(str(_FEATURESCRIPTS / "fasteners" / "fastenerTables.py"))
 
 def _product(location: dict | None, configuration: dict[str, str], name: str) -> str:
     entries = ", ".join(f"{json.dumps(key)} : {json.dumps(value)}" for key, value in configuration.items())
@@ -117,23 +120,100 @@ def hat_node() -> Node:
     return Node("bore", [Value(bore, next=Node("centers", centers)) for bore, centers in hats.items()])
 
 
-# Where FRCDesign's fasteners part set released its Screw studio, for the screws the features declare
+# Where FRCDesign's fasteners part set released its studios, for the screws and nuts Robot bearing retention declares
 FASTENER_STUDIOS = json.loads(
     (pathlib.Path(__file__).parents[2] / "fasteners" / "fastenerTables.studios.json").read_text()
 )
-SCREW_STUDIO = Node(
-    "studio",
-    [
-        Value(
-            name,
-            {
-                "documentId": string(FASTENER_STUDIOS["documentId"]),
-                "elementId": string(FASTENER_STUDIOS["elements"][element]),
-            },
-        )
-        for name, element in (("Screw", "screw"), ("Nut", "nut"))
-    ],
-)
+# The size of Robot bearing retention's holes
+SCREW_SIZE = "NO_10_32"
+
+
+def _studio(element: str) -> dict:
+    return {"documentId": FASTENER_STUDIOS["documentId"], "elementId": FASTENER_STUDIOS["elements"][element]}
+
+
+def _levels(keys: list[tuple], depth: int, levels: list[tuple[str, str, object]], leaf) -> Node:
+    """A node per level (its key, display name and enum) of `keys`, in its enum's order, skipping a level with one
+    option; `leaf` makes the last level's node from the keys under it."""
+    if depth == len(levels):
+        return leaf(keys)
+    column, display_name, enum = levels[depth]
+    options = [value for value in enum.values if any(key[depth] == value for key in keys)]
+    if len(options) == 1:
+        return _levels(keys, depth + 1, levels, leaf)
+    return Node(
+        column,
+        [Value(enum.names[option], next=_levels([key for key in keys if key[depth] == option], depth + 1, levels, leaf)) for option in options],
+        display_name=display_name,
+    )
+
+
+def screw_node() -> Node:
+    """The fasteners set's #10-32 screws, by vendor, head and finish, then Automatic (no length, for Auto Assembly to
+    choose) or a length each is made in. Each is its product: the Screw studio, in its record's configuration."""
+    records = {key: record for key, record in FASTENER_SET["SCREW_RECORDS"].items() if key[1] == SCREW_SIZE and not key[5]}
+    enums = FASTENER_SET
+    location = _studio("screw")
+
+    def lengths(keys: list[tuple]) -> Node:
+        keys = sorted(keys, key=lambda key: enums["ScrewLength"].values.index(key[3]))
+        first = records[keys[0]]
+        automatic = {key: value for key, value in first.values.items() if key not in ("length", "fullyThreaded")}
+        values = [Value("Automatic", {"product": _product(location, automatic, re.sub(r" x \S+ in", "", first.name))})]
+        values += [
+            Value(enums["ScrewLength"].names[key[3]], {"product": _product(location, records[key].values, records[key].name)})
+            for key in keys
+        ]
+        return Node("length", values, display_name="Length", default="Automatic")
+
+    keys = [(vendor, head, finish, length) for vendor, _, head, finish, length, _ in records]
+    records = {(vendor, head, finish, length): record for (vendor, _, head, finish, length, _), record in records.items()}
+    node = _levels(
+        keys,
+        0,
+        [("vendor", "Vendor", enums["FastenerVendor"]), ("head", "Head", enums["ScrewHead"]), ("finish", "Finish", enums["ScrewFinish"])],
+        lengths,
+    )
+    node.default = enums["FastenerVendor"].names["GENERIC"]
+    for value in node.entries:
+        if value.next is not None and value.next.name == "head":
+            value.next.default = enums["ScrewHead"].names["BUTTON"]
+    return node
+
+
+def nut_node() -> Node:
+    """The fasteners set's #10-32 nuts, by vendor, type and finish. Each is its product: the Nut studio, in its record's
+    configuration."""
+    records = {(vendor, type, finish): record for (vendor, size, type, finish), record in FASTENER_SET["NUT_RECORDS"].items() if size == SCREW_SIZE}
+    location = _studio("nut")
+
+    def leaf(keys: list[tuple]) -> dict[str, str]:
+        record = records[keys[0]]
+        return {"product": _product(location, record.values, record.name)}
+
+    def level(keys: list[tuple], depth: int, levels: list) -> Node:
+        column, display_name, enum = levels[depth]
+        options = [value for value in enum.values if any(key[depth] == value for key in keys)]
+        if len(options) == 1 and depth + 1 < len(levels):
+            return level(keys, depth + 1, levels)
+        values = []
+        for option in options:
+            under = [key for key in keys if key[depth] == option]
+            if depth + 1 == len(levels) or all(len({key[d] for key in under}) == 1 for d in range(depth + 1, len(levels))):
+                values.append(Value(enum.names[option], leaf(under)))
+            else:
+                values.append(Value(enum.names[option], next=level(under, depth + 1, levels)))
+        return Node(column, values, display_name=display_name)
+
+    node = level(
+        list(records),
+        0,
+        [("vendor", "Nut vendor", FASTENER_SET["FastenerVendor"]), ("type", "Nut", FASTENER_SET["NutType"]), ("finish", "Nut finish", FASTENER_SET["NutFinish"])],
+    )
+    if node.name == "type":
+        node.default = FASTENER_SET["NutType"].names["NYLOCK"]
+    return node
+
 
 CONTENTS = [
     # The sets' enums, which their parts' entries name
@@ -142,5 +222,6 @@ CONTENTS = [
     Import("bushings/bushingTables.gen.fs"),
     Table("bushingTable", bushing_node()),
     Table("hatTable", hat_node()),
-    Table("screwStudioTable", SCREW_STUDIO),
+    Table("screwTable", screw_node()),
+    Table("nutTable", nut_node()),
 ]

@@ -11,8 +11,6 @@ export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f
 export import(path : "core/autoAssembly.fs", version : "");
 export import(path : "cd2c6499801ec51a7947274e", version : "6a0eab11cdac6776966381cd");
 export import(path : "released/bearing/robotBearingTables.gen.fs", version : "");
-// The fasteners' enums: the screws a retention declares
-export import(path : "fasteners/fastenerTables.gen.fs", version : "");
 
 export enum RetentionType
 {
@@ -43,6 +41,14 @@ export enum HatCenters
     _2_IN
 }
 
+export enum ScrewsType
+{
+    annotation { "Name" : "Standard screws" }
+    STANDARD,
+    annotation { "Name" : "Custom screws" }
+    CUSTOM
+}
+
 export enum ScrewCount
 {
     annotation { "Name" : "2" }
@@ -55,6 +61,13 @@ predicate isCustomHat(definition is map)
 {
     definition.retentionType == RetentionType.HAT;
     definition.hatType == HatType.CUSTOM;
+}
+
+/** A custom hat or custom screws, which their selections place, with no angle. */
+predicate isCustom(definition is map)
+{
+    (definition.retentionType == RetentionType.HAT && definition.hatType == HatType.CUSTOM) ||
+        (definition.retentionType == RetentionType.SCREWS && definition.screwsType == ScrewsType.CUSTOM);
 }
 
 predicate useSingleHoleTable(definition is map)
@@ -80,40 +93,28 @@ export function isTappedHoles(definition is map) returns boolean
 }
 
 /**
- * The screws a retention declares for Auto Assembly: FRCDesign's fasteners', in the holes' size.
+ * Auto assembly: the screws a retention declares, FRCDesign's fasteners' in the holes' size, and their nuts.
  */
-predicate screwPredicate(definition is map)
+predicate autoAssemblyPredicate(definition is map)
 {
-    annotation { "Name" : "Declare screws", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+    annotation { "Name" : "Auto assembly", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                 "Description" : "Declare a screw in each hole, for FRCDesign's Auto Assembly to insert." }
-    definition.declareScrews is boolean;
+    definition.autoAssembly is boolean;
 
-    if (definition.declareScrews)
+    annotation { "Group Name" : "Auto assembly", "Driving Parameter" : "autoAssembly", "Collapsed By Default" : false }
     {
-        annotation { "Name" : "Screw vendor", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.screwVendor is FastenerVendor;
-
-        annotation { "Name" : "Screw head", "Default" : ScrewHead.BUTTON, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.screwHead is ScrewHead;
-
-        annotation { "Name" : "Screw finish", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.screwFinish is ScrewFinish;
-
-        annotation { "Name" : "Automatic length", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                    "Description" : "Let Auto Assembly choose each screw's length from what its hole goes through." }
-        definition.automaticScrewLength is boolean;
-
-        if (!definition.automaticScrewLength)
+        if (definition.autoAssembly)
         {
-            annotation { "Name" : "Screw length", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.screwLength is ScrewLength;
-        }
+            annotation { "Name" : "Screw", "Lookup Table" : screwTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                        "Description" : "Automatic lets Auto Assembly choose each screw's length from what its hole goes through." }
+            definition.screw is LookupTablePath;
 
-        if (!definition.holesTapped)
-        {
-            annotation { "Name" : "Nut", "Default" : NutType.NYLOCK, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
-                        "Description" : "The nut on each screw, where it comes out the far side." }
-            definition.screwNut is NutType;
+            if (!definition.holesTapped)
+            {
+                annotation { "Name" : "Nut", "Lookup Table" : nutTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+                            "Description" : "The nut on each screw, where it comes out the far side." }
+                definition.nut is LookupTablePath;
+            }
         }
     }
 }
@@ -145,6 +146,11 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
             annotation { "Name" : "Hat type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "HORIZONTAL_ENUM"] }
             definition.hatType is HatType;
         }
+        else
+        {
+            annotation { "Name" : "Screws type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "HORIZONTAL_ENUM"] }
+            definition.screwsType is ScrewsType;
+        }
 
         annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
         {
@@ -157,7 +163,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
 
             axisOrientationPredicate(definition);
 
-            if (!isCustomHat(definition))
+            if (!isCustom(definition))
             {
                 angleReferencePredicate(definition);
                 angleOffsetPredicate(definition);
@@ -194,7 +200,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
                 }
                 else
                 {
-                    annotation { "Name" : "Hat centers", "Default" : HatCenters._2_IN, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    annotation { "Name" : "Hat centers", "Default" : HatCenters._2_IN, "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
                     definition.hatCenters is HatCenters;
                 }
 
@@ -209,16 +215,27 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
         {
             annotation { "Group Name" : "Screws", "Collapsed By Default" : false }
             {
-                annotation { "Name" : "Screw count", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.retentionScrewCount is ScrewCount;
-
-                annotation { "Name" : "Override hole circle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.overrideHoleCircle is boolean;
-
-                if (definition.overrideHoleCircle)
+                if (definition.screwsType == ScrewsType.CUSTOM)
                 {
-                    annotation { "Name" : "Hole circle diameter" }
-                    isLength(definition.holeCircleDiameter, HOLE_CIRCLE_BOUNDS);
+                    annotation {
+                                "Name" : "Screw locations",
+                                "Filter" : ((EntityType.VERTEX || GeometryType.CIRCLE) && ModifiableEntityOnly.YES) || BodyType.MATE_CONNECTOR
+                            }
+                    definition.screwLocations is Query;
+                }
+                else
+                {
+                    annotation { "Name" : "Screw count", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+                    definition.retentionScrewCount is ScrewCount;
+
+                    annotation { "Name" : "Override hole circle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.overrideHoleCircle is boolean;
+
+                    if (definition.overrideHoleCircle)
+                    {
+                        annotation { "Name" : "Hole circle diameter" }
+                        isLength(definition.holeCircleDiameter, HOLE_CIRCLE_BOUNDS);
+                    }
                 }
             }
         }
@@ -250,10 +267,7 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
             }
         }
 
-        annotation { "Group Name" : "Auto Assembly", "Collapsed By Default" : false }
-        {
-            screwPredicate(definition);
-        }
+        autoAssemblyPredicate(definition);
     }
     {
         const bearing = bearingFromEdge(context, id, definition);
@@ -271,8 +285,8 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
 
 /**
  * The bearing's bore, from its edge: the part it's in (`host`), its `diameter`, and the `plane` the retention sits on,
- * at its center, its normal out of the part, flipped, and turned to the angle reference and Angle (but for a custom hat,
- * whose mounting locations place it).
+ * at its center, its normal out of the part, flipped, and turned to the angle reference and Angle (but for a custom hat
+ * or screws, whose selections place them).
  */
 function bearingFromEdge(context is Context, id is Id, definition is map) returns map
 {
@@ -292,13 +306,13 @@ function bearingFromEdge(context is Context, id is Id, definition is map) return
 
     const edgeCoordSystem = edgeOutOfHole(context, holeFace, definition.bearingEdge);
     var plane = plane(edgeCoordSystem);
-    if (!isCustomHat(definition))
+    if (!isCustom(definition))
     {
         plane = applyAngleReference(context, definition, plane, "bearingEdge");
     }
     plane = applyAxisOrientation(definition, plane);
     const diameter = 2 * evCurveDefinition(context, { "edge" : definition.bearingEdge }).radius;
-    if (!isCustomHat(definition))
+    if (!isCustom(definition))
     {
         addAngleOffsetManipulator(context, id, definition, plane, diameter);
         plane = applyAngleOffset(definition, plane);
@@ -365,7 +379,7 @@ function retainWithHat(context is Context, id is Id, definition is map, bearing 
                                 })
                     });
         }
-        if (definition.declareScrews)
+        if (definition.autoAssembly)
         {
             // Seated on the hat's top, which isn't in the Part Studio: Auto Assembly goes through as thick a hole as it
             var top = plane;
@@ -379,7 +393,7 @@ function retainWithHat(context is Context, id is Id, definition is map, bearing 
     else
     {
         const hat = createBearingHat(context, id + "bearingHat", definition, plane, getBoreValues(bearing.diameter), mountingLocations);
-        if (definition.declareScrews)
+        if (definition.autoAssembly)
         {
             // Seated on the hat's top
             var top = plane;
@@ -445,18 +459,20 @@ export function screwPositions(definition is map, boreDiameter is ValueWithUnits
  */
 function retainWithScrews(context is Context, id is Id, definition is map, bearing is map)
 {
-    const positions = screwPositions(definition, bearing.diameter);
+    const positions = definition.screwsType == ScrewsType.CUSTOM ?
+        selectedPositions(context, definition, "screwLocations", "Select locations for the screws.", bearing.plane) :
+        screwPositions(definition, bearing.diameter);
     cutMountingHoles(context, id, definition, bearing.plane, positions, bearing.host);
-    if (definition.declareScrews)
+    if (definition.autoAssembly)
     {
         declareScrews(context, id + "screws", definition, bearing.plane, positions, bearing.host, {});
     }
 }
 
 /**
- * Declares a screw at each position, seated on `plane` (its z axis out of the hole), on `owner`: FRCDesign's fasteners'
- * #10-32, as the holes are, and the nut chosen where they aren't tapped. Without a length, Auto Assembly picks each
- * from what its hole goes through.
+ * Declares a screw at each position, seated on `plane` (its z axis out of the hole), on `owner`: the Screw chosen, and
+ * the Nut where the holes aren't tapped. With an Automatic length, Auto Assembly picks each from what its hole goes
+ * through.
  * @param seat {{
  *      @field seatHeight {ValueWithUnits} : @optional How far below the seat the Part Studio's holes start, through a
  *              part that isn't in it (a COTS hat).
@@ -471,23 +487,7 @@ function declareScrews(context is Context, id is Id, definition is map, plane is
         reportFeatureInfo(context, id, "FRCDesign's fasteners have no #10-24 screws, so the screws aren't declared.");
         return;
     }
-    var configuration = {
-        "vendor" : toString(definition.screwVendor),
-        "size" : toString(FastenerSize.NO_10_32),
-        "head" : toString(definition.screwHead),
-        "finish" : toString(definition.screwFinish)
-    };
-    if (!definition.automaticScrewLength)
-    {
-        configuration.length = toString(definition.screwLength);
-    }
-    const studio = getLookupTable(screwStudioTable, lookupTablePath({ "studio" : "Screw" }));
-    const product = {
-            "documentId" : studio.documentId,
-            "elementId" : studio.elementId,
-            "configuration" : configuration,
-            "name" : "#10-32 Screw"
-        } as Product;
+    const product = getLookupTable(screwTable, definition.screw).product as Product;
     var spec = { "holeType" : path.holeType };
     if (seat.seatHeight != undefined)
     {
@@ -497,15 +497,7 @@ function declareScrews(context is Context, id is Id, definition is map, plane is
     var declaration = autoAssemblyDeclaration(AutoAssemblyKind.SCREW, product, spec);
     if (!definition.holesTapped)
     {
-        const nutStudio = getLookupTable(screwStudioTable, lookupTablePath({ "studio" : "Nut" }));
-        var nutConfiguration = {};
-        nutConfiguration["type"] = toString(definition.screwNut);
-        declaration.nut = {
-                "documentId" : nutStudio.documentId,
-                "elementId" : nutStudio.elementId,
-                "configuration" : nutConfiguration,
-                "name" : "#10-32 Nut"
-            };
+        declaration.nut = getLookupTable(nutTable, definition.nut).product;
     }
     for (var i, position in positions)
     {
@@ -544,17 +536,24 @@ function getBoreValues(boreDiameter is ValueWithUnits) returns map
 
 function getCustomMountingLocations(context is Context, definition is map, circlePlane is Plane) returns array
 {
-    verifyNonemptyQuery(context, definition, "firstMountingLocation", "Select a location for the first mounting hole.");
-    verifyNonemptyQuery(context, definition, "secondMountingLocation", "Select a location for the second mounting hole.");
+    return concatenateArrays([
+                selectedPositions(context, definition, "firstMountingLocation", "Select a location for the first mounting hole.", circlePlane),
+                selectedPositions(context, definition, "secondMountingLocation", "Select a location for the second mounting hole.", circlePlane)
+            ]);
+}
 
-    return mapArray([definition.firstMountingLocation, definition.secondMountingLocation], function(location is Query)
+/**
+ * Where each of a selection's vertices, mate connectors and circles' centers is on `plane`, or `message` for none.
+ */
+function selectedPositions(context is Context, definition is map, parameter is string, message is string, plane is Plane) returns array
+{
+    return mapArray(verifyNonemptyQuery(context, definition, parameter, message), function(location is Query)
         {
             if (!isQueryEmpty(context, location->qGeometry(GeometryType.CIRCLE)))
             {
-                const circle = evCurveDefinition(context, { "edge" : location });
-                return worldToPlane(circlePlane, circle.coordSystem.origin);
+                return worldToPlane(plane, evCurveDefinition(context, { "edge" : location }).coordSystem.origin);
             }
-            return worldToPlane(circlePlane, evVertexPoint(context, { "vertex" : location }));
+            return worldToPlane(plane, evVertexPoint(context, { "vertex" : location }));
         });
 }
 

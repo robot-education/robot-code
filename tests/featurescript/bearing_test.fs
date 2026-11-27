@@ -93,3 +93,30 @@ export function testACotsHatIsTheOneForTheNearestBearing()
     expectEqual(cotsHatBore(1.125 * inch + 1 / 32 * inch), "1.125 in");
     expectEqual(cotsHatBore(0.9 * inch), "0.875 in");
 }
+
+export function testEveryScrewIsANumber10WithItsLengthOrAutomatic()
+{
+    for (var _, byVendor in screwTable.entries)
+    {
+        for (var entry in leaves(byVendor))
+        {
+            expectTrue(canBeProduct(entry.product), entry.product.name);
+            // Size is left out where the vendor makes one, as the studio hides it
+            const size = entry.product.configuration.size;
+            expectTrue(size == undefined || size == "NO_10_32", entry.product.name);
+        }
+    }
+    // Every head's lengths start with Automatic, which leaves the length to Auto Assembly
+    const socket = screwTable.entries["Generic"].entries["Socket head"].entries;
+    expectEqual(socket["Automatic"].product.configuration.length, undefined);
+    expectEqual(socket["1/2 in"].product.configuration.length, "IN_0_5");
+}
+
+export function testEveryNutIsANumber10()
+{
+    for (var entry in leaves(nutTable))
+    {
+        expectTrue(canBeProduct(entry.product), entry.product.name);
+        expectEqual(entry.product.configuration.size, "NO_10_32");
+    }
+}

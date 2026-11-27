@@ -156,7 +156,8 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
 Parameter names, enum and lookup table options, group names, and messages are sentence case, as Onshape's are: "Vent
 holes", "Rounded hex", "Stainless steel". Product and company names keep their own capitalization ("Hex Lite",
 "UltraHex", "SplineXS", "The Thrifty Bot"), as do part names, which are titles ("3 in. Rounded Hex Shaft (WCP 1/2
-in.)").
+in.)"). FRCDesignApp's Auto Assembly is "Auto assembly" in a label or group name ("Auto assembly body"), and keeps its
+capitals in a description or message ("for FRCDesign's Auto Assembly to insert").
 
 ## Descriptions
 

@@ -94,7 +94,7 @@ export function declarePart(context is Context, id is Id, definition is map)
  */
 export predicate autoAssemblyBodyPredicate(definition is map)
 {
-    annotation { "Name" : "Auto Assembly body", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+    annotation { "Name" : "Auto assembly body", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                 "Description" : "Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part." }
     definition.autoAssemblyBody is boolean;
 }

@@ -26,7 +26,7 @@ Unreleased.
 
 | Parameter | Description |
 | --- | --- |
-| Auto Assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
+| Auto assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
 
 Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
 
