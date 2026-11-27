@@ -1,15 +1,17 @@
 # Robot bearing
 
-Cuts bores for bearings from FRCDesign's library, one at each sketch point. It declares each bearing for FRCDesignApp's
-Auto Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body. Robot bearing retention holds a bearing in.
+Cuts bores for bearings from FRCDesign's library, one at each sketch point, with a counterbore for a flanged bearing's
+flange. It declares each bearing for FRCDesignApp's Auto Assembly (see `docs/auto-assembly.md`). Robot bearing
+retention holds a bearing in. Its dialog follows std's hole's order: Style, the sketch points and merge scope, the
+bearing and its fit, the start and direction, then the counterbore.
 
 | File | What it is |
 | --- | --- |
-| `robotBearing.fs` | The feature: its dialog, and the bearing chosen |
-| `../core/bearing.fs` | The placement Robot bushing shares: Position, the bores, the declarations, and the Auto Assembly bodies |
+| `robotBearing.fs` | The feature: its dialog, the bearing chosen, and its counterbore |
+| `../core/bearing.fs` | The placement Robot bushing shares: the locations and orientation, the bores, and the declarations |
 | `../released/bearing/robotBearingTables.py` | The bearings part set's FRC bearings (`robotBearingTable`), from `../bearings/bearingTables.py` |
 | `../bearings/bearings.fs`, `bearingTables.gen.fs` | FRCDesign's bearings part set: the bearings' sizes, flanges and bores (`BEARINGS`, `BEARING_BORES`, `boreRadius`) |
-| `../core/autoAssembly.fs` | Declarations and Auto Assembly bodies |
+| `../core/autoAssembly.fs` | Declarations |
 
 ## Changelog
 
@@ -21,15 +23,15 @@ Unreleased.
 | --- | --- |
 | Robot bearing | feature name |
 | Cut bores for bearings. `<CREDIT>` | feature description |
-| `<bearing's library name>` | each Auto Assembly body's part name |
 
 ### Descriptions and hidden parameters
 
-| Parameter | Description |
-| --- | --- |
-| Auto assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s) |
+None of its parameters has a description.
 
-Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
+Flanged is hidden: editing logic sets it (its "Set By" function, `isFlangedBearing`), whether the bearing has a flange,
+which shows Style. Editing logic also sets Counterbore diameter and Counterbore depth from the flange
+(`flangeCounterbore`) when the bearing, Bore fit or Style changes, and the Merge scope and Flip primary axis
+(`bearingEditLogic`).
 
 ### Errors, warnings, and info
 
@@ -38,6 +40,7 @@ Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
 | Choose a different bearing. | error | the saved Bearing path isn't a whole table entry | `bearing` | none |
 | Select a sketch point, circle, or mate connector to use. | error | no locations, or one with no plane | `locations`, that location | Select a sketch plane. |
 | `core/startOffset.fs`'s and `core/mounting.fs`'s errors | error | the starting offset, or angle reference | (theirs) | (theirs) |
+| The counterbore must be wider than the bore. | error | Counterbore, with Counterbore diameter no wider than the bore | `counterboreDiameter` | none |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope | `scope` | (std's) |
 | The parts to cut aren't behind the sketch point. Flip the primary axis. | error | none of the merge scope is behind a location's plane | `oppositeDirection`, `scope`, the merge scope | none |
 | Failed to cut the bore. | error | subtracting the bores fails | `scope`, the tools | Failed to extrude selections, check input. |
@@ -47,8 +50,12 @@ Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
 
 ### Execution order
 
-1. **Editing logic** (`bearingEditLogic`): std's hole heuristics, with a sketch point at every location, set the Merge
-   scope and Flip primary axis, unless they've been set.
+1. **Editing logic** (`robotBearingEditLogic`):
+   1. Sets Flanged.
+   2. For a flanged bearing, when the bearing, Bore fit or Style changes (or the feature is made), sets the counterbore
+      to the flange's diameter plus Bore fit's clearance for it, and the flange's thickness (`flangeCounterbore`).
+   3. `bearingEditLogic`: std's hole heuristics, with a sketch point at every location, set the Merge scope and Flip
+      primary axis, unless they've been set.
 2. **Body**:
    1. The bearing (`libraryBearing`): its `robotBearingTable` entry's enums (Vendor, Type, Bore, Size, Dimensions, and
       Seal, skipping a level with one option), looked up in the bearings set's `BEARINGS` for its outside diameter,
@@ -56,18 +63,20 @@ Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
    2. The planes (`bearingPlanes`): each location's, offset, turned to the angle reference, flipped, and turned by
       Angle. The offset's and angle's manipulators are on the first. Each normal points out of the face the bearing
       sits on.
-   3. `placeBearings`:
+   3. The bore: the outside diameter plus Bore fit's clearance. A flanged bearing with Counterbore adds its counterbore,
+      or the error above where it's no wider than the bore. A radial bearing's saved Counterbore is ignored, as Style
+      doesn't show.
+   4. `placeBearings`:
       - An error for an empty merge scope, or one not behind a plane.
       - The part each bearing sits in (`partBehind`), found before any cut.
-      - Each bore is the outside diameter plus Bore fit's clearance, extruded through the merge scope behind its plane.
-        All are cut in one boolean.
+      - Each bore extruded through the merge scope behind its plane, and each counterbore its depth. All are cut in one
+        boolean.
       - At each, a `mateConnector` connector on its part (`bearingConnector`: the bore's center, z out of the bore, x
-        the plane's, where the bearings set seats its bearings), carrying the bearing's declaration. Before the set is
-        released, the info above instead.
-      - With Auto Assembly body, a ring at its outside and inner diameters into each bore, and its flange on the face
-        (`buildBearingBody`, `makeAutoAssemblyBody`).
+        the plane's, where the bearings set seats its bearings), carrying the bearing's declaration. With a
+        counterbore, it's on the counterbore's floor, where the flange sits. Before the set is released, the info
+        above instead.
       - Each bearing's operations are under `place.bearing<n>`, so its connector is `<featureId>.place.bearing<n>.mateConnector`.
-   4. Sketches are deleted.
+   5. Sketches are deleted.
 3. **Manipulator change** (`bearingManipulatorChange`): the starting offset's and the angle's.
 
 ### `try`s
@@ -78,6 +87,8 @@ Editing logic sets the Merge scope and Flip primary axis (`bearingEditLogic`).
 
 ## Issues found
 
-- None of the geometry has run in Onshape: the bores and the Auto Assembly bodies are reasoned out.
+- None of the geometry has run in Onshape: the bores and counterbores are reasoned out.
 - A connector's id is its location's place in the selection, so removing a location renames the connectors after it,
   and mates to them break.
+- Changing the bearing, Bore fit or Style sets the counterbore back to the flange's, overwriting one typed in, as std's
+  hole does when its standard changes.

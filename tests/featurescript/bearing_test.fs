@@ -120,3 +120,39 @@ export function testEveryNutIsANumber10()
         expectEqual(entry.product.configuration.size, "NO_10_32");
     }
 }
+
+// Every option's path and its values, through every level
+function paths(level is map, path is map) returns array
+{
+    var found = [];
+    for (var key, entry in level.entries)
+    {
+        var next = path;
+        next[level.name] = key;
+        found = append(found, entry.entries == undefined ? [{ "path" : lookupTablePath(next), "entry" : entry }] : paths(entry, next));
+    }
+    return concatenateArrays(found);
+}
+
+export function testAFlangedBearingsCounterboreHoldsItsFlangeFlush()
+{
+    var flanged = 0;
+    for (var option in paths(robotBearingTable, {}))
+    {
+        const definition = { "bearing" : option.path, "boreFit" : Fit.FREE, "boreFitClearance" : 0 * inch };
+        const isFlanged = option.entry.bearingType != BearingType.RADIAL;
+        expectEqual(isFlangedBearing(definition), isFlanged);
+        if (isFlanged)
+        {
+            flanged += 1;
+            const entry = option.entry;
+            const made = BEARINGS[entry.vendor][entry.bearingType][entry.bore][entry.size][entry.dimensions][entry.seal];
+            const counterbore = flangeCounterbore(definition);
+            expectEqual(counterbore.depth, made.flangeThickness);
+            expectTrue(counterbore.diameter > made.flangeDiameter, entry.product.name);
+        }
+    }
+    expectTrue(flanged > 0, "no flanged bearings");
+    // A path that's no whole entry isn't flanged
+    expectTrue(!isFlangedBearing({ "bearing" : lookupTablePath({}) }), "an empty path is flanged");
+}

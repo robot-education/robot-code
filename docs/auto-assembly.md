@@ -87,7 +87,7 @@ connector by its whole id, each part joined with `.`: Robot bearing's first is `
 
 ### Auto Assembly bodies
 
-A feature declaring a bearing or bushing has an **Auto assembly body** checkbox, on by default and remembered. An Auto
+Robot bushing and Robot motor have an **Auto assembly body** checkbox, on by default and remembered. An Auto
 Assembly body is a separate, simple solid part for the part's envelope, which carries the declaration too: a ring at
 the part's outside diameter, with its bore, and a flanged part's flange.
 
@@ -318,14 +318,20 @@ bearing in, at its bore's edge.
 
 ### What Robot bearing and Robot bushing do
 
-Both cut the bores, as Robot motor cuts its face. The dialog, in Robot motor's shape and from the same `core/`
-predicates:
+Both cut the bores, as Robot motor cuts its face. Their dialogs follow std's hole's order, from `core/` predicates:
 
-| Group | Parameters |
-| --- | --- |
-| Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Vendor, Type, Bore, Size, Dimensions and Seal, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Vendor, Bore, Size, Material and Dimensions, the same way (`bushingTable`). Robot bearing's then has Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`); Robot bushing's has none, as a COTS bushing is pressed in |
-| Position | **Sketch points to place bearings** (bushings): any number of sketch points, circles, or mate connectors (`bearingPositionPredicate`), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
-| Other options | Auto assembly body |
+1. **Style** (Robot bearing, for a flanged bearing): Simple, or Counterbore, as the hole's.
+2. **Sketch points to place bearings** (bushings): any number of sketch points, circles, or mate connectors, and Merge
+   scope (`bearingLocationPredicate`).
+3. **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Vendor, Type,
+   Bore, Size, Dimensions and Seal (`robotBearingTable`), with Bore fit and its clearance (`boreFitPredicate`,
+   `core/fit.fs`). Or **Bushing**: one of the bushings part set's (`featurescripts/bushings/`), by Vendor, Bore, Size,
+   Material and Dimensions (`bushingTable`), with no fit, as a COTS bushing is pressed in.
+4. Starting offset, Flip primary axis and Reorient secondary axis, Angle reference and Angle
+   (`bearingOrientationPredicate`).
+5. **Counterbore diameter** and **Counterbore depth** (Robot bearing, with Counterbore): set by editing logic to the
+   flange's diameter plus Bore fit's clearance, and its thickness, so the flange sits flush.
+6. **Auto assembly body** (Robot bushing), in Other options.
 
 What they do:
 
@@ -334,17 +340,16 @@ What they do:
 2. **The planes**: each location's, offset, turned to the angle reference and Angle, and flipped; each normal points
    out of the face its bearing sits on. The offset's and angle's manipulators are on the first.
 3. **The bores**: at each plane, a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at
-   its outside diameter), extruded through the merge scope behind it. All are subtracted in one boolean, as Robot
-   motor's pilot is. A flanged product's flange sits on the face; the bore is its body's diameter, not its flange's.
-   The part each plane is on, of the merge scope's, is that bore's host.
-4. **Declarations**: at each bore, a host connector on its host at the bore's center, on the plane, Z out of the bore,
-   X the plane's (so the angle reference turns it): the bearing set's `mateConnector`. Each bore's operations are
-   under `place.bearing<n>`, `<n>` its location's place in the selection. A bearing's product is its set's studio,
-   with its record's configuration; until the set is released, the studio has no document, and the feature declares
-   nothing and says so.
-5. **Auto Assembly bodies**: at each bore, a ring at the part's outside diameter, its hole at its bore's corners (the
-   set's `boreRadius`; a bushing's at its nominal size), into the bore, and a flanged bearing's flange on the face, at
-   the set's flange sizes: one extrude each.
+   its outside diameter), extruded through the merge scope behind it, and a counterbore its depth. All are subtracted
+   in one boolean, as Robot motor's pilot is. The part each plane is on, of the merge scope's, is that bore's host.
+4. **Declarations**: at each bore, a host connector on its host at the bore's center, Z out of the bore, X the plane's
+   (so the angle reference turns it): the bearing set's `mateConnector`. It's on the face, or on a counterbore's
+   floor, where the flange sits. Each bore's operations are under `place.bearing<n>`, `<n>` its location's place in
+   the selection. A part's product is its set's studio, with its record's configuration; until the set is released,
+   the studio has no document, and the feature declares nothing and says so.
+5. **Auto Assembly bodies** (Robot bushing): at each bore, a ring at the part's outside diameter, its hole at its
+   bore's corners (its nominal size), into the bore, and its flange on the face, at the set's flange sizes. Robot
+   bearing has none.
 
 `"Auto Assembly" : true` on both.
 

@@ -21,16 +21,12 @@ annotation { "Feature Type Name" : "Robot bushing",
 export const robotBushing = defineFeature(function(context is Context, id is Id, definition is map)
     precondition
     {
-        annotation { "Group Name" : "Bushing", "Collapsed By Default" : false }
-        {
-            annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.bushing is LookupTablePath;
-        }
+        bearingLocationPredicate(definition, "bushings");
 
-        annotation { "Group Name" : "Position", "Collapsed By Default" : false }
-        {
-            bearingPositionPredicate(definition, "bushings");
-        }
+        annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.bushing is LookupTablePath;
+
+        bearingOrientationPredicate(definition);
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
         {
@@ -41,7 +37,10 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
         const part = libraryBushing(definition);
         const planes = bearingPlanes(context, id, definition, part);
         // A COTS bushing is pressed in: its bore is its outside diameter
-        placeBearings(context, id + "place", definition, planes, part, 0 * meter, AutoAssemblyKind.BUSHING);
+        placeBearings(context, id + "place", definition, planes, part, {
+                    "diameter" : part.outerDiameter,
+                    "autoAssemblyBody" : definition.autoAssemblyBody
+                }, AutoAssemblyKind.BUSHING);
     });
 
 /**

@@ -42,11 +42,11 @@ export predicate canBeBearingPart(value)
 }
 
 /**
- * Where they go: the locations, one bearing or bushing at each, the parts they're cut into, and their orientation,
- * angle, and starting offset, as Robot motor's.
+ * Where they go: the locations, one bearing or bushing at each, and the parts they're cut into, as std's hole asks its
+ * sketch points and merge scope.
  * @param name {string} : What's placed, plural ("bearings").
  */
-export predicate bearingPositionPredicate(definition is map, name is string)
+export predicate bearingLocationPredicate(definition is map, name is string)
 {
     annotation { "Name" : "Sketch points to place " ~ name,
                 "Filter" : (EntityType.VERTEX && SketchObject.YES && ModifiableEntityOnly.YES) || GeometryType.CIRCLE || BodyType.MATE_CONNECTOR,
@@ -54,14 +54,20 @@ export predicate bearingPositionPredicate(definition is map, name is string)
     definition.locations is Query;
 
     holeMergeScopePredicate(definition);
+}
+
+/**
+ * How they sit: the starting offset, the flip, and the angle, in std's hole's order (its start, then its direction).
+ */
+export predicate bearingOrientationPredicate(definition is map)
+{
+    startOffsetPredicate(definition);
 
     axisOrientationPredicate(definition);
 
     angleReferencePredicate(definition);
 
     angleOffsetPredicate(definition);
-
-    startOffsetPredicate(definition);
 }
 
 const LOCATION_ERROR = "Select a sketch point, circle, or mate connector to use.";
@@ -112,11 +118,16 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 }
 
 /**
- * Cuts a bore at each plane, through the merge scope behind it, at the part's outside diameter plus `clearance` (Robot
- * bearing's Bore fit; none for a pressed-in bushing), in one boolean; declares a part in each, on the part it's in; and
- * with Auto Assembly body, builds each one's Auto Assembly body.
+ * Cuts a bore at each plane through the merge scope behind it, and a counterbore, all in one boolean; declares a part
+ * in each, on the part it's in, seated on the counterbore's floor; and builds each one's Auto Assembly body.
+ * @param bore {{
+ *      @field diameter {ValueWithUnits} : The bore's.
+ *      @field counterboreDiameter {ValueWithUnits} : @optional A counterbore's, for a flange to sit in,
+ *      @field counterboreDepth {ValueWithUnits} : @requiredif {`counterboreDiameter` is given.} this deep.
+ *      @field autoAssemblyBody {boolean} : Whether to build Auto Assembly bodies.
+ * }}
  */
-export function placeBearings(context is Context, id is Id, definition is map, planes is array, part is BearingPart, clearance is ValueWithUnits, kind is AutoAssemblyKind)
+export function placeBearings(context is Context, id is Id, definition is map, planes is array, part is BearingPart, bore is map, kind is AutoAssemblyKind)
 {
     if (isQueryEmpty(context, definition.scope))
     {
@@ -135,17 +146,13 @@ export function placeBearings(context is Context, id is Id, definition is map, p
         hosts = append(hosts, partBehind(context, definition.scope, plane));
 
         const bearingId = id + bearingIdComponent(i);
-        const sketch = newSketchOnPlane(context, bearingId + "boreSketch", { "sketchPlane" : plane });
-        skCircle(sketch, "bore", { "center" : vector(0, 0) * meter, "radius" : (part.outerDiameter + clearance) / 2 });
-        skSolve(sketch);
-        opExtrude(context, bearingId + "boreTool", {
-                    "entities" : qSketchRegion(bearingId + "boreSketch"),
-                    "direction" : -plane.normal,
-                    "endBound" : BoundingType.BLIND,
-                    "endDepth" : depth
-                });
+        extrudeCircle(context, bearingId + "boreTool", plane, bore.diameter, depth);
+        if (bore.counterboreDiameter != undefined)
+        {
+            extrudeCircle(context, bearingId + "counterboreTool", plane, bore.counterboreDiameter, bore.counterboreDepth);
+        }
     }
-    const tools = qUnion(mapArray(range(0, size(planes) - 1), i => qCreatedBy(id + bearingIdComponent(i) + "boreTool", EntityType.BODY)));
+    const tools = qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID);
     try
     {
         opBoolean(context, id + "bore", {
@@ -169,24 +176,45 @@ export function placeBearings(context is Context, id is Id, definition is map, p
     {
         reportFeatureInfo(context, id, "FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly.");
     }
-    for (var i, plane in planes)
+    for (var i, face in planes)
     {
         const bearingId = id + bearingIdComponent(i);
+        var seat = face;
+        if (bore.counterboreDiameter != undefined)
+        {
+            seat.origin -= face.normal * bore.counterboreDepth;
+        }
         if (declaration != undefined)
         {
             declarePart(context, bearingId + "mateConnector", {
                         "owner" : hosts[i],
-                        "coordSystem" : bearingConnector(plane),
+                        "coordSystem" : bearingConnector(seat),
                         "connector" : "mateConnector",
                         "declaration" : declaration
                     });
         }
-        if (definition.autoAssemblyBody)
+        if (bore.autoAssemblyBody)
         {
-            buildBearingBody(context, bearingId + "autoAssemblyBody", plane, part, declaration);
+            buildBearingBody(context, bearingId + "autoAssemblyBody", seat, part, declaration);
         }
     }
     cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
+}
+
+/**
+ * A circle of `diameter` on `plane`, extruded `depth` into the parts behind it.
+ */
+function extrudeCircle(context is Context, id is Id, plane is Plane, diameter is ValueWithUnits, depth is ValueWithUnits)
+{
+    const sketch = newSketchOnPlane(context, id + "sketch", { "sketchPlane" : plane });
+    skCircle(sketch, "circle", { "center" : vector(0, 0) * meter, "radius" : diameter / 2 });
+    skSolve(sketch);
+    opExtrude(context, id + "extrude", {
+                "entities" : qSketchRegion(id + "sketch"),
+                "direction" : -plane.normal,
+                "endBound" : BoundingType.BLIND,
+                "endDepth" : depth
+            });
 }
 
 /**
