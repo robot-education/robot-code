@@ -1,4 +1,4 @@
-"""Tables for Robot bearing and Robot bushing: the parts they declare for FRCDesignApp's Auto Assembly.
+"""Tables for Robot bearing, Robot bearing retention and Robot bushing: the parts they declare for FRCDesignApp's Auto Assembly.
 
 - Bearings and bushings are FRCDesign's bearings and bushings part sets' (`featurescripts/bearings/`,
   `featurescripts/bushings/`): every one their FRC studios offer, from their catalogs, by what the part is and then who
@@ -95,8 +95,8 @@ def bushing_node() -> Node:
 
 
 def hat_node() -> Node:
-    """The hats set's hats by the bearing's outer diameter and their centers, as Robot bearing names them ("1.125 in",
-    "2 in"): each its product, and the sizes a screw through it needs."""
+    """The hats set's hats by the bearing's outer diameter and their centers ("1.125 in", "2 in"), for Robot bearing
+    retention: each its product, its centers, and the sizes a screw through it needs."""
     location = HAT_SET["LOCATIONS"].get("bearingHat")
     shape = HAT_SET["SHAPE"]
     hats: dict[str, list[Value]] = {}
@@ -107,6 +107,7 @@ def hat_node() -> Node:
                 f"{HAT_SET['_CENTERS'][hat.centers]:g} in",
                 {
                     "product": _product(location, record.values, hat.name),
+                    "centers": inch(HAT_SET["_CENTERS"][hat.centers]),
                     "thickness": inch(shape.thickness),
                     "holeDiameter": inch(shape.hole_diameter),
                 },

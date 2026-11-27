@@ -10,7 +10,7 @@ and data in `hatTables.gen.fs`, the Part Studio's configuration, and FRCDesign's
 
 Unreleased. It's a part set (`[tool.fs.parts.bearingHats]`, see docs/parts.md), released into the FRCDesignLib document
 the fasteners and bearings are, its Part Studio, Bearing Hat, built from its definition's `STUDIOS`, never by hand.
-Robot bearing's COTS hats choose from it and declare it for Auto Assembly, with their screws seated on it
+Robot bearing retention's COTS hats choose from it and declare it for Auto Assembly, with their screws seated on it
 (`featurescripts/released/bearing/`).
 
 ## Strings

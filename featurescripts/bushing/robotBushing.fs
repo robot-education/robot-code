@@ -9,11 +9,10 @@ import(path : "bushings/bushings.fs", version : "");
 import(path : "bearings/bearings.fs", version : "");
 
 /**
- * Cuts a bore for a bushing, and declares it for Auto Assembly, with an Auto Assembly body: Robot bearing's placement, without its
- * retention.
+ * Cuts bores for bushings, and declares each for Auto Assembly, with an Auto Assembly body: Robot bearing's placement.
  */
 annotation { "Feature Type Name" : "Robot bushing",
-        "Feature Type Description" : "Cut a bore for a bushing." ~ CREDIT,
+        "Feature Type Description" : "Cut bores for bushings." ~ CREDIT,
         "Manipulator Change Function" : "robotBushingManipulatorChange",
         "Editing Logic Function" : "robotBushingEditLogic",
         "Auto Assembly" : true,
@@ -30,7 +29,7 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
 
         annotation { "Group Name" : "Position", "Collapsed By Default" : false }
         {
-            bearingPositionPredicate(definition, "bushing");
+            bearingPositionPredicate(definition, "bushings");
         }
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
@@ -40,9 +39,9 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
     }
     {
         const part = libraryBushing(definition);
-        const plane = bearingPlane(context, id, definition, part);
+        const planes = bearingPlanes(context, id, definition, part);
         // A COTS bushing is pressed in: its bore is its outside diameter
-        placeBearing(context, id + "place", definition, plane, part, 0 * meter, AutoAssemblyKind.BUSHING);
+        placeBearings(context, id + "place", definition, planes, part, 0 * meter, AutoAssemblyKind.BUSHING);
     });
 
 /**
@@ -76,5 +75,5 @@ export function robotBushingManipulatorChange(context is Context, definition is 
 export function robotBushingEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
     isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
 {
-    return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+    return bearingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }

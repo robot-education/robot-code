@@ -302,8 +302,9 @@ are left for what isn't a fit, like a pulley's teeth.
 ## Selections
 
 A selection of where to place something takes one pick (`"MaxNumberOfPicks" : 1`), and is named for it, e.g. "Edge to
-place nut strip" or "Sketch point to place nut strip"; to place more, add more features. Selections of what to act on,
-like a merge scope or the faces to extrude, can take several.
+place nut strip" or "Sketch point to place nut strip"; to place more, add more features. The exception is a feature
+placing many of the same part, like Robot bearing's and Robot bushing's "Sketch points to place bearings". Selections of
+what to act on, like a merge scope or the faces to extrude, can take several.
 
 ## No defaults maps
 

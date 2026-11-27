@@ -13,7 +13,7 @@ export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631
 export import(path : "core/autoAssembly.fs", version : "");
 
 /**
- * Placing a bearing or bushing, for Robot bearing and Robot bushing: a bore cut at a location for it, and it declared
+ * Placing bearings or bushings, for Robot bearing and Robot bushing: a bore cut at each location for one, and it declared
  * there for Auto Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body.
  */
 
@@ -42,12 +42,16 @@ export predicate canBeBearingPart(value)
 }
 
 /**
- * Where it goes: the location, the parts it's cut into, and its orientation, angle, and starting offset, as Robot
- * motor's.
+ * Where they go: the locations, one bearing or bushing at each, the parts they're cut into, and their orientation,
+ * angle, and starting offset, as Robot motor's.
+ * @param name {string} : What's placed, plural ("bearings").
  */
 export predicate bearingPositionPredicate(definition is map, name is string)
 {
-    locationPredicate(definition, name);
+    annotation { "Name" : "Sketch points to place " ~ name,
+                "Filter" : (EntityType.VERTEX && SketchObject.YES && ModifiableEntityOnly.YES) || GeometryType.CIRCLE || BodyType.MATE_CONNECTOR,
+                "UIHint" : UIHint.INITIAL_FOCUS }
+    definition.locations is Query;
 
     holeMergeScopePredicate(definition);
 
@@ -60,19 +64,42 @@ export predicate bearingPositionPredicate(definition is map, name is string)
     startOffsetPredicate(definition);
 }
 
+const LOCATION_ERROR = "Select a sketch point, circle, or mate connector to use.";
+
 /**
- * The plane it sits on: the location's, offset, turned to the angle reference and Angle, and flipped. Its normal points
- * out of the face it sits on, away from the parts; its x axis is the angle reference's. Adds the offset's and angle's
- * manipulators.
+ * The plane each one sits on: its location's, offset, turned to the angle reference and Angle, and flipped. Its normal
+ * points out of the face it sits on, away from the parts; its x axis is the angle reference's. Adds the offset's and
+ * angle's manipulators, on the first.
  */
-export function bearingPlane(context is Context, id is Id, definition is map, part is BearingPart) returns Plane
+export function bearingPlanes(context is Context, id is Id, definition is map, part is BearingPart) returns array
 {
-    var plane = applyStartOffset(context, definition, getLocationPlane(context, definition));
-    addStartOffsetManipulator(context, id, definition, plane);
-    plane = applyAngleReference(context, definition, plane);
-    plane = applyAxisOrientation(definition, plane);
-    addAngleOffsetManipulator(context, id, definition, plane, part.outerDiameter);
-    return applyAngleOffset(definition, plane);
+    const locations = evaluateQuery(context, definition.locations);
+    if (locations == [])
+    {
+        throw regenError(LOCATION_ERROR, ["locations"]);
+    }
+    var planes = [];
+    for (var i, location in locations)
+    {
+        const locationPlane = selectionPlane(context, location);
+        if (locationPlane == undefined)
+        {
+            throw regenError(LOCATION_ERROR, ["locations"], location);
+        }
+        var plane = applyStartOffset(context, definition, locationPlane);
+        if (i == 0)
+        {
+            addStartOffsetManipulator(context, id, definition, plane);
+        }
+        plane = applyAngleReference(context, definition, plane, "locations");
+        plane = applyAxisOrientation(definition, plane);
+        if (i == 0)
+        {
+            addAngleOffsetManipulator(context, id, definition, plane, part.outerDiameter);
+        }
+        planes = append(planes, applyAngleOffset(definition, plane));
+    }
+    return planes;
 }
 
 /**
@@ -85,48 +112,52 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 }
 
 /**
- * Cuts the bore, through the merge scope behind `plane`, at the part's outside diameter plus `clearance` (Robot bearing's Bore fit; none for a pressed-in bushing);
- * declares the part on the part it's in; and with Auto Assembly body, builds its Auto Assembly body. Returns the part the bore is in.
+ * Cuts a bore at each plane, through the merge scope behind it, at the part's outside diameter plus `clearance` (Robot
+ * bearing's Bore fit; none for a pressed-in bushing), in one boolean; declares a part in each, on the part it's in; and
+ * with Auto Assembly body, builds each one's Auto Assembly body.
  */
-export function placeBearing(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, clearance is ValueWithUnits, kind is AutoAssemblyKind) returns Query
+export function placeBearings(context is Context, id is Id, definition is map, planes is array, part is BearingPart, clearance is ValueWithUnits, kind is AutoAssemblyKind)
 {
     if (isQueryEmpty(context, definition.scope))
     {
         throw regenError(ErrorStringEnum.HOLE_EMPTY_SCOPE, ["scope"]);
     }
-    const bounds = evBox3d(context, { "topology" : definition.scope, "cSys" : coordSystem(plane), "tight" : false });
-    const depth = -bounds.minCorner[2];
-    if (!tolerantGreaterThan(depth, 0 * meter))
+    var hosts = [];
+    for (var i, plane in planes)
     {
-        throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
-    }
-    // Before the cut, which can split it
-    const host = partBehind(context, definition.scope, plane);
+        const bounds = evBox3d(context, { "topology" : definition.scope, "cSys" : coordSystem(plane), "tight" : false });
+        const depth = -bounds.minCorner[2];
+        if (!tolerantGreaterThan(depth, 0 * meter))
+        {
+            throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
+        }
+        // Before the cut, which can split it
+        hosts = append(hosts, partBehind(context, definition.scope, plane));
 
-    const sketchId = id + "boreSketch";
-    const sketch = newSketchOnPlane(context, sketchId, { "sketchPlane" : plane });
-    const boreDiameter = part.outerDiameter + clearance;
-    skCircle(sketch, "bore", { "center" : vector(0, 0) * meter, "radius" : boreDiameter / 2 });
-    skSolve(sketch);
-    opExtrude(context, id + "boreTool", {
-                "entities" : qSketchRegion(sketchId),
-                "direction" : -plane.normal,
-                "endBound" : BoundingType.BLIND,
-                "endDepth" : depth
-            });
-    const tool = qCreatedBy(id + "boreTool", EntityType.BODY);
+        const bearingId = id + bearingIdComponent(i);
+        const sketch = newSketchOnPlane(context, bearingId + "boreSketch", { "sketchPlane" : plane });
+        skCircle(sketch, "bore", { "center" : vector(0, 0) * meter, "radius" : (part.outerDiameter + clearance) / 2 });
+        skSolve(sketch);
+        opExtrude(context, bearingId + "boreTool", {
+                    "entities" : qSketchRegion(bearingId + "boreSketch"),
+                    "direction" : -plane.normal,
+                    "endBound" : BoundingType.BLIND,
+                    "endDepth" : depth
+                });
+    }
+    const tools = qUnion(mapArray(range(0, size(planes) - 1), i => qCreatedBy(id + bearingIdComponent(i) + "boreTool", EntityType.BODY)));
     try
     {
         opBoolean(context, id + "bore", {
-                    "tools" : tool,
+                    "tools" : tools,
                     "targets" : definition.scope,
                     "operationType" : BooleanOperationType.SUBTRACTION
                 });
     }
     catch
     {
-        // A failed boolean changes nothing, so the tool is still there to show
-        throw regenError("Failed to cut the bore.", ["scope"], tool);
+        // A failed boolean changes nothing, so the tools are still there to show
+        throw regenError("Failed to cut the bore.", ["scope"], tools);
     }
 
     // A part set's part has no document until its set is released
@@ -138,22 +169,32 @@ export function placeBearing(context is Context, id is Id, definition is map, pl
     {
         reportFeatureInfo(context, id, "FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly.");
     }
-    else
+    for (var i, plane in planes)
     {
-        declarePart(context, id + "mateConnector", {
-                    "owner" : host,
-                    "coordSystem" : bearingConnector(plane),
-                    "connector" : "mateConnector",
-                    "declaration" : declaration
-                });
-    }
-
-    if (definition.autoAssemblyBody)
-    {
-        buildBearingBody(context, id + "autoAssemblyBody", plane, part, declaration);
+        const bearingId = id + bearingIdComponent(i);
+        if (declaration != undefined)
+        {
+            declarePart(context, bearingId + "mateConnector", {
+                        "owner" : hosts[i],
+                        "coordSystem" : bearingConnector(plane),
+                        "connector" : "mateConnector",
+                        "declaration" : declaration
+                    });
+        }
+        if (definition.autoAssemblyBody)
+        {
+            buildBearingBody(context, bearingId + "autoAssemblyBody", plane, part, declaration);
+        }
     }
     cleanup(context, id + "deleteSketches", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
-    return host;
+}
+
+/**
+ * The id under which the `i`th location's bore, connector and Auto Assembly body are made: `bearing1`, `bearing2`.
+ */
+function bearingIdComponent(i is number) returns string
+{
+    return "bearing" ~ (i + 1);
 }
 
 /**
@@ -208,4 +249,47 @@ function extrudeRing(context is Context, id is Id, plane is Plane, outerDiameter
 export function bearingManipulatorChange(definition is map, newManipulators is map) returns map
 {
     return angleOffsetManipulatorChange(startOffsetManipulatorChange(definition, newManipulators), newManipulators);
+}
+
+/**
+ * Std's hole heuristics, as `mountingEditLogic`'s, at every location: they set the merge scope to the parts there, and
+ * Flip primary axis so the bores go into them, unless they've been set.
+ */
+export function bearingEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map, hiddenBodies is Query) returns map
+{
+    const holeDefinition = {
+            "locations" : locationPoints(context, id + "new", definition),
+            "scope" : definition.scope,
+            "oppositeDirection" : definition.oppositeDirection,
+            "startStyle" : HoleStartStyle.SKETCH,
+            "endStyle" : HoleEndStyle.THROUGH
+        };
+    const oldHoleDefinition = oldDefinition == {} ? {} : {
+                "locations" : locationPoints(context, id + "old", oldDefinition),
+                "scope" : oldDefinition.scope,
+                "oppositeDirection" : oldDefinition.oppositeDirection,
+                "startStyle" : HoleStartStyle.SKETCH,
+                "endStyle" : HoleEndStyle.THROUGH
+            };
+    const newHoleDefinition = holeScopeFlipHeuristicsCall(context, oldHoleDefinition, holeDefinition, specifiedParameters, hiddenBodies);
+    definition.scope = newHoleDefinition.scope;
+    definition.oppositeDirection = newHoleDefinition.oppositeDirection;
+    return definition;
+}
+
+/**
+ * A sketch point at each location that has a plane, for std's hole heuristics.
+ */
+function locationPoints(context is Context, id is Id, definition is map) returns Query
+{
+    var points = [];
+    for (var i, location in evaluateQuery(context, definition.locations))
+    {
+        const plane = selectionPlane(context, location);
+        if (plane != undefined)
+        {
+            points = append(points, sketchHoleLocation(context, id + ("location" ~ i), plane));
+        }
+    }
+    return qUnion(points);
 }

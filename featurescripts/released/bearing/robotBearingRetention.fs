@@ -5,11 +5,12 @@ import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 import(path : "452d43a015d17145ad7775e4", version : "5632c018fec45fab4e533392");
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
-export import(path : "core/bearing.fs", version : "");
+import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
+// Exports MateConnectorAxisType, a parameter type
+export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
+export import(path : "core/autoAssembly.fs", version : "");
 export import(path : "cd2c6499801ec51a7947274e", version : "6a0eab11cdac6776966381cd");
 export import(path : "released/bearing/robotBearingTables.gen.fs", version : "");
-// FRCDesign's bearings part set: its bearings' sizes and bores
-import(path : "bearings/bearings.fs", version : "");
 // The fasteners' enums: the screws a retention declares
 export import(path : "fasteners/fastenerTables.gen.fs", version : "");
 
@@ -31,7 +32,7 @@ export enum HatType
     CUSTOM
 }
 
-/** A standard or COTS hat's mounting holes' centers, as WCP makes them. */
+/** A standard hat's mounting holes' centers, as WCP makes them. */
 export enum HatCenters
 {
     annotation { "Name" : "1.25 in" }
@@ -52,33 +53,30 @@ export enum ScrewCount
 
 predicate isCustomHat(definition is map)
 {
-    definition.retention;
     definition.retentionType == RetentionType.HAT;
     definition.hatType == HatType.CUSTOM;
 }
 
 predicate useSingleHoleTable(definition is map)
 {
-    definition.retention;
     definition.retentionType == RetentionType.HAT;
     definition.hatType == HatType.COTS;
 }
 
 predicate useSingleClearanceHoleTable(definition is map)
 {
-    definition.retention;
     definition.retentionType == RetentionType.HAT;
     definition.hatType != HatType.COTS;
     !definition.cutMountingHoles;
 }
 
 /**
- * Whether the mounting holes are tapped, so a screw needs no nut: in the part behind, or a hat's alone when the part's
- * aren't cut.
+ * Whether the mounting holes are tapped, so a screw needs no nut: in the bearing's part, or a hat's alone when the
+ * part's aren't cut.
  */
 export function isTappedHoles(definition is map) returns boolean
 {
-    return definition.retention && !useSingleClearanceHoleTable(definition) && getHolePathAndValue(definition).path.holeType == "Tapped";
+    return !useSingleClearanceHoleTable(definition) && getHolePathAndValue(definition).path.holeType == "Tapped";
 }
 
 /**
@@ -122,8 +120,8 @@ predicate screwPredicate(definition is map)
 
 const HOLE_CIRCLE_BOUNDS = { (meter) : [1e-5, 0.0254 * 1.5, 500], (inch) : 1.5, (millimeter) : 38 } as LengthBoundSpec;
 
-annotation { "Feature Type Name" : "Robot bearing",
-        "Feature Type Description" : "Cut a bore for a bearing, and retain it with a hat or screws." ~ CREDIT,
+annotation { "Feature Type Name" : "Robot bearing retention",
+        "Feature Type Description" : "Retain a bearing with a hat or screws." ~ CREDIT,
         "Manipulator Change Function" : "robotBearingHatManipulatorChange",
         "Editing Logic Function" : "robotBearingHatEditLogic",
         "Auto Assembly" : true,
@@ -139,163 +137,199 @@ export const robotBearingHat = defineFeature(function(context is Context, id is 
         annotation { "Name" : "Holes tapped", "UIHint" : ["ALWAYS_HIDDEN"], "Set By" : "isTappedHoles" }
         definition.holesTapped is boolean;
 
-        annotation { "Group Name" : "Bearing", "Collapsed By Default" : false }
-        {
-            annotation { "Name" : "Bearing", "Lookup Table" : robotBearingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-            definition.bearing is LookupTablePath;
+        annotation { "Name" : "Retention type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "HORIZONTAL_ENUM"] }
+        definition.retentionType is RetentionType;
 
-            boreFitPredicate(definition);
+        if (definition.retentionType == RetentionType.HAT)
+        {
+            annotation { "Name" : "Hat type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "HORIZONTAL_ENUM"] }
+            definition.hatType is HatType;
         }
 
-        annotation { "Group Name" : "Position", "Collapsed By Default" : false }
+        annotation { "Group Name" : "Selections", "Collapsed By Default" : false }
         {
-            bearingPositionPredicate(definition, "bearing");
-        }
+            annotation {
+                        "Name" : "Bearing edge to place retention",
+                        "Filter" : GeometryType.CIRCLE && SketchObject.NO && EdgeTopology.TWO_SIDED && ConstructionObject.NO && ModifiableEntityOnly.YES && AllowMeshGeometry.NO && ActiveSheetMetal.NO,
+                        "MaxNumberOfPicks" : 1
+                    }
+            definition.bearingEdge is Query;
 
-        annotation { "Name" : "Retention", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-        definition.retention is boolean;
+            axisOrientationPredicate(definition);
 
-        annotation { "Group Name" : "Retention", "Driving Parameter" : "retention", "Collapsed By Default" : false }
-        {
-            if (definition.retention)
+            if (!isCustomHat(definition))
             {
-                annotation { "Name" : "Retention type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                definition.retentionType is RetentionType;
-
-                if (definition.retentionType == RetentionType.HAT)
-                {
-                    annotation { "Name" : "Hat type", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.hatType is HatType;
-
-                    if (definition.hatType == HatType.CUSTOM)
-                    {
-                        annotation {
-                                    "Name" : "First mounting location",
-                                    "Filter" : ((EntityType.VERTEX || GeometryType.CIRCLE) && ModifiableEntityOnly.YES) || BodyType.MATE_CONNECTOR,
-                                    "MaxNumberOfPicks" : 1
-                                }
-                        definition.firstMountingLocation is Query;
-
-                        annotation {
-                                    "Name" : "Second mounting location",
-                                    "Filter" : ((EntityType.VERTEX || GeometryType.CIRCLE) && ModifiableEntityOnly.YES) || BodyType.MATE_CONNECTOR,
-                                    "MaxNumberOfPicks" : 1
-                                }
-                        definition.secondMountingLocation is Query;
-
-                        annotation { "Name" : "Connect mounting locations" }
-                        definition.connectMountingLocations is boolean;
-                    }
-                    else
-                    {
-                        annotation { "Name" : "Hat centers", "Default" : HatCenters._2_IN, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        definition.hatCenters is HatCenters;
-                    }
-
-                    if (definition.hatType != HatType.COTS)
-                    {
-                        annotation { "Name" : "Cut mounting holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                        definition.cutMountingHoles is boolean;
-                    }
-                }
-                else
-                {
-                    annotation { "Name" : "Screw count", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.retentionScrewCount is ScrewCount;
-
-                    annotation { "Name" : "Override hole circle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.overrideHoleCircle is boolean;
-
-                    if (definition.overrideHoleCircle)
-                    {
-                        annotation { "Name" : "Hole circle diameter" }
-                        isLength(definition.holeCircleDiameter, HOLE_CIRCLE_BOUNDS);
-                    }
-                }
-
-                if (useSingleHoleTable(definition))
-                {
-                    annotation { "Name" : "Hole table", "Lookup Table" : singleHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.singleHolePath is LookupTablePath;
-                }
-                else if (useSingleClearanceHoleTable(definition))
-                {
-                    annotation { "Name" : "Hole table", "Lookup Table" : singleClearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.singleClearanceHolePath is LookupTablePath;
-                }
-                else
-                {
-                    annotation { "Name" : "Hole table", "Lookup Table" : holeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
-                    definition.holePath is LookupTablePath;
-                }
-
-                holeDiameterPredicate(definition);
-
-                if (definition.hasClearance)
-                {
-                    annotation { "Name" : "Tap drill diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_EXPRESSION"] }
-                    isLength(definition.tapDrillDiameter, HOLE_DIAMETER_BOUNDS);
-                }
-
-                screwPredicate(definition);
+                angleReferencePredicate(definition);
+                angleOffsetPredicate(definition);
             }
         }
 
-        annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
+        if (definition.retentionType == RetentionType.HAT)
         {
-            autoAssemblyBodyPredicate(definition);
-        }
-    }
-    {
-        const part = libraryBearing(definition);
-        const plane = bearingPlane(context, id, definition, part);
-        const host = placeBearing(context, id + "place", definition, plane, part, boreFitClearance(definition, part.outerDiameter), AutoAssemblyKind.BEARING);
-
-        if (definition.retention)
-        {
-            verifyHoleDiameter(context, id, definition);
-            if (definition.retentionType == RetentionType.HAT)
+            annotation { "Group Name" : "Bearing hat", "Collapsed By Default" : false }
             {
-                retainWithHat(context, id, definition, plane, part, host);
+                if (definition.hatType == HatType.CUSTOM)
+                {
+                    annotation {
+                                "Name" : "First mounting location",
+                                "Filter" : ((EntityType.VERTEX || GeometryType.CIRCLE) && ModifiableEntityOnly.YES) || BodyType.MATE_CONNECTOR,
+                                "MaxNumberOfPicks" : 1
+                            }
+                    definition.firstMountingLocation is Query;
+
+                    annotation {
+                                "Name" : "Second mounting location",
+                                "Filter" : ((EntityType.VERTEX || GeometryType.CIRCLE) && ModifiableEntityOnly.YES) || BodyType.MATE_CONNECTOR,
+                                "MaxNumberOfPicks" : 1
+                            }
+                    definition.secondMountingLocation is Query;
+
+                    annotation { "Name" : "Connect mounting locations" }
+                    definition.connectMountingLocations is boolean;
+                }
+                else if (definition.hatType == HatType.COTS)
+                {
+                    annotation { "Name" : "Hat", "Lookup Table" : hatTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.cotsHat is LookupTablePath;
+                }
+                else
+                {
+                    annotation { "Name" : "Hat centers", "Default" : HatCenters._2_IN, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.hatCenters is HatCenters;
+                }
+
+                if (definition.hatType != HatType.COTS)
+                {
+                    annotation { "Name" : "Cut mounting holes", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                    definition.cutMountingHoles is boolean;
+                }
+            }
+        }
+        else
+        {
+            annotation { "Group Name" : "Screws", "Collapsed By Default" : false }
+            {
+                annotation { "Name" : "Screw count", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.retentionScrewCount is ScrewCount;
+
+                annotation { "Name" : "Override hole circle", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.overrideHoleCircle is boolean;
+
+                if (definition.overrideHoleCircle)
+                {
+                    annotation { "Name" : "Hole circle diameter" }
+                    isLength(definition.holeCircleDiameter, HOLE_CIRCLE_BOUNDS);
+                }
+            }
+        }
+
+        annotation { "Group Name" : "Mounting holes", "Collapsed By Default" : false }
+        {
+            if (useSingleHoleTable(definition))
+            {
+                annotation { "Name" : "Hole table", "Lookup Table" : singleHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.singleHolePath is LookupTablePath;
+            }
+            else if (useSingleClearanceHoleTable(definition))
+            {
+                annotation { "Name" : "Hole table", "Lookup Table" : singleClearanceHoleTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.singleClearanceHolePath is LookupTablePath;
             }
             else
             {
-                retainWithScrews(context, id, definition, plane, part, host);
+                annotation { "Name" : "Hole table", "Lookup Table" : holeTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+                definition.holePath is LookupTablePath;
+            }
+
+            holeDiameterPredicate(definition);
+
+            if (definition.hasClearance)
+            {
+                annotation { "Name" : "Tap drill diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_EXPRESSION"] }
+                isLength(definition.tapDrillDiameter, HOLE_DIAMETER_BOUNDS);
             }
         }
 
+        annotation { "Group Name" : "Auto Assembly", "Collapsed By Default" : false }
+        {
+            screwPredicate(definition);
+        }
+    }
+    {
+        const bearing = bearingFromEdge(context, id, definition);
+        verifyHoleDiameter(context, id, definition);
+        if (definition.retentionType == RetentionType.HAT)
+        {
+            retainWithHat(context, id, definition, bearing);
+        }
+        else
+        {
+            retainWithScrews(context, id, definition, bearing);
+        }
         cleanup(context, id + "delete", qCreatedBy(id, EntityType.BODY)->qSketchFilter(SketchObject.YES));
     });
 
 /**
- * The bearing chosen, as FRCDesign's bearings part set makes it: its sizes and flange from the set's `BEARINGS`, and its
- * body's hole at its bore's corners (`boreRadius`).
+ * The bearing's bore, from its edge: the part it's in (`host`), its `diameter`, and the `plane` the retention sits on,
+ * at its center, its normal out of the part, flipped, and turned to the angle reference and Angle (but for a custom hat,
+ * whose mounting locations place it).
  */
-function libraryBearing(definition is map) returns BearingPart
+function bearingFromEdge(context is Context, id is Id, definition is map) returns map
 {
-    const entry = getLookupTable(robotBearingTable, definition.bearing);
-    if (entry.product == undefined)
+    verifyNonemptyQuery(context, definition, "bearingEdge", "Select a bearing edge to use.");
+
+    const host = qOwnerBody(definition.bearingEdge)->qBodyType(BodyType.SOLID);
+    if (isQueryEmpty(context, host))
     {
-        throw regenError("Choose a different bearing.", ["bearing"]);
+        throw regenError("The bearing edge must belong to a solid part.", ["bearingEdge"], definition.bearingEdge);
     }
-    const made = BEARINGS[entry.vendor][entry.bearingType][entry.bore][entry.size][entry.dimensions][entry.seal];
-    var part = {
-        "outerDiameter" : made.outerDiameter,
-        "width" : made.width,
-        "innerDiameter" : 2 * boreRadius(BEARING_BORES[entry.bore][entry.size]),
-        "product" : entry.product
-    };
-    if (entry.bearingType != BearingType.RADIAL)
+
+    const holeFace = qAdjacent(definition.bearingEdge, AdjacencyType.EDGE, EntityType.FACE)->qGeometry(GeometryType.CYLINDER);
+    if (evaluateQueryCount(context, holeFace) != 1)
     {
-        part.flangeDiameter = made.flangeDiameter;
-        part.flangeThickness = made.flangeThickness;
+        throw regenError("The bearing edge must be adjacent to a single hole.", ["bearingEdge"], definition.bearingEdge);
     }
-    return part as BearingPart;
+
+    const edgeCoordSystem = edgeOutOfHole(context, holeFace, definition.bearingEdge);
+    var plane = plane(edgeCoordSystem);
+    if (!isCustomHat(definition))
+    {
+        plane = applyAngleReference(context, definition, plane, "bearingEdge");
+    }
+    plane = applyAxisOrientation(definition, plane);
+    const diameter = 2 * evCurveDefinition(context, { "edge" : definition.bearingEdge }).radius;
+    if (!isCustomHat(definition))
+    {
+        addAngleOffsetManipulator(context, id, definition, plane, diameter);
+        plane = applyAngleOffset(definition, plane);
+    }
+    return { "host" : host, "diameter" : diameter, "plane" : plane };
 }
 
-function retainWithHat(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, host is Query)
+/**
+ * The edge's coordinate system, its z axis out of the hole it's on.
+ */
+function edgeOutOfHole(context is Context, holeFace is Query, edge is Query) returns CoordSystem
 {
-    const boreValues = getBoreValues(part.outerDiameter);
+    var coordSys = evCurveDefinition(context, { "edge" : edge }).coordSystem;
+    const holeBox = evBox3d(context, {
+                "topology" : holeFace,
+                "cSys" : coordSystem(coordSys.origin, perpendicularVector(coordSys.zAxis), coordSys.zAxis),
+                "tight" : true
+            });
+    if (tolerantGreaterThan(holeBox.maxCorner[2], 0 * meter))
+    {
+        coordSys.zAxis *= -1;
+    }
+    return coordSys;
+}
+
+/**
+ * @param bearing {map} : From `bearingFromEdge`.
+ */
+function retainWithHat(context is Context, id is Id, definition is map, bearing is map)
+{
+    const plane = bearing.plane;
     var mountingLocations;
     if (definition.hatType == HatType.CUSTOM)
     {
@@ -303,13 +337,13 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
     }
     else
     {
-        const width = hatCenters(definition.hatCenters);
+        const width = definition.hatType == HatType.COTS ? getLookupTable(hatTable, definition.cotsHat).centers : hatCenters(definition.hatCenters);
         mountingLocations = [vector(-width / 2, 0 * meter), vector(width / 2, 0 * meter)];
     }
 
     if (definition.hatType == HatType.COTS)
     {
-        const hat = cotsHat(part, definition.hatCenters);
+        const hat = getLookupTable(hatTable, definition.cotsHat);
         if (hat.product.documentId == "")
         {
             reportFeatureInfo(context, id, "FRCDesign's library doesn't have this hat yet, so it isn't declared for Auto Assembly.");
@@ -317,11 +351,11 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
         else
         {
             declarePart(context, id + "hat", {
-                        "owner" : host,
+                        "owner" : bearing.host,
                         "coordSystem" : coordSystem(plane.origin, plane.x, plane.normal),
                         "connector" : "mateConnector",
                         "declaration" : autoAssemblyDeclaration(AutoAssemblyKind.BEARING_HAT, hat.product as Product, {
-                                    "outerDiameter" : part.outerDiameter,
+                                    "boreDiameter" : bearing.diameter,
                                     "thickness" : hat.thickness
                                 })
                     });
@@ -331,7 +365,7 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
             // Seated on the hat's top, which isn't in the Part Studio: Auto Assembly goes through as thick a hole as it
             var top = plane;
             top.origin += plane.normal * hat.thickness;
-            declareScrews(context, id + "screws", definition, top, mountingLocations, host, {
+            declareScrews(context, id + "screws", definition, top, mountingLocations, bearing.host, {
                         "seatHeight" : hat.thickness,
                         "seatHoleDiameter" : hat.holeDiameter
                     });
@@ -339,7 +373,7 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
     }
     else
     {
-        const hat = createBearingHat(context, id + "bearingHat", definition, plane, boreValues, mountingLocations);
+        const hat = createBearingHat(context, id + "bearingHat", definition, plane, getBoreValues(bearing.diameter), mountingLocations);
         if (definition.declareScrews)
         {
             // Seated on the hat's top
@@ -351,23 +385,8 @@ function retainWithHat(context is Context, id is Id, definition is map, plane is
 
     if (definition.hatType == HatType.COTS || definition.cutMountingHoles)
     {
-        cutMountingHoles(context, id, definition, plane, mountingLocations, definition.scope);
+        cutMountingHoles(context, id, definition, plane, mountingLocations, bearing.host);
     }
-}
-
-/**
- * The hats set's hat for a bearing at a hat's centers: its `product`, `thickness` and mounting holes' `holeDiameter`.
- */
-export function cotsHat(part is BearingPart, centers is HatCenters) returns map
-{
-    const bore = roundToPrecision(part.outerDiameter / inch, 3) ~ " in";
-    const byBore = hatTable.entries[bore];
-    const hat = byBore == undefined ? undefined : byBore.entries[hatCentersName(centers)];
-    if (hat == undefined)
-    {
-        throw regenError("WCP makes no hat for this bearing at these centers. Use a standard or custom hat, or screws.", ["hatCenters", "bearing"]);
-    }
-    return hat;
 }
 
 function hatCenters(centers is HatCenters) returns ValueWithUnits
@@ -379,15 +398,6 @@ function hatCenters(centers is HatCenters) returns ValueWithUnits
             }[centers];
 }
 
-function hatCentersName(centers is HatCenters) returns string
-{
-    return {
-                HatCenters._1_25_IN : "1.25 in",
-                HatCenters._1_5_IN : "1.5 in",
-                HatCenters._2_IN : "2 in"
-            }[centers];
-}
-
 /** How far a screw retention's holes clear the bore. */
 const SCREW_WALL = 0.03 * inch;
 
@@ -395,21 +405,24 @@ const SCREW_WALL = 0.03 * inch;
  * Where a screw retention's holes go: evenly around the bore from the plane's x axis, on a circle clearing the bore by
  * a wall, so a screw head over each overlaps the bearing, unless overridden.
  */
-export function screwPositions(definition is map, part is BearingPart) returns array
+export function screwPositions(definition is map, boreDiameter is ValueWithUnits) returns array
 {
     const count = definition.retentionScrewCount == ScrewCount.TWO ? 2 : 3;
     const diameter = definition.overrideHoleCircle ? definition.holeCircleDiameter :
-        part.outerDiameter + 2 * SCREW_WALL + definition.holeDiameter;
+        boreDiameter + 2 * SCREW_WALL + definition.holeDiameter;
     return mapArray(range(0, count - 1), i => vector(cos(i * 360 * degree / count), sin(i * 360 * degree / count)) * diameter / 2);
 }
 
-function retainWithScrews(context is Context, id is Id, definition is map, plane is Plane, part is BearingPart, host is Query)
+/**
+ * @param bearing {map} : From `bearingFromEdge`.
+ */
+function retainWithScrews(context is Context, id is Id, definition is map, bearing is map)
 {
-    const positions = screwPositions(definition, part);
-    cutMountingHoles(context, id, definition, plane, positions, definition.scope);
+    const positions = screwPositions(definition, bearing.diameter);
+    cutMountingHoles(context, id, definition, bearing.plane, positions, bearing.host);
     if (definition.declareScrews)
     {
-        declareScrews(context, id + "screws", definition, plane, positions, host, {});
+        declareScrews(context, id + "screws", definition, bearing.plane, positions, bearing.host, {});
     }
 }
 
@@ -728,17 +741,17 @@ precondition
 
     callSubfeatureAndProcessStatus(id, hole, context, id + "cutHoles", holeDefinition, {
                 "propagateErrorDisplay" : true,
-                "featureParameterMap" : { "scope" : "scope" }
+                "featureParameterMap" : { "scope" : "bearingEdge" }
             });
 }
 
 export function robotBearingHatManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
 {
-    return bearingManipulatorChange(definition, newManipulators);
+    return angleOffsetManipulatorChange(definition, newManipulators);
 }
 
 /**
- * Has clearance: whether the hat's holes are tapped (from its hole table), which shows Tap drill diameter.
+ * Has clearance: whether the mounting holes are tapped (from its hole table), which shows Tap drill diameter.
  */
 function hasTappedHoles(definition is map) returns boolean
 {
@@ -746,7 +759,7 @@ function hasTappedHoles(definition is map) returns boolean
 }
 
 export function robotBearingHatEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,
-    isCreating is boolean, specifiedParameters is map, hiddenBodies is Query) returns map
+    isCreating is boolean) returns map
 {
     definition.hasClearance = hasTappedHoles(definition);
     definition.holesTapped = isTappedHoles(definition);
@@ -759,7 +772,7 @@ export function robotBearingHatEditLogic(context is Context, id is Id, oldDefini
             definition.tapDrillDiameter = lookupTableEvaluate(pathAndValue.value.tapDrillDiameter);
         }
     }
-    return mountingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
+    return definition;
 }
 
 function getHoleTableAndPath(definition is map) returns map

@@ -2452,16 +2452,16 @@ export const hatTable = {
                 "name" : "centers",
                 "displayName" : "Centers",
                 "entries" : {
-                    "1.25 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_1_25" }, "name" : "0.875\" OD Bearing Retention Plate (1.25\" C-C)" }, "thickness" : 0.09 * inch },
-                    "2 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_2" }, "name" : "0.875\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
+                    "1.25 in" : { "centers" : 1.25 * inch, "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_1_25" }, "name" : "0.875\" OD Bearing Retention Plate (1.25\" C-C)" }, "thickness" : 0.09 * inch },
+                    "2 in" : { "centers" : 2 * inch, "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_0_875", "centers" : "IN_2" }, "name" : "0.875\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
                 },
             },
             "1.125 in" : {
                 "name" : "centers",
                 "displayName" : "Centers",
                 "entries" : {
-                    "1.5 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_1_5" }, "name" : "1.125\" OD Bearing Retention Plate (1.5\" C-C)" }, "thickness" : 0.09 * inch },
-                    "2 in" : { "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_2" }, "name" : "1.125\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
+                    "1.5 in" : { "centers" : 1.5 * inch, "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_1_5" }, "name" : "1.125\" OD Bearing Retention Plate (1.5\" C-C)" }, "thickness" : 0.09 * inch },
+                    "2 in" : { "centers" : 2 * inch, "holeDiameter" : 0.201 * inch, "product" : { "documentId" : "", "elementId" : "", "configuration" : { "size" : "OD_1_125", "centers" : "IN_2" }, "name" : "1.125\" OD Bearing Retention Plate (2\" C-C)" }, "thickness" : 0.09 * inch },
                 },
             },
         },

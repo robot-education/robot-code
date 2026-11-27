@@ -105,7 +105,7 @@ title = "Bushings"
 folder = "bushings"
 definition = "bushingTables.py"
 
-# WCP's bearing retention plates, which Robot bearing's COTS hats declare. Not released yet: give it its FRCDesignLib
+# WCP's bearing retention plates, which Robot bearing retention's COTS hats declare. Not released yet: give it its FRCDesignLib
 # document as its frontend.
 [tool.fs.parts.bearingHats]
 title = "Bearing Hats"

@@ -1,6 +1,7 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
-import(path : "released/bearing/robotBearing.fs", version : "");
+import(path : "bearing/robotBearing.fs", version : "");
+import(path : "released/bearing/robotBearingRetention.fs", version : "");
 import(path : "bearings/bearingTables.gen.fs", version : "");
 import(path : "bearingHats/bearingHats.fs", version : "");
 import(path : "testing.fs", version : "");
@@ -38,12 +39,10 @@ export function testWcpMakesHatsForItsTwoBores()
 
 export function testScrewHolesClearTheBore()
 {
-    const part = { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "innerDiameter" : 0.5 * inch,
-            "product" : { "documentId" : "d", "elementId" : "e", "configuration" : {}, "name" : "Bearing" } } as BearingPart;
     for (var count in [ScrewCount.TWO, ScrewCount.THREE])
     {
         const definition = { "retentionScrewCount" : count, "overrideHoleCircle" : false, "holeDiameter" : 0.201 * inch };
-        const positions = screwPositions(definition, part);
+        const positions = screwPositions(definition, 1.125 * inch);
         expectEqual(size(positions), count == ScrewCount.TWO ? 2 : 3);
         for (var position in positions)
         {
@@ -51,7 +50,7 @@ export function testScrewHolesClearTheBore()
             expectNear(norm(position) - 0.201 * inch / 2, 1.125 * inch / 2 + 0.03 * inch, 1e-9 * meter);
         }
     }
-    const overridden = screwPositions({ "retentionScrewCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, part);
+    const overridden = screwPositions({ "retentionScrewCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, 1.125 * inch);
     expectNear(norm(overridden[1]), 1 * inch, 1e-9 * meter);
 }
 
@@ -65,6 +64,7 @@ export function testEveryCotsHatIsOneTheHatSetMakes()
             const made = BEARING_HATS[BearingHatVendor.WCP][BearingHatSize[configuration.size]][BearingHatCenters[configuration.centers]];
             expectTrue(made != undefined, entry.product.name);
             expectEqual(entry.thickness, made.thickness);
+            expectEqual(entry.centers, made.centers);
             expectEqual(entry.holeDiameter, made.holeDiameter);
         }
     }

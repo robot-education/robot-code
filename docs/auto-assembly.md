@@ -1,9 +1,9 @@
 # Auto Assembly from FeatureScripts, and simplification
 
-**Status: Robot motor, Robot bearing and Robot bushing declare their parts; FRCDesignApp places them.** Built here: the
+**Status: Robot motor, Robot bearing, Robot bearing retention and Robot bushing declare their parts; FRCDesignApp places them.** Built here: the
 `"Auto Assembly"` and `"Simplification"` annotations and their checks, `core/autoAssembly.fs`, `core/simplify.fs`,
 `core/bearing.fs`, the library snapshots (`fs_cli/library.py`), the bushings and bearing hats part sets, Robot motor (on
-main), Robot bearing and Robot bushing. Built in FRCDesignApp: **Assemble FeatureScript parts**, on its Auto Assembly
+main), Robot bearing, Robot bearing retention and Robot bushing. Built in FRCDesignApp: **Assemble FeatureScript parts**, on its Auto Assembly
 page, which inserts each declared part and fastens it to its host connector (FRCDesignApp's
 `docs/architecture/auto-assembly.md`). Not yet: swapping an Auto Assembly body for its part, and every other feature
 (see [Later](#later)).
@@ -38,8 +38,8 @@ a simplified feature builds too.
 The first declarations:
 
 - **Robot motor**: the motor or gearbox whose face it cut (see [Robot motor](#robot-motor)).
-- **Robot bearing** (Robot bearing hat, renamed) and **Robot bushing** (new): the bearing or bushing in the bore it
-  cuts, and the bearing's retention: its hat, or its screws (see
+- **Robot bearing** and **Robot bushing** (both new): the bearing or bushing in each bore they cut. **Robot bearing
+  retention** (Robot bearing hat, renamed): a bearing's hat, or its screws (see
   [Robot bearing and Robot bushing](#robot-bearing-and-robot-bushing)).
 
 ### The declaration
@@ -82,7 +82,7 @@ Where the part attaches to a part the feature cut, the feature puts a mate conne
 declaration: the plate, for a bearing or bushing in its bore. It comes into the assembly with that part, so Auto
 Assembly can place and fasten every bearing on it with nobody mating anything. It's named by the feature's id and a
 fixed name (`place` then `mateConnector`), so a mate to it survives the feature being edited. A fasten mate names a
-connector by its whole id, each part joined with `.`: Robot bearing's is `<featureId>.place.mateConnector`.
+connector by its whole id, each part joined with `.`: Robot bearing's first is `<featureId>.place.bearing1.mateConnector`.
 
 ### Auto Assembly bodies
 
@@ -162,7 +162,7 @@ generated part set never changes a released option id (`AGENTS.md`).
 - **Generated part sets**, for bearings, bushings and WCP's bearing hats (`featurescripts/bearings/`,
   `featurescripts/bushings/`, `featurescripts/bearingHats/`), and screws and nuts (`featurescripts/fasteners/`). Each
   studio has its connector where the convention says, and one catalog writes the feature's table, the studios'
-  configurations and the manifest, so a feature knows a part's sizes, as Robot bearing knows a hat's thickness. Until
+  configurations and the manifest, so a feature knows a part's sizes, as Robot bearing retention knows a hat's thickness. Until
   a set is released, its parts have no document, and the features declare nothing and say so. The hats' sizes are
   estimates until confirmed against FRCDesignLib's model.
 - **The library's own studios**, for Robot motor's motors, from a snapshot of FRCDesignLib (`fs_cli/library.py`). A
@@ -309,77 +309,84 @@ Simplified Model on when the assembly is simplified.
 
 ## Robot bearing and Robot bushing
 
-Robot bearing hat is renamed **Robot bearing**: its Feature Type Name and its file (`fs mv` to
-`bearing/robotBearing.fs`), never its constant, `robotBearingHat`, which documents store (`docs/featurescript-style.md`,
-"Released feature constants"). **Robot bushing** is new. They share their placement in `core/bearing.fs`; Robot bushing
-is Robot bearing without retention.
+**Robot bearing** and **Robot bushing** are new: each cuts bores, one at each sketch point picked, and declares its part
+in each. They share their placement in `core/bearing.fs`. **Robot bearing retention** is Robot bearing hat, renamed:
+its Feature Type Name and its file (`fs mv` to `released/bearing/robotBearingRetention.fs`), never its constant,
+`robotBearingHat`, which documents store (`docs/featurescript-style.md`, "Released feature constants"). It holds one
+bearing in, at its bore's edge.
 
-### What both do
+### What Robot bearing and Robot bushing do
 
-Both now cut the bore, as Robot motor cuts its face, rather than taking one already cut. The dialog, in Robot motor's
-shape and from the same `core/` predicates:
+Both cut the bores, as Robot motor cuts its face. The dialog, in Robot motor's shape and from the same `core/`
+predicates:
 
 | Group | Parameters |
 | --- | --- |
 | Bearing (Bushing) | **Bearing**: one of FRCDesign's bearings part set's FRC bearings (`featurescripts/bearings/`), by Vendor, Type, Bore, Size, Dimensions and Seal, skipping a level with one option (`robotBearingTable`); or **Bushing**: one of FRCDesign's bushings part set's (`featurescripts/bushings/`), by Vendor, Bore, Size, Material and Dimensions, the same way (`bushingTable`). Robot bearing's then has Bore fit and its clearance (`boreFitPredicate`, `core/fit.fs`); Robot bushing's has none, as a COTS bushing is pressed in |
-| Position | The location (`locationPredicate`: a sketch point, circle, or mate connector), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
-| Retention (Robot bearing) | Below |
+| Position | **Sketch points to place bearings** (bushings): any number of sketch points, circles, or mate connectors (`bearingPositionPredicate`), Merge scope (`holeMergeScopePredicate`), Flip primary axis and Reorient secondary axis (`axisOrientationPredicate`), Angle reference and Angle (`angleReferencePredicate`, `angleOffsetPredicate`), Starting offset (`startOffsetPredicate`) |
 | Other options | Auto Assembly body |
 
 What they do:
 
-1. **Editing logic**: `mountingEditLogic`, as Robot motor's: std's hole heuristics set the merge scope to the parts at
-   the location, and Flip primary axis so the bore goes into them, unless they've been set.
-2. **The plane**: the location's, offset, turned to the angle reference and Angle, and flipped; its normal points out
-   of the face the bearing sits on.
-3. **The bore**: a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at its outside
-   diameter), extruded through the merge
-   scope behind the plane and subtracted from it, in one boolean, as Robot motor's pilot is. A flanged product's
-   flange sits on the face; the bore is its body's diameter, not its flange's. The part the plane is on, of the merge
-   scope's, is the host.
-4. **Declaration**: a host connector on the host at the bore's center, on the plane, Z out of the bore, X the plane's
-   (so the angle reference turns it): the bearing set's `mateConnector`. A bearing's product is its set's studio, with
-   its record's configuration; until the set is released, the studio has no document, and the feature declares
+1. **Editing logic** (`bearingEditLogic`): std's hole heuristics, with a point at every location, set the merge scope
+   to the parts there, and Flip primary axis so the bores go into them, unless they've been set.
+2. **The planes**: each location's, offset, turned to the angle reference and Angle, and flipped; each normal points
+   out of the face its bearing sits on. The offset's and angle's manipulators are on the first.
+3. **The bores**: at each plane, a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at
+   its outside diameter), extruded through the merge scope behind it. All are subtracted in one boolean, as Robot
+   motor's pilot is. A flanged product's flange sits on the face; the bore is its body's diameter, not its flange's.
+   The part each plane is on, of the merge scope's, is that bore's host.
+4. **Declarations**: at each bore, a host connector on its host at the bore's center, on the plane, Z out of the bore,
+   X the plane's (so the angle reference turns it): the bearing set's `mateConnector`. Each bore's operations are
+   under `place.bearing<n>`, `<n>` its location's place in the selection. A bearing's product is its set's studio,
+   with its record's configuration; until the set is released, the studio has no document, and the feature declares
    nothing and says so.
-5. **Auto Assembly body**: a ring at the part's outside diameter, its hole at its bore's corners (the set's
-   `boreRadius`; a bushing's at its nominal size), into the bore, and a flanged bearing's flange on the face, at the
-   set's flange sizes: one extrude each.
-6. **Retention** (Robot bearing): below.
+5. **Auto Assembly bodies**: at each bore, a ring at the part's outside diameter, its hole at its bore's corners (the
+   set's `boreRadius`; a bushing's at its nominal size), into the bore, and a flanged bearing's flange on the face, at
+   the set's flange sizes: one extrude each.
 
 `"Auto Assembly" : true` on both.
 
-### Retention (Robot bearing)
+### Robot bearing retention
 
-**Retention** is a checkbox driving its own group (`"Driving Parameter" : "retention"`), off by default and remembered.
-Off, the bearing is cut and declared with nothing holding it. On, its group starts with a **Retention type**, Hat or
-Screws. Both use the Position group's angle reference and Angle, and cut their holes through the same merge scope.
+It takes **Bearing edge to place retention**: a bore's circular edge, as Robot bearing hat did. The bore's diameter is
+the edge's, and its plane is the edge's, its normal out of the hole. Flip primary axis, Reorient secondary axis, Angle
+reference and Angle turn it, but for a custom hat, whose mounting locations place it. Its holes are cut into the
+edge's part, which is the host of what it declares.
 
-**Hat** is the old feature's: COTS, Standard or Custom hat (a dropdown in the group), its mounting holes and their hole
-tables. A standard or COTS hat's size is **Hat centers** (1.25, 1.5 or 2 in.); every hat's bore is the bearing's. Its
-Auto Assembly options:
+A top level **Retention type** is Hat or Screws. Under Hat, a second, **Hat type**: COTS, Standard or Custom hat.
 
-- A COTS hat declares itself: WCP's Bearing Retention Hat for the bearing's outside diameter at Hat centers (0.875 in.
-  at 1.25 or 2 in., 1.125 in. at 1.5 or 2 in.), or an error. Its connector goes on the bearing's part at the bore's
-  center, X toward a mounting hole.
-- **Declare screws**, for a standard or custom hat: a screw at each mounting hole, seated on the hat's top, from the
-  fasteners part set: Screw vendor, Screw head, Screw finish, and Screw length or **Automatic length** (no length in
-  the declaration, for Auto Assembly to size from what the hole goes through). #10-32 only, as the hat's holes are;
-  24 tpi tapped holes declare none, with an info saying why. Each is on a connector named as the fasteners' own
-  (`mateConnector`), Z out of the hole. A COTS hat's screws aren't declared, as the library doesn't give its
-  thickness, so where they seat; Auto Assembly's hole fastening can fasten them.
+**Hat** is the old feature's hats, with their mounting holes and hole tables:
+
+- A standard hat's size is **Hat centers** (1.25, 1.5 or 2 in.). A standard or custom hat's bore is the edge's.
+- A COTS hat is **Hat**: one of FRCDesign's bearing hats part set's WCP hats, by the bearing's outside diameter and
+  centers (0.875 in. at 1.25 or 2 in., 1.125 in. at 1.5 or 2 in.; `hatTable`). It declares itself: its connector goes
+  on the host at the bore's center, X toward a mounting hole.
 
 **Screws** retains the bearing with screw heads over its outer race or flange:
 
-- **Holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
 - **Count**: 2 or 3, evenly around the bore (180 or 120 degrees apart), from the plane's X axis.
-- **Hole circle**: the bearing's outside diameter, plus the hole, plus a 0.03 in. wall each side, so each hole clears
-  the bore and a head over it overlaps the bearing (`screwPositions`); **Override hole circle** sets it by hand.
-- **Declare screws**: as a printed hat's, seated on the bearing's part's face. No washer or nut is declared; Auto
-  Assembly's planner adds a nut to a hole it fastens through.
+- **Hole circle**: the bore's diameter, plus the hole, plus a 0.03 in. wall each side, so each hole clears the bore and
+  a head over it overlaps the bearing (`screwPositions`); **Override hole circle** sets it by hand.
+
+**Mounting holes**: Tapped or Clearance, with their hole tables, as Robot bearing hat's.
+
+**Declare screws** (its Auto Assembly group): a screw at each mounting hole, from the fasteners part set: Screw vendor,
+Screw head, Screw finish, and Screw length or **Automatic length** (no length in the declaration, for Auto Assembly to
+size from what the hole goes through).
+
+- #10-32 only, as the holes are; 24 tpi tapped holes declare none, with an info saying why.
+- Each is on a connector named as the fasteners' own (`mateConnector`), Z out of the hole.
+- A standard or custom hat's screws seat on its top. A COTS hat's seat as high as it is thick, with `seatHeight` and
+  `seatHoleDiameter` in their spec, so Auto Assembly goes through the hat it places in the same run. A screw
+  retention's seat on the host's face.
+- Where the holes aren't tapped, **Nut** declares the fasteners' Nut studio in that type on each screw.
+
+`"Auto Assembly" : true`.
 
 ### Robot bushing
 
-The same, with the bushings part set's bushings, and no Retention group: `featurescripts/bushing/`.
+Robot bearing's placement, with the bushings part set's bushings: `featurescripts/bushing/`.
 
 The bushings part set (`featurescripts/bushings/`, `libraryBushing`, in a Bushing Part Studio) is built as the bearings'
 is, from FRCDesignLib's Flanged Bushing records, with flanges from The Thrifty Bot's STEP files and FRCDesignLib's
@@ -389,9 +396,9 @@ WCP's and ThriftyBot's, and Generic's of the same: VEX no longer sells bushings,
 
 ### What changes for documents
 
-Robot bearing hat's released documents select a bore's edge, which Robot bearing no longer takes. Following
-`AGENTS.md`'s "Backwards compatibility", the parameters change with no migration: a document updating to it shows the
-feature's error until its location is picked again.
+Robot bearing hat's released documents keep their bearing edge, and update to Robot bearing retention. Following
+`AGENTS.md`'s "Backwards compatibility", the hat tables' parameters go with no migration: a standard hat takes the
+default Hat centers, and a custom hat's bore is its edge's.
 
 ## Icons in the FeatureScripts tab
 
@@ -435,7 +442,7 @@ Library parts whose admin marked a simplification parameter show the Simplified 
 Each of these is unverified, and the run leans on it:
 
 1. A fasten mate to a connector a custom feature made keeps resolving after the feature is edited. (It's named by its
-   whole id joined with `.`, as `<featureId>.place.mateConnector`, by the owner.)
+   whole id joined with `.`, as `<featureId>.place.bearing1.mateConnector`, by the owner.)
 2. `lastModifyingOperationId` of that connector, in an evaluated script, gives that id (the owner expects so).
 3. An attribute set on a solid and on a mate connector body can be read back by an evaluated script, and
    `qMateConnectorsOfParts` finds a connector a feature attached to a part with `owner`.
