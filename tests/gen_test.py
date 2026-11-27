@@ -112,7 +112,7 @@ def test_a_definition_configuring_studios_alone_writes_its_exports_alone(tmp_pat
 
 def test_gen_tables_command(tmp_path, monkeypatch, capsys):
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     code_dir = tmp_path / "featurescripts" / "belt"
     code_dir.mkdir(parents=True)

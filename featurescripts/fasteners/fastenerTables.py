@@ -6,7 +6,7 @@ This is the source of three things, which must agree:
 
 - fastenerTables.gen.fs: the enums and data the screw, washer, and nut features build from.
 - The configurations of the Part Studios exposing those features, one per kind (`STUDIOS`), which
-  `fs parts fasteners --test` (in the backend, as `<Part> (TEST)`) and `fs parts fasteners --release` (in FRCDesignLib's
+  `fs build fasteners` (in the backend, as `<Part> (TEST)`) and `fs release fasteners` (in FRCDesignLib's
   Fasteners document)
   build: an input per feature parameter, laid out from what's made by `LookupTable`'s rules (see docs/fs-cli.md's
   "Configured Part Studios"): Length shows only the lengths the chosen vendor makes in the chosen size, head, and

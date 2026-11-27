@@ -68,7 +68,7 @@ export function run(context is Context)
 @pytest.fixture
 def project(tmp_path) -> Project:
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\n'
+        '[tool.fs]\ndocuments.backend = { role = \"backend\", url = \"https://cad.onshape.com/documents/d/w/w\" }\n'
     )
     for path, code in FILES.items():
         file = tmp_path / "featurescripts" / path
@@ -1117,32 +1117,41 @@ def test_unknown_annotation_keys(project):
 
 def test_support_annotations_say_what_the_feature_does(project):
     core = project.code_dir / "core"
-    (core / "declare.fs").write_text(f"FeatureScript 2909;\n{STD}\nexport function declarePart(context is Context) {{}}\n")
+    (core / "declare.fs").write_text(
+        f"FeatureScript 2909;\n{STD}\nexport function declarePart(context is Context) {{}}\n"
+        "export predicate simplificationPredicate(definition is map)\n{\n"
+        '    annotation { "Name" : "Allow simplification", "Default" : true }\n'
+        "    definition.allowSimplification is boolean;\n}\n"
+    )
     (core / "helper.fs").write_text(
         f'FeatureScript 2909;\n{STD}\nexport import(path : "core/declare.fs", version : "");\n'
         "export function place(context is Context) {{ declarePart(context); }}\n"
     )
 
-    def feature(annotation: str, body: str = "", imported: str = "core/helper.fs") -> list[str]:
+    def feature(annotation: str, precondition: str = "", body: str = "", imported: str = "core/helper.fs") -> list[str]:
         path = project.code_dir / "feature2.fs"
         path.write_text(
             f'FeatureScript 2909;\n{STD}\nimport(path : "{imported}", version : "");\n'
             f'annotation {{ "Feature Type Name" : "Thing"{annotation} }}\n'
             "export const f = defineFeature(function(context is Context, id is Id, definition is map)\n"
-            f"    precondition\n    {{\n    }}\n    {{\n{body}    }});\n"
+            f"    precondition\n    {{\n{precondition}    }}\n    {{\n{body}    }});\n"
         )
         return [p.message for p in project.check(project.module(path)) if p.code == "support-annotation"]
 
-    # Declaring parts through a project module it imports counts
-    assert feature(', "Auto Assembly" : true', "        place(context);\n") == []
-    assert feature("", "        place(context);\n") == [
+    # Declaring parts through a project module it imports counts, and so does the predicate's parameter
+    assert feature(', "Auto Assembly" : true, "Simplification" : true', "        simplificationPredicate(definition);\n",
+                   "        place(context);\n") == []
+    assert feature("", "        simplificationPredicate(definition);\n", "        place(context);\n") == [
         'The feature declares parts, so its annotation needs "Auto Assembly" : true, for FRCDesignApp to show it.',
+        'The feature allows simplification, so its annotation needs "Simplification" : true, for FRCDesignApp to '
+        "show it.",
     ]
-    assert feature(', "Auto Assembly" : true', imported="core/utils.fs") == [
-        'The feature says "Auto Assembly" : true, but it declares no parts (it never calls declarePart, from '
-        "core/autoAssembly.fs).",
+    # A file importing a module that declares parts is taken to declare them
+    assert feature(', "Simplification" : true, "Auto Assembly" : 1', imported="core/utils.fs") == [
+        'The feature says "Simplification" : true, but it doesn\'t allow simplification (its precondition never calls '
+        "simplificationPredicate, from core/simplify.fs).",
+        '"Auto Assembly" must be true or false.',
     ]
-    assert feature(', "Auto Assembly" : 1', imported="core/utils.fs") == ['"Auto Assembly" must be true or false.']
 
 
 def test_vendor_is_asked_first(project):

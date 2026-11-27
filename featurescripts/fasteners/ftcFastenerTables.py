@@ -21,7 +21,7 @@ FTC = _TABLES["FTC"]
 STUDIOS = FTC.studios
 RECORDS = FTC.records
 
-# Where each studio was last released: `fs parts ftcFasteners --release` records it beside this file
+# Where each studio was last released: `fs release ftcFasteners` records it beside this file
 LOCATIONS = read_locations(pathlib.Path(__file__))
 
 EXPORTS = {

@@ -17,12 +17,12 @@ from onshape_api.endpoints import (
     metadata,
     part_studios,
     versions,
-    workspaces,
 )
+from onshape_api.api.key_api import ANONYMOUS_REFUSALS
 from onshape_api.exceptions import ApiError
 from onshape_api.endpoints.std_versions import get_latest_std_version
 from onshape_api.paths.paths import DocumentPath, ElementPath, InstancePath
-from onshape_api.types import ElementGroup, ElementType, MergeStrategy
+from onshape_api.types import ElementGroup, ElementType
 
 
 @dataclasses.dataclass
@@ -100,12 +100,13 @@ class Version:
 
 
 @dataclasses.dataclass
-class RemoteWorkspace:
-    """A workspace (a branch) of a document."""
+class RemoteDocument:
+    """A document anyone with its link can open (public or link-shared), as `fs push --to` checks it before writing
+    to it: fs lists tabs anonymously, which only works for those."""
 
-    id: str
     name: str
-    description: str = ""
+    # Whether it's public, rather than only link-shared
+    public: bool
 
 
 class Remote(Protocol):
@@ -149,6 +150,11 @@ class Remote(Protocol):
 
     def default_workspace(self, document_id: str) -> InstancePath: ...
 
+    def shared_document(self, document_id: str) -> RemoteDocument | None:
+        """The document, if anyone with its link can open it (it's public or link-shared); None if not (anonymous, so
+        free)."""
+        ...
+
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         """Lists the images (blob elements holding SVGs or PNGs) in a document, with their microversions."""
         ...
@@ -178,22 +184,6 @@ class Remote(Protocol):
 
     def read_file(self, instance: InstancePath, name: str) -> bytes | None:
         """The file in the blob tab named `name`, or None without one."""
-        ...
-
-    def element_ids(self, instance: InstancePath) -> set[str]:
-        """Every tab's element id (anonymous for public documents)."""
-        ...
-
-    def workspaces(self, document_id: str) -> list[RemoteWorkspace]: ...
-
-    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
-        """Branches a workspace from a version (1 call)."""
-        ...
-
-    def delete_workspace(self, instance: InstancePath) -> None: ...
-
-    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
-        """Merges a workspace of the same document into target (1 call)."""
         ...
 
     def build_studio(
@@ -272,6 +262,15 @@ class OnshapeRemote:
     def default_workspace(self, document_id: str) -> InstancePath:
         return documents.get_default_workspace(self.api, DocumentPath(document_id))
 
+    def shared_document(self, document_id: str) -> RemoteDocument | None:
+        try:
+            info = documents.get_document(self.api, DocumentPath(document_id), fallback=False)
+        except ApiError as error:
+            if error.status_code in ANONYMOUS_REFUSALS:
+                return None
+            raise
+        return RemoteDocument(info.get("name", ""), bool(info.get("public")))
+
     def list_images(self, instance: InstancePath) -> list[RemoteImage]:
         elements = documents.get_document_elements(self.api, instance, ElementType.BLOB)
         return [
@@ -330,27 +329,6 @@ class OnshapeRemote:
         if not tabs:
             return None
         return blob_elements.download_file(self.api, ElementPath.from_path(instance, tabs[0]))
-
-    def element_ids(self, instance: InstancePath) -> set[str]:
-        return {element["id"] for element in documents.get_document_elements(self.api, instance)}
-
-    def workspaces(self, document_id: str) -> list[RemoteWorkspace]:
-        return [
-            RemoteWorkspace(workspace["id"], workspace["name"], workspace.get("description") or "")
-            for workspace in workspaces.get_workspaces(self.api, DocumentPath(document_id))
-        ]
-
-    def create_workspace(self, document_id: str, version_id: str, name: str, description: str) -> RemoteWorkspace:
-        created = workspaces.create_workspace(self.api, DocumentPath(document_id), version_id, name, description)
-        return RemoteWorkspace(created["id"], created["name"], description)
-
-    def delete_workspace(self, instance: InstancePath) -> None:
-        workspaces.delete_workspace(self.api, instance)
-
-    def merge(self, target: InstancePath, source_workspace_id: str, strategy: MergeStrategy) -> None:
-        merged = workspaces.merge_into_workspace(self.api, target, source_workspace_id, strategy)
-        if merged.get("libraryVersionMismatch"):
-            raise ValueError("Onshape won't merge workspaces at different FeatureScript versions.")
 
     def build_studio(
         self, instance: InstancePath, studio: ConfiguredStudio, feature_studio_id: str, microversion_id: str

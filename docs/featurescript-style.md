@@ -681,9 +681,10 @@ Onshape warns about a variable which is set but never used. Name one you don't n
   "Hidden parameters set by editing logic").
 - A feature's `vendor` is the first parameter its dialog shows after its horizontal enums, and a `<part>Vendor`
   (`screwVendor`) comes before the rest of its part's (`screwHead`); see "Vendor goes first".
-- `"Auto Assembly"`, a key of ours in a feature's annotation (see `docs/auto-assembly.md`), is `true` or `false`, only
-  in a feature's annotation, and true exactly when the feature declares parts (`declarePart` is called in its file or a
-  project file it imports).
+- `"Auto Assembly"` and `"Simplification"`, keys of ours in a feature's annotation (see `docs/auto-assembly.md`), are
+  `true` or `false`, only in a feature's annotation, and true exactly when it does what they say: declares parts
+  (`declarePart` is called in its file or a project file it imports) or allows simplification (its precondition
+  declares `allowSimplification`, by `simplificationPredicate`).
 - Top-level constants, enums, and types can't share a name with anything the file or its imports declare.
 - Functions and predicates declared with `function` or `predicate`, std's too (`mapArray(points, norm)`), can only
   be called, not used as values (see "Functions as values").

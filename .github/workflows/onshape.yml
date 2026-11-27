@@ -38,6 +38,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Make the releases asked for
-        run: uv run fs run-releases
+        run: uv run fs releases --run
       - name: Push what releasing committed
         run: git push origin HEAD:main

@@ -20,6 +20,8 @@ class ApiQueryArgs(TypedDict):
     headers: NotRequired[dict[str, str]]
     # Send the request without credentials (see `Api._request`)
     anonymous: NotRequired[bool]
+    # With anonymous, False to raise a refusal rather than send the request again with credentials
+    fallback: NotRequired[bool]
     # Return the response's bytes, unparsed, even when they're JSON (like a .json file in a blob element)
     raw: NotRequired[bool]
 
@@ -85,6 +87,7 @@ class Api(ABC):
         headers: dict[str, str] = {},
         anonymous: bool = False,
         raw: bool = False,
+        fallback: bool = True,
     ) -> Any:
         """
         Issues a request to Onshape.
@@ -96,10 +99,13 @@ class Api(ABC):
                 Content-Type is given in headers.
             headers: Extra headers to add to the request.
             anonymous: Whether to try the request without credentials first. Onshape answers some requests
-                about public documents anonymously (see onshape_api/README.md), and those don't count against
-                the API limits of the credentials' owner. If the document turns out not to be public, the
-                request is made again with credentials, and later anonymous requests about it skip straight to
-                that.
+                about documents anyone with the link can open (public or link-shared) anonymously (see
+                onshape_api/README.md), and those don't count against the API limits of the credentials' owner.
+                If the document turns out not to be, the request is made again with credentials, and later
+                anonymous requests about it skip straight to that.
+            fallback: With anonymous, False to raise Onshape's refusal (an ApiError with a status in
+                ANONYMOUS_REFUSALS) instead of making the request again with credentials, to see whether a
+                document can be opened by anyone without spending a call.
             raw: Whether to return the response's bytes rather than parse them.
 
         Returns:

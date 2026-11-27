@@ -15,7 +15,7 @@ FRAME_ID = "a" * 24
 def repo(tmp_path, monkeypatch):
     """A repo with a function used in two files, and a released feature; its std is the checked-in one."""
     (tmp_path / "pyproject.toml").write_text(
-        f'[tool.fs]\nbackend = "https://cad.onshape.com/documents/d/w/w"\nstd = "{STD.as_posix()}"\n'
+        f'[tool.fs]\ndocuments.backend = {{ role = "backend", url = "https://cad.onshape.com/documents/d/w/w" }}\nstd = "{STD.as_posix()}"\n'
     )
     code = tmp_path / "featurescripts"
     code.mkdir()

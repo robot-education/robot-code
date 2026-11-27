@@ -20,6 +20,8 @@ export const AUTO_ASSEMBLY_VERSION = 1;
  */
 export enum AutoAssemblyKind
 {
+    MOTOR,
+    GEARBOX,
     BEARING,
     BUSHING,
     BEARING_HAT,

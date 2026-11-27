@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Onshape REST API",
-    "version": "1.222.91487-5a29448ff2dd",
+    "version": "1.224.94820-1c159e0b3220",
     "description": "Trimmed from https://cad.onshape.com/api/openapi by onshape_api/reference/generate.py. Do not edit."
   },
   "paths": {
@@ -749,6 +749,49 @@
         "x-BTVisibility": "PRODUCTION"
       }
     },
+    "/documents/{did}": {
+      "get": {
+        "tags": [
+          "Document"
+        ],
+        "summary": "Retrieve document by document ID.",
+        "operationId": "getDocument",
+        "parameters": [
+          {
+            "name": "did",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success!",
+            "content": {
+              "application/json;charset=UTF-8; qs=0.09": {
+                "schema": {
+                  "$ref": "#/components/schemas/BTDocumentInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false,
+        "security": [
+          {
+            "OAuth2": [
+              "OAuth2Read"
+            ],
+            "BasicAuth": [
+              "OAuth2Read"
+            ]
+          }
+        ],
+        "x-BTVisibility": "PRODUCTION"
+      }
+    },
     "/documents/{did}/workspaces/{wid}/merge": {
       "post": {
         "tags": [
@@ -1260,9 +1303,14 @@
           }
         },
         "x-BTVisibility-properties": {
+          "createEmptyStartVersion": "INTERNAL",
+          "targetWorkspaceParentId": "INTERNAL",
           "upgradeFeatureScriptVersion": "INTERNAL",
+          "targetWorkspaceName": "INTERNAL",
+          "targetWorkspace": "INTERNAL",
           "documentVersions": "INTERNAL",
           "documentId": "INTERNAL",
+          "targetWorkspaceDescription": "INTERNAL",
           "preserveSourceIds": "INTERNAL"
         }
       },
@@ -1527,6 +1575,271 @@
           }
         ]
       },
+      "BTDocumentInfo": {
+        "type": "object",
+        "discriminator": {
+          "propertyName": "jsonType",
+          "mapping": {
+            "document": "#/components/schemas/BTDocumentInfo",
+            "document-processing": "#/components/schemas/BTDocumentProcessingInfo"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTGlobalTreeNodeSummaryInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "anonymousAccessAllowed": {
+                "type": "boolean"
+              },
+              "anonymousAllowsExport": {
+                "type": "boolean"
+              },
+              "canMove": {
+                "type": "boolean",
+                "description": "Whether the resource can be moved to a new parent."
+              },
+              "canUnshare": {
+                "type": "boolean"
+              },
+              "connectionName": {
+                "type": "string",
+                "description": "Name of the external connection this resource is linked to, if any."
+              },
+              "connectionNames": {
+                "type": "array",
+                "description": "Names of the external connections this resource is linked to.",
+                "items": {
+                  "type": "string",
+                  "description": "Names of the external connections this resource is linked to."
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "description": "Date and time the resource was created.",
+                "format": "date-time"
+              },
+              "createdBy": {
+                "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+              },
+              "createdWithEducationPlan": {
+                "type": "boolean"
+              },
+              "defaultElementId": {
+                "type": "string"
+              },
+              "defaultWorkspace": {
+                "$ref": "#/components/schemas/BTWorkspaceInfo"
+              },
+              "description": {
+                "type": "string",
+                "description": "Description of the resource."
+              },
+              "documentLabels": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BTDocumentLabelInfo"
+                }
+              },
+              "documentThumbnailElementId": {
+                "type": "string"
+              },
+              "documentType": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "duplicateNameViolationError": {
+                "type": "string"
+              },
+              "forceExportRules": {
+                "type": "boolean"
+              },
+              "hasReleaseRevisionableObjects": {
+                "type": "boolean"
+              },
+              "hasRelevantInsertables": {
+                "type": "boolean"
+              },
+              "href": {
+                "type": "string",
+                "description": "URI to fetch complete information of the resource.",
+                "format": "uri"
+              },
+              "id": {
+                "type": "string",
+                "description": "Id of the resource."
+              },
+              "isContainer": {
+                "type": "boolean",
+                "description": "Whether the resource can contain other resources."
+              },
+              "isEnterpriseOwned": {
+                "type": "boolean",
+                "description": "Whether the resource is owned by an enterprise."
+              },
+              "isExternalConnectionResource": {
+                "type": "boolean",
+                "description": "Whether this resource comes from an external connection."
+              },
+              "isMutable": {
+                "type": "boolean",
+                "description": "Whether the resource can be modified."
+              },
+              "isUpgradedToLatestVersion": {
+                "type": "boolean"
+              },
+              "isUsingManagedWorkflow": {
+                "type": "boolean"
+              },
+              "likedByCurrentUser": {
+                "type": "boolean"
+              },
+              "likes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "modifiedAt": {
+                "type": "string",
+                "description": "Date and time the resource was last modified.",
+                "format": "date-time"
+              },
+              "modifiedBy": {
+                "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+              },
+              "name": {
+                "type": "string",
+                "description": "Name of the resource."
+              },
+              "notRevisionManaged": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "numberOfTimesCopied": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "numberOfTimesReferenced": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "owner": {
+                "$ref": "#/components/schemas/BTOwnerInfo"
+              },
+              "parentId": {
+                "type": "string",
+                "description": "The ID of the resource's parent folder or container."
+              },
+              "permission": {
+                "$ref": "#/components/schemas/BTOldPermission"
+              },
+              "permissionSet": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "projectId": {
+                "type": "string",
+                "description": "The ID of the project the resource belongs to, if any."
+              },
+              "public": {
+                "type": "boolean"
+              },
+              "publicLinkable": {
+                "type": "boolean"
+              },
+              "publishedVersionId": {
+                "type": "string"
+              },
+              "recentVersion": {
+                "$ref": "#/components/schemas/BTBaseInfo"
+              },
+              "requireApprovedDrawingTemplatesPreference": {
+                "type": "boolean"
+              },
+              "resourceType": {
+                "type": "string",
+                "description": "The type of resource.",
+                "example": "document"
+              },
+              "sequence": {
+                "type": "string"
+              },
+              "supportTeamUserAndShared": {
+                "type": "boolean"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "thumbnail": {
+                "$ref": "#/components/schemas/BTThumbnailInfo"
+              },
+              "trash": {
+                "type": "boolean"
+              },
+              "trashedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "treeHref": {
+                "type": "string",
+                "description": "URI to fetch this resource's position in the global tree."
+              },
+              "unparentHref": {
+                "type": "string",
+                "description": "URI to call to remove this resource from its parent."
+              },
+              "userAccountLimitsBreached": {
+                "type": "boolean"
+              },
+              "viewRef": {
+                "type": "string",
+                "description": "URI to visualize the resource in a webclient if applicable.",
+                "format": "uri"
+              }
+            }
+          }
+        ],
+        "x-BTVisibility-properties": {
+          "totalWorkspacesUpdating": "INTERNAL",
+          "defaultVersionGraphMode": "INTERNAL",
+          "totalWorkspacesScheduledForUpdate": "INTERNAL",
+          "canImportViaConnectionGlobalPermission": "INTERNAL",
+          "isOrphaned": "INTERNAL",
+          "defaultVersionGraphShowAutoVersions": "INTERNAL",
+          "defaultVersionGraphShowMerges": "INTERNAL",
+          "canCreateTaskViaConnectionGlobalPermission": "INTERNAL",
+          "canExportViaConnectionGlobalPermisison": "INTERNAL",
+          "tracingEnabled": "INTERNAL",
+          "elementLibrarySummaryInfo": "INTERNAL"
+        }
+      },
+      "BTDocumentLabelInfo": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTGlobalTreeNodeInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "parentLabelId": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
       "BTDocumentMergeInfo": {
         "type": "object",
         "properties": {
@@ -1689,6 +2002,265 @@
           }
         ]
       },
+      "BTGlobalTreeNodeInfo": {
+        "required": [
+          "jsonType"
+        ],
+        "type": "object",
+        "properties": {
+          "canMove": {
+            "type": "boolean",
+            "description": "Whether the resource can be moved to a new parent."
+          },
+          "connectionName": {
+            "type": "string",
+            "description": "Name of the external connection this resource is linked to, if any."
+          },
+          "connectionNames": {
+            "type": "array",
+            "description": "Names of the external connections this resource is linked to.",
+            "items": {
+              "type": "string",
+              "description": "Names of the external connections this resource is linked to."
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Date and time the resource was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the resource."
+          },
+          "href": {
+            "type": "string",
+            "description": "URI to fetch complete information of the resource.",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string",
+            "description": "Id of the resource."
+          },
+          "isContainer": {
+            "type": "boolean",
+            "description": "Whether the resource can contain other resources."
+          },
+          "isEnterpriseOwned": {
+            "type": "boolean",
+            "description": "Whether the resource is owned by an enterprise."
+          },
+          "isExternalConnectionResource": {
+            "type": "boolean",
+            "description": "Whether this resource comes from an external connection."
+          },
+          "isMutable": {
+            "type": "boolean",
+            "description": "Whether the resource can be modified."
+          },
+          "jsonType": {
+            "type": "string"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "description": "Date and time the resource was last modified.",
+            "format": "date-time"
+          },
+          "modifiedBy": {
+            "$ref": "#/components/schemas/BTUserBasicSummaryInfo"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource."
+          },
+          "owner": {
+            "$ref": "#/components/schemas/BTOwnerInfo"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "The ID of the resource's parent folder or container."
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The ID of the project the resource belongs to, if any."
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "The type of resource.",
+            "example": "document"
+          },
+          "treeHref": {
+            "type": "string",
+            "description": "URI to fetch this resource's position in the global tree."
+          },
+          "unparentHref": {
+            "type": "string",
+            "description": "URI to call to remove this resource from its parent."
+          },
+          "viewRef": {
+            "type": "string",
+            "description": "URI to visualize the resource in a webclient if applicable.",
+            "format": "uri"
+          }
+        },
+        "description": "A node(resource) in the global tree of documents, folders, and other owned resources.",
+        "discriminator": {
+          "propertyName": "jsonType",
+          "mapping": {
+            "document-summary": "#/components/schemas/BTGlobalTreeNodeSummaryInfo",
+            "folder": "#/components/schemas/BTFolderInfo",
+            "magic": "#/components/schemas/BTGlobalTreeMagicNodeInfo",
+            "project": "#/components/schemas/BTProjectInfo",
+            "label": "#/components/schemas/BTDocumentLabelInfo",
+            "team-summary": "#/components/schemas/BTTeamSummaryInfo",
+            "cloudstorageaccount": "#/components/schemas/BTCloudStorageAccountInfo",
+            "classroom": "#/components/schemas/BTClassroomInfo",
+            "resource-owner": "#/components/schemas/BTResourceOwnerInfo",
+            "external-connection": "#/components/schemas/BTExternalConnectionInfo",
+            "smartfolder": "#/components/schemas/BTSmartFolderInfo"
+          }
+        }
+      },
+      "BTGlobalTreeNodeSummaryInfo": {
+        "type": "object",
+        "discriminator": {
+          "propertyName": "jsonType",
+          "mapping": {
+            "document": "#/components/schemas/BTDocumentInfo",
+            "document-summary": "#/components/schemas/BTGlobalTreeNodeSummaryInfo",
+            "document-summary-search": "#/components/schemas/BTDocumentSummarySearchInfo"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BTGlobalTreeNodeInfo"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "anonymousAccessAllowed": {
+                "type": "boolean"
+              },
+              "anonymousAllowsExport": {
+                "type": "boolean"
+              },
+              "canUnshare": {
+                "type": "boolean"
+              },
+              "createdWithEducationPlan": {
+                "type": "boolean"
+              },
+              "defaultElementId": {
+                "type": "string"
+              },
+              "defaultWorkspace": {
+                "$ref": "#/components/schemas/BTWorkspaceInfo"
+              },
+              "documentLabels": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BTDocumentLabelInfo"
+                }
+              },
+              "documentType": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "forceExportRules": {
+                "type": "boolean"
+              },
+              "hasReleaseRevisionableObjects": {
+                "type": "boolean"
+              },
+              "hasRelevantInsertables": {
+                "type": "boolean"
+              },
+              "isUsingManagedWorkflow": {
+                "type": "boolean"
+              },
+              "likedByCurrentUser": {
+                "type": "boolean"
+              },
+              "likes": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "notRevisionManaged": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              },
+              "numberOfTimesCopied": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "numberOfTimesReferenced": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "permission": {
+                "$ref": "#/components/schemas/BTOldPermission"
+              },
+              "permissionSet": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "public": {
+                "type": "boolean"
+              },
+              "publicLinkable": {
+                "type": "boolean"
+              },
+              "publishedVersionId": {
+                "type": "string"
+              },
+              "recentVersion": {
+                "$ref": "#/components/schemas/BTBaseInfo"
+              },
+              "sequence": {
+                "type": "string"
+              },
+              "supportTeamUserAndShared": {
+                "type": "boolean"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "thumbnail": {
+                "$ref": "#/components/schemas/BTThumbnailInfo"
+              },
+              "trash": {
+                "type": "boolean"
+              },
+              "trashedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "userAccountLimitsBreached": {
+                "type": "boolean"
+              }
+            }
+          }
+        ],
+        "x-BTVisibility-properties": {
+          "totalWorkspacesUpdating": "INTERNAL",
+          "defaultVersionGraphMode": "INTERNAL",
+          "totalWorkspacesScheduledForUpdate": "INTERNAL",
+          "isOrphaned": "INTERNAL",
+          "defaultVersionGraphShowAutoVersions": "INTERNAL",
+          "defaultVersionGraphShowMerges": "INTERNAL",
+          "elementLibrarySummaryInfo": "INTERNAL"
+        }
+      },
       "BTGroupOrElementReference-2205": {
         "type": "object",
         "properties": {
@@ -1733,6 +2305,58 @@
           "ACTIVE",
           "INACTIVE"
         ]
+      },
+      "BTOldPermission": {
+        "type": "string",
+        "enum": [
+          "NOACCESS",
+          "ANONYMOUS_ACCESS",
+          "READ",
+          "READ_COPY_EXPORT",
+          "COMMENT",
+          "WRITE",
+          "RESHARE",
+          "FULL",
+          "OWNER"
+        ]
+      },
+      "BTOwnerInfo": {
+        "type": "object",
+        "properties": {
+          "href": {
+            "type": "string",
+            "description": "URI to fetch complete information of the resource.",
+            "format": "uri"
+          },
+          "id": {
+            "type": "string",
+            "description": "Id of the resource."
+          },
+          "image": {
+            "type": "string",
+            "description": "URL of the owner's profile image."
+          },
+          "isEnterpriseOwnedResource": {
+            "type": "boolean",
+            "description": "Whether the owned resource belongs to an enterprise."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the resource."
+          },
+          "type": {
+            "type": "integer",
+            "description": "Type of owner (`0`=user, `1`=company, `2`=Onshape).",
+            "format": "int32",
+            "example": 0
+          },
+          "viewRef": {
+            "type": "string",
+            "description": "URI to visualize the resource in a webclient if applicable.",
+            "format": "uri"
+          }
+        },
+        "description": "The owner of a resource."
       },
       "BTThumbnailInfo": {
         "type": "object",
@@ -1798,6 +2422,7 @@
             "type": "string"
           }
         },
+        "description": "Basic summary information about a user.",
         "discriminator": {
           "propertyName": "jsonType",
           "mapping": {
@@ -1822,10 +2447,12 @@
                 "description": "Id of the resource."
               },
               "image": {
-                "type": "string"
+                "type": "string",
+                "description": "URL of the user's profile image."
               },
               "isOnshapeSupport": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether this user is an Onshape support account."
               },
               "name": {
                 "type": "string",
@@ -1833,7 +2460,9 @@
               },
               "state": {
                 "type": "integer",
-                "format": "int32"
+                "description": "State of the user account (`0`=deleted, `1`=active, `2`=inactive, `3`=requested, `4`=approved, `5`=request expired, `6`=all, `7`=marked for deletion).",
+                "format": "int32",
+                "example": 1
               },
               "viewRef": {
                 "type": "string",
@@ -2077,6 +2706,7 @@
           "BILLOFMATERIALS",
           "VARIABLESTUDIO",
           "PUBLICATIONITEM",
+          "IMPORTSTUDIO",
           "UNKNOWN"
         ]
       }

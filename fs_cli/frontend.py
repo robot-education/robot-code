@@ -108,8 +108,9 @@ _STRING = r'"((?:[^"\\]|\\.)*)"'
 _TYPE_NAME = re.compile(r'"Feature Type Name"\s*:\s*' + _STRING)
 _DESCRIPTION = re.compile(r'"Feature Type Description"\s*:\s*' + _STRING)
 _ICON = re.compile(r'"Icon"\s*:\s*(\w+)::BLOB_DATA')
-# Our own annotation key, which Onshape ignores
+# What a feature supports, by our own annotation keys (Onshape ignores keys it doesn't know)
 _AUTO_ASSEMBLY = re.compile(r'"Auto Assembly"\s*:\s*true\b')
+_SIMPLIFICATION = re.compile(r'"Simplification"\s*:\s*true\b')
 
 
 def _unescape(literal: str) -> str:
@@ -130,6 +131,11 @@ def feature_type_name(code: str) -> str | None:
 def supports_auto_assembly(code: str) -> bool:
     """Whether the feature's annotation says it declares parts for FRCDesignApp's Auto Assembly."""
     return _AUTO_ASSEMBLY.search(code) is not None
+
+
+def supports_simplification(code: str) -> bool:
+    """Whether the feature's annotation says it follows the Part Studio's Simplified configuration parameter."""
+    return _SIMPLIFICATION.search(code) is not None
 
 
 def feature_description(code: str) -> str:
@@ -213,6 +219,7 @@ def manifest_entry(
         "version": version,
         "iconElementId": icon_element_id,
         "autoAssembly": supports_auto_assembly(code),
+        "simplification": supports_simplification(code),
     }
     if source_url:
         entry["sourceUrl"] = source_url

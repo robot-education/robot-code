@@ -3,11 +3,11 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 RobotFrameIcon::import(path : "94bcdc0a50ec32f81a3aa449", version : "0ee450364120d3c453712009");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "dd81a3971f6dacd7133eb42f", version : "8027bf5a3e373bde7d8453b0");
+import(path : "dd81a3971f6dacd7133eb42f", version : "ddf07734d76b647377ae9c89");
 import(path : "0794d10863d10d98a88c2ab4", version : "ee89dca8b88ae07af559109e");
-import(path : "ff444db0395e01aaa8c7e555", version : "46baf853a751a2a54a25cd59");
+import(path : "ff444db0395e01aaa8c7e555", version : "e86bc1e521d096574b878ed9");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "dc743d84eb93818b166598fe");
 
 /**
  * Whether a frame is one someone sells, or custom: a common size of tube or angle, with holes as the feature says
@@ -42,11 +42,11 @@ const HEIGHT_BOUNDS = { (meter) : [1e-5, 0.0508, 500], (inch) : 2, (millimeter) 
 const ROWS_BOUNDS = { (unitless) : [1, 1, 100] } as IntegerBoundSpec;
 
 /**
- * Places tube, channel, angle, or extrusion along an edge, or extrudes it from a point, tagged as a frame so the std
- * frame features work with it.
+ * Places tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrudes it from a point,
+ * tagged as a frame so the std frame features work with it.
  */
 annotation { "Feature Type Name" : "Robot frame",
-        "Feature Type Description" : "Add tube, channel, angle, or extrusion along an edge, or extrude it from a point." ~ CREDIT,
+        "Feature Type Description" : "Add tube, channel, angle, or extrusion along an edge, on a face, or between holes, or extrude it from a point." ~ CREDIT,
         "Manipulator Change Function" : "stockManipulatorChange",
         "Editing Logic Function" : "robotFrameEditLogic",
         "Icon" : RobotFrameIcon::BLOB_DATA
@@ -386,7 +386,8 @@ function noRows(definition is map, rowsKey is string, addKey is string) returns 
  * @internal
  * The editing logic function for robot frame. Sets Custom size (`isCustomSizeFrame`), No top holes
  * (`isNoTopHolesFrame`), and No side holes (`isNoSideHolesFrame`), and when the frame changes
- * (or the feature is created), its hole diameter to the frame's, unless it's been set larger.
+ * (or the feature is created), its hole diameter to the frame's, unless it's been set larger. Then linear stock's
+ * (`stockEditLogic`): between holes, an end's offset turned on extends it by the frame's pattern of holes.
  */
 export function robotFrameEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -395,7 +396,7 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
     definition.noTopHoles = isNoTopHolesFrame(definition);
     definition.noSideHoles = isNoSideHolesFrame(definition);
     definition = frameChangeEditLogic(oldDefinition, definition, specifiedParameters);
-    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, undefined, false);
+    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, getFrame(definition), undefined, false);
 }
 
 /**

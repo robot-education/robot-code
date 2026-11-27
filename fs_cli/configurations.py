@@ -350,7 +350,7 @@ class StudioView:
 
 def part_set_views(config, path: pathlib.Path) -> list[StudioView]:
     """The Part Studios of the part sets whose Feature Studio `path` is, which use a feature it defines, each with its
-    configuration as its definition writes it: what Onshape has once `fs parts` builds it. None for any other file."""
+    configuration as its definition writes it: what Onshape has once `fs build` (or a release) builds it. None for any other file."""
     from fs_cli.configured_studios import configured_studios
     from fs_cli.parts import defines
 

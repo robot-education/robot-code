@@ -3,16 +3,16 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 RobotNutStripIcon::import(path : "70fa8905356b9bb43809037c", version : "12b10c2429507285a4d9cef1");
 
 import(path : "6c65805103086c85362ee4b7", version : "c8ae72bd99ee1f581e10e759");
-import(path : "dd81a3971f6dacd7133eb42f", version : "8027bf5a3e373bde7d8453b0");
-import(path : "e316d3a31f8726cbc70fe081", version : "1ced5f9252d960ede6fe5632");
+import(path : "dd81a3971f6dacd7133eb42f", version : "ddf07734d76b647377ae9c89");
+import(path : "e316d3a31f8726cbc70fe081", version : "06b6ea6894b44eb9aaebe9e5");
 // Also exports the enums used as parameter types
-export import(path : "9fc889bb93a3c29feb4f9ae5", version : "3eb159cc8a1f8aa01f9bed32");
+export import(path : "9fc889bb93a3c29feb4f9ae5", version : "dc743d84eb93818b166598fe");
 
 /**
- * Places a nut strip along an edge, or extrudes one from a point.
+ * Places a nut strip along an edge, on a face, or between holes, or extrudes one from a point.
  */
 annotation { "Feature Type Name" : "Robot nut strip",
-        "Feature Type Description" : "Add a nut strip along an edge, such as an inside edge of tube, or extrude one from a point." ~ CREDIT,
+        "Feature Type Description" : "Add a nut strip along an edge or a face, such as inside a tube, or between holes, or extrude one from a point." ~ CREDIT,
         "Manipulator Change Function" : "stockManipulatorChange",
         "Editing Logic Function" : "robotNutStripEditLogic",
         "Icon" : RobotNutStripIcon::BLOB_DATA
@@ -76,7 +76,8 @@ function getNutStrip(definition is map) returns Stock
 
 /**
  * @internal
- * The editing logic function for robot nut strip. Each end's offset defaults to its distance to the closest hole.
+ * The editing logic function for robot nut strip. Along an edge, each end's offset defaults to its distance to the
+ * closest hole; between holes, to extending it by its pattern of holes (see `stockEditLogic`).
  */
 export function robotNutStripEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, isCreating is boolean,
     specifiedParameters is map, hiddenBodies is Query) returns map
@@ -88,6 +89,6 @@ export function robotNutStripEditLogic(context is Context, id is Id, oldDefiniti
     const changed = oldDefinition.program != definition.program ||
         oldDefinition.frcNutStrip != definition.frcNutStrip ||
         oldDefinition.ftcNutStrip != definition.ftcNutStrip;
-    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies,
-        getNutStrip(definition).tieStart, changed);
+    const nutStrip = getNutStrip(definition);
+    return stockEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies, nutStrip, nutStrip.tieStart, changed);
 }

@@ -3,16 +3,15 @@
 A branch asks for a release by adding a file to `releases/` (see docs/fs-cli.md#release-files), reviewed with its code:
 
     # releases/frame-hubs.toml
-    script = "robotFrame"       # a FeatureScript, as `fs release` takes it; or
-    part_set = "fasteners"      # a part set, as `fs parts SET --release` takes it
+    name = "robotFrame"         # a FeatureScript or a part set, as `fs release NAME` takes it
     bump = "minor"              # major, minor, or patch
     description = "Adds hubs"   # internal, as `--description`
-    publish = false             # FeatureScripts: finalize it at once, and tag it (not a first release)
+    hard = false                # a hard release: version the frontend too, and tag it (not a FeatureScript's first)
 
-`fs run-releases`, on main once it's what origin has, runs each, deletes its file, and commits what the releases
-recorded. A FeatureScript's
-release isn't final (its version in the frontend document) until `fs sync-versions`, unless it's `publish`ed, so its
-frontend examples can be updated first; a first release is never published at once.
+`fs releases --run`, on main once it's what origin has, runs each (to its frontend document), deletes its file, and
+commits what the releases recorded. Each is a soft release unless it's `hard`: its frontend isn't versioned until
+`fs publish`, so its frontend can be checked (and a FeatureScript's examples updated) first; a FeatureScript's first
+release is always soft.
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ from fs_cli.state import load_released, load_studio_files
 from fs_cli.versions import VersionType
 
 RELEASES_FOLDER = "releases"
-_KEYS = {"script", "part_set", "bump", "description", "publish"}
+_KEYS = {"name", "bump", "description", "hard"}
 
 
 class ReleaseFileError(Exception):
@@ -37,17 +36,14 @@ class ReleaseFileError(Exception):
 @dataclasses.dataclass
 class ReleaseFile:
     path: pathlib.Path
+    # What it releases: a FeatureScript or a part set, as `fs release NAME` takes it
+    name: str
     bump: VersionType | None
     description: str
-    script: str | None = None
-    part_set: str | None = None
-    publish: bool = False
+    # A hard release, which versions the frontend too; soft otherwise
+    hard: bool = False
     # The commit that added it, so a file of the same name asking for a later release isn't taken for this one
     added: str | None = None
-
-    @property
-    def target(self) -> str:
-        return self.script or self.part_set or ""
 
     @property
     def marker(self) -> str:
@@ -92,27 +88,29 @@ def load(config: Config, path: pathlib.Path) -> ReleaseFile:
     unknown = set(data) - _KEYS
     if unknown:
         raise ReleaseFileError(f"{where} has unknown keys: {', '.join(sorted(unknown))} (it takes {', '.join(sorted(_KEYS))}).")
-    if ("script" in data) == ("part_set" in data):
-        raise ReleaseFileError(f"{where} must name one script (a FeatureScript) or one part_set.")
+    name = data.get("name")
+    if not isinstance(name, str) or not name:
+        raise ReleaseFileError(f"{where} must name what it releases: a FeatureScript or a part set (name = \"robotFrame\").")
     bump = data.get("bump")
     if bump is not None and bump not in [version_type.value for version_type in VersionType]:
         raise ReleaseFileError(f"{where}: bump is major, minor, or patch, not {bump!r}.")
-    if "part_set" in data:
-        if not any(part_set.name == data["part_set"] for part_set in config.parts):
-            raise ReleaseFileError(f"{where}: no part set named {data['part_set']} in [tool.fs.parts].")
-        if "publish" in data:
-            raise ReleaseFileError(f"{where}: a part set's release has no publish.")
-    if data.get("publish", False) and is_first_release(config, data["script"]):
+    part_set = config.part_set(name)
+    hard = data.get("hard", False)
+    if not isinstance(hard, bool):
+        raise ReleaseFileError(f"{where}: hard is true or false.")
+    if part_set is not None:
+        if part_set.frontend is None:
+            raise ReleaseFileError(f"{where}: the {name} part set has no frontend document ([tool.fs.parts.{name}] frontend).")
+    elif hard and is_first_release(config, name):
         raise ReleaseFileError(
-            f"{where}: {data['script']} has never been released, so its first release isn't published at once: leave out "
-            "publish, and `fs sync-versions` publishes it once its frontend examples are ready."
+            f"{where}: {name} has never been released, so its first release is soft: leave out hard, and `fs publish` "
+            "versions the frontend for it once its examples are ready."
         )
     return ReleaseFile(
         path,
+        name,
         VersionType(bump) if bump is not None else None,
         str(data.get("description", "")),
-        data.get("script"),
-        data.get("part_set"),
-        bool(data.get("publish", False)),
+        hard,
         added_in(config.root, path),
     )

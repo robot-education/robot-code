@@ -5,8 +5,8 @@ set of its own). Run `uv run fs gen` after editing.
 This is the source of three things, which must agree:
 
 - bearingTables.gen.fs: the enums and data the bearing feature builds from.
-- The configuration of the Part Studio exposing it (`STUDIOS`), built by `fs parts bearings --test` and released by
-  `fs parts bearings --release`: an input per feature parameter, laid out by `LookupTable` from what's made, so each
+- The configuration of the Part Studio exposing it (`STUDIOS`), built by `fs build bearings` and released by
+  `fs release bearings`: an input per feature parameter, laid out by `LookupTable` from what's made, so each
   input offers only what the vendor makes with the choices before it, and shows only where that's more than one.
 - bearings.gen.json: the same catalog for FRCDesign, which inserts the studio with a configuration of these option
   ids. FRCDesign stores those configurations in documents, so never rename or remove a released option id; add new
@@ -710,7 +710,7 @@ RECORDS = FRC.records
 # Every part either set makes, by its key, which the feature's tables hold
 ALL_RECORDS = {key: record for catalog in (FRC, FTC) for records in catalog.records.values() for key, record in records.items()}
 
-# Where the studio was last released: `fs parts bearings --release` records it beside this file, FTC's beside
+# Where the studio was last released: `fs release bearings` records it beside this file, FTC's beside
 # ftcBearingTables.py
 LOCATIONS = read_locations(pathlib.Path(__file__))
 

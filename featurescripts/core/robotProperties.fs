@@ -36,7 +36,7 @@ export const ZINC_COATED_STEEL = color(225 / 255, 231 / 255, 236 / 255);
 export const REV_ORANGE = color(254 / 255, 139 / 255, 0 / 255);
 /** 3D printed green (#4DD188): printed parts. */
 export const PRINTED_GREEN = color(77 / 255, 209 / 255, 136 / 255);
-/** Auto Assembly blue (#6B9EDB), half transparent: Auto Assembly's Auto Assembly bodies, so none is mistaken for a part to make. */
+/** Auto Assembly blue (#6B9EDB), half transparent: Auto Assembly bodies, so none is mistaken for a part to make. */
 export const AUTO_ASSEMBLY_BLUE = color(107 / 255, 158 / 255, 219 / 255, 0.5);
 /** Copper (#FCBC84): copper, like flywheels. */
 export const COPPER = color(252 / 255, 188 / 255, 132 / 255);

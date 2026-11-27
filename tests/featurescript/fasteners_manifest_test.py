@@ -272,7 +272,7 @@ def test_each_set_offers_its_own_sizes():
 
 
 def test_each_studio_keeps_to_the_configuration_rules():
-    """What `fs parts` checks before it sends anything to Onshape."""
+    """What `fs build` and `fs release` check before it sends anything to Onshape."""
     for part_set, kind in STUDIOS:
         assert CATALOGS[part_set].studios[kind].problems() == []
 

@@ -53,6 +53,23 @@ class ElementGroup(TypedDict):
     groups: list[ElementGroup | ElementReference]
 
 
+class WorkspaceReference(TypedDict):
+    id: str
+
+
+class DocumentInfo(TypedDict):
+    """GET /documents/{did}. BTDocumentInfo."""
+
+    id: str
+    name: str
+    # Whether it's public (listed in Onshape's public documents). A link-shared document isn't, but anyone with its
+    # link can open it, and Onshape answers anonymous requests about it as about a public one
+    public: bool
+    # The requester's access: ANONYMOUS_ACCESS for an anonymous request about a public or link-shared document
+    permission: NotRequired[str]
+    defaultWorkspace: WorkspaceReference
+
+
 class DocumentContents(TypedDict):
     """GET /documents/d/{did}/{wvm}/{wvmid}/contents. BTDocumentContentsInfo."""
 

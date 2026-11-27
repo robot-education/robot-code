@@ -1,9 +1,9 @@
 """The `fs` command: keeps the FeatureScripts in this repo in sync with the backend document, and
-releases them to the frontend document.
+releases FeatureScripts and part sets to their frontend documents (or, to try them out, to a library).
 
 The repo is the source of truth, so `fs push` is the everyday command. `fs pull` and
 `fs sync` exist for the occasional edit made directly in Onshape. Images (for icons) are synced with
-image tabs the same way (see fs_cli/images.py).
+image tabs the same way (see fs_cli/images.py). The documents are named in [tool.fs.documents] (see fs_cli/config.py).
 """
 
 from __future__ import annotations
@@ -14,34 +14,31 @@ import difflib
 import json
 import os
 import pathlib
-import runpy
 import sys
 
 from fs_lsp.formatter import format_source, is_generated
 from fs_lsp.project import Module, Project
 
-from fs_cli.branches import Access, BranchError, check_synced_with_origin
-from fs_cli.branches import resolve as resolve_backend
-from fs_cli.config import Config, ConfigError, load_config
+from fs_cli.branches import BranchError, check_main_branch, check_synced_with_origin
+from fs_cli.config import Config, ConfigError, Document, PartSet, Role, load_config
 from fs_cli.release_files import RELEASES_FOLDER, ReleaseFileError, pending
 from fs_cli.gen import GenerateError, generate
 from fs_cli.git import commit_all, commit_paths, file_at, has_tag, is_clean, is_repository
-from fs_cli.frontend import MANIFEST_NAME
 from fs_cli.images import Image, Images
 from fs_cli.release import (
     DEPRECATED,
     deprecated_name,
+    check_release_document,
     find_studio,
+    frontend_document,
     plan_deprecate,
-    plan_app_manifest,
     plan_release,
     release_tag,
     run_deprecate,
     run_release,
     tag_release,
     tag_versions,
-    unsynced_versions,
-    write_app_manifest,
+    soft_releases,
 )
 from fs_cli.remote import OnshapeRemote, Remote, file_name_for, is_local
 from fs_cli.renames import (
@@ -50,7 +47,7 @@ from fs_cli.renames import (
     rename_studio_files,
     renamed,
 )
-from fs_cli.state import State, StudioState, load_image_files, migrate, state_lock
+from fs_cli.state import State, StudioState, load_image_files, state_lock
 from fs_cli.std import StdMetadata, pull_from_mirror, pull_from_onshape
 from fs_cli.strings import user_strings
 from fs_cli.ui import UiError, render_feature, screenshot
@@ -58,7 +55,6 @@ from fs_cli.versions import (
     VersionType,
     feature_name_for,
     latest_release,
-    parse_version_name,
 )
 from fs_cli.workspace import (
     HINTS,
@@ -74,7 +70,7 @@ from fs_cli.workspace import (
 )
 from onshape_api.exceptions import ApiError
 from onshape_api.paths.instance_type import InstanceType
-from onshape_api.paths.paths import ElementPath, InstancePath, path_to_url
+from onshape_api.paths.paths import InstancePath, path_to_url
 
 # Released tabs are never deleted or recreated (see `load_released`)
 RELEASED_HINTS = {
@@ -89,7 +85,8 @@ DELETE_CONFLICT = "was deleted locally but changed in Onshape; `fs push --force`
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fs",
-        description="Push the FeatureScripts in this repo to the backend document in Onshape, pull changes made in Onshape, and release FeatureScripts to the frontend document.",
+        description="Push the FeatureScripts in this repo to the backend document in Onshape, pull changes made in "
+        "Onshape, build part sets, and release FeatureScripts and part sets to their frontend documents (or to a library).",
     )
     parser.add_argument(
         "-l", "--log", action="store_true", help="log Onshape API requests"
@@ -144,10 +141,10 @@ def make_parser() -> argparse.ArgumentParser:
         help="don't commit what was pushed (with its imports by id, from Onshape) to git",
     )
     push.add_argument(
-        "--release",
-        action="store_true",
-        help="the targets are FeatureScripts to release (robotFrame): push each, and every studio and image it imports, "
-        "over Onshape's (as --force), deleting nothing",
+        "--to",
+        metavar="DOC",
+        help="push the targets (FeatureScripts), and every studio and image they import, to another backend document in "
+        "[tool.fs.documents] instead, to try them there: tabs are matched by name, and nothing local changes or is committed",
     )
     dry_run(push)
     yes_to_deletes(push)
@@ -243,7 +240,7 @@ def make_parser() -> argparse.ArgumentParser:
         "table",
         "show lookup tables as flat rows, one per option path, with their values, as the evaluator builds them (no API calls)",
     )
-    table_command.add_argument("-n", "--name", action="append", default=[], help="only tables whose names contain this; can be repeated")
+    table_command.add_argument("--name", action="append", default=[], help="only tables whose names contain this; can be repeated")
     table_output = table_command.add_mutually_exclusive_group()
     table_output.add_argument("--md", action="store_true", help="print Markdown tables")
     table_output.add_argument("--html", metavar="FILE", help="write one HTML page of them all, with a filter")
@@ -333,20 +330,22 @@ def make_parser() -> argparse.ArgumentParser:
 
     tabs_command = command(
         "tabs",
-        "list tabs in Onshape and files which aren't paired, or whose names differ, to match them up by hand (1 API call)",
+        "list tabs in Onshape and files which aren't paired, or whose names differ, to match them up by hand (an "
+        "anonymous listing, which costs nothing)",
     )
     tabs_command.add_argument("-a", "--all", action="store_true", help="also list tabs paired with files of the same name")
     tabs_command.add_argument(
         "--rename",
         action="store_true",
-        help="rename tabs to match their files, except released ones (2 API calls each)",
+        help="rename tabs to match their files, except released ones (1 API call each, and an anonymous one)",
     )
     tabs_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm renaming")
     dry_run(tabs_command)
 
     link_command = command(
         "link",
-        "sync a file with a tab, e.g. one fs paired with the wrong file, or a file renamed outside fs (1 API call)",
+        "sync a file with a tab, e.g. one fs paired with the wrong file, or a file renamed outside fs (an anonymous "
+        "listing)",
         targets=False,
     )
     link_command.add_argument("file", help="the .fs file (it needn't exist yet; `fs pull` writes it)")
@@ -359,20 +358,16 @@ def make_parser() -> argparse.ArgumentParser:
     )
     unlink_command.add_argument("files", nargs="+", metavar="file", help=".fs files or Feature Studio names")
 
-    released_command = command(
-        "released",
-        "list, mark, or unmark released FeatureScripts, whose tabs fs never deletes, recreates, or renames (no API calls, except --detect)",
+    mark_released_command = command(
+        "mark-released",
+        "list, mark, or unmark released FeatureScripts, whose tabs fs never deletes, recreates, or renames; "
+        "`fs release` marks what it releases (no API calls)",
         targets=False,
     )
-    released_command.add_argument(
-        "files", nargs="*", metavar="file", help=".fs files or Feature Studio names to mark released"
+    mark_released_command.add_argument(
+        "files", nargs="*", metavar="file", help=".fs files or Feature Studio names to mark released (default: list them)"
     )
-    released_command.add_argument("--remove", action="store_true", help="unmark them instead")
-    released_command.add_argument(
-        "--detect",
-        action="store_true",
-        help="mark every tab with a release version in the backend document (2 API calls)",
-    )
+    mark_released_command.add_argument("--remove", action="store_true", help="unmark them instead")
 
     cots_command = command(
         "cots",
@@ -381,12 +376,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     cots_command.add_argument("query", nargs="?", default="", help="a regular expression matching parts' names or groups, e.g. 'hex shaft'")
     cots_command.add_argument(
-        "-l", "--library", default="frc", help="frc, config, or mkcad (FRCDesign's FRC, ConfigLib, and MKCad libraries)"
+        "--library", default="frc", help="frc, config, or mkcad (FRCDesign's FRC, ConfigLib, and MKCad libraries)"
     )
     cots_command.add_argument("--days", type=int, default=365, help="how many days of usage to count (default: 365)")
-    cots_command.add_argument("-n", "--limit", type=int, default=40, help="how many parts to list (default: 40)")
+    cots_command.add_argument("--limit", type=int, default=40, help="how many parts to list (default: 40)")
     cots_command.add_argument(
-        "-d", "--details", action="store_true", help="also show each part's configuration usage and part numbers"
+        "--details", action="store_true", help="also show each part's configuration usage and part numbers"
     )
 
     command(
@@ -421,21 +416,25 @@ def make_parser() -> argparse.ArgumentParser:
     )
     dry_run(gen_command)
 
+    def bumps(subparser: argparse.ArgumentParser, help: str) -> None:
+        group = subparser.add_mutually_exclusive_group()
+        for version_type in VersionType:
+            group.add_argument(
+                f"--{version_type}", dest="bump", action="store_const", const=version_type, help=help.format(version_type)
+            )
+
     release = command(
-        "release", "release a FeatureScript to the frontend document (a part set's is released by `fs parts SET --release`)", targets=False
+        "release",
+        "release a FeatureScript, or a part set with its Part Studios, to its frontend document (on main only), or to a "
+        "library document to try it out (a test release, from any branch): push what it releases over Onshape's, "
+        "version the backend, and point the document at that version. A soft release, the default, leaves the "
+        "frontend unversioned (`fs publish` versions it later); a hard one (--hard) versions it too",
+        targets=False,
     )
     release.add_argument(
-        "script", help="the .fs file or Feature Studio name, e.g. robotFrame"
+        "name", help="a FeatureScript, by name or file (robotFrame), or a part set in [tool.fs.parts] (fasteners)"
     )
-    bump = release.add_mutually_exclusive_group()
-    for version_type in VersionType:
-        bump.add_argument(
-            f"--{version_type}",
-            dest="bump",
-            action="store_const",
-            const=version_type,
-            help=f"release a new {version_type} version",
-        )
+    bumps(release, "release a new {} version (not to a library, whose releases aren't numbered)")
     release.add_argument(
         "-d",
         "--description",
@@ -443,9 +442,17 @@ def make_parser() -> argparse.ArgumentParser:
         help="a brief, internal-only description of the changes",
     )
     release.add_argument(
-        "--publish",
+        "--to",
+        metavar="DOC",
+        help="a test release, to a library document in [tool.fs.documents] instead, to load in a test FRCDesignApp: "
+        "from any branch, named for the branch and commit, always versioned there, and not numbered, marked released, "
+        "or tagged",
+    )
+    release.add_argument(
+        "--hard",
         action="store_true",
-        help="also create the version in the frontend document, publishing (finalizing) the release immediately, and tag it in git (not for a first release)",
+        help="a hard release: also create the version in the frontend document, which people's documents update to, "
+        "and tag it in git (not a FeatureScript's first release, whose examples need making)",
     )
     release.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
@@ -463,7 +470,7 @@ def make_parser() -> argparse.ArgumentParser:
         "-d", "--description", default="", help="a brief, internal-only description of why"
     )
     deprecate_command.add_argument(
-        "--publish", action="store_true", help="also create the version in the frontend document"
+        "--hard", action="store_true", help="also create the version in the frontend document, as a hard release does"
     )
     deprecate_command.add_argument(
         "--keep-backend",
@@ -473,70 +480,45 @@ def make_parser() -> argparse.ArgumentParser:
     deprecate_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
     dry_run(deprecate_command)
 
-    sync_versions = command(
-        "sync-versions",
-        "create release versions which are in the backend document but missing from the frontend document",
+    publish_command = command(
+        "publish",
+        "publish soft releases, of FeatureScripts and part sets: create the release versions the backend document "
+        "has but their frontend documents don't, and tag them in git, as hard releases would have",
         targets=False,
     )
-    sync_versions.add_argument(
-        "features",
+    publish_command.add_argument(
+        "names",
         nargs="*",
-        help="only these features' versions, by script (robotFrame) or feature name (\"Robot frame\"); default all",
+        metavar="name",
+        help="only these: FeatureScripts, by script (robotFrame) or feature name (\"Robot frame\"), or part sets "
+        "(fasteners); default all",
     )
-    sync_versions.add_argument(
+    publish_command.add_argument(
         "-y", "--yes", action="store_true", help="don't ask to confirm"
     )
-    no_push_tags(sync_versions)
-    dry_run(sync_versions)
+    no_push_tags(publish_command)
+    dry_run(publish_command)
 
-    parts_command = command(
-        "parts",
-        "try or release a part set (see [tool.fs.parts]): Part Studios built from a definition, whose FeatureScript is "
-        "in the backend document",
+    build_command = command(
+        "build",
+        "build a part set's Part Studios (see [tool.fs.parts]) as `<Part> (TEST)` in the backend document, from its "
+        "FeatureScript as pushed, to try a change (4-5 API calls each)",
         targets=False,
     )
-    parts_command.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
-    action = parts_command.add_mutually_exclusive_group(required=True)
-    action.add_argument(
-        "--test",
-        action="store_true",
-        help="build the set's Part Studios as `<Part> (TEST)` in the backend workspace, from its FeatureScript "
-        "as pushed (4-5 API calls each)",
+    build_command.add_argument("part_set", help="the part set's name in [tool.fs.parts], e.g. fasteners")
+    build_command.add_argument(
+        "--to",
+        metavar="DOC",
+        help="build in another backend document in [tool.fs.documents] instead, pushing its FeatureScript there first "
+        "(as `fs push --to`)",
     )
-    action.add_argument(
+    build_command.add_argument(
         "--diagnose",
         action="store_true",
-        help="find which part of the set's configurations Onshape refuses, writing each in stages to a scratch "
-        "`<Part> (DIAGNOSE)` Part Studio in the backend workspace (a call per stage, about 10 for a screw)",
+        help="find which part of the set's configurations Onshape refuses instead, writing each in stages to a scratch "
+        "`<Part> (DIAGNOSE)` Part Studio (a call per stage, about 10 for a screw)",
     )
-    action.add_argument(
-        "--release",
-        action="store_true",
-        help="release the set: version the backend, point the document released to at it, build its Part Studios and "
-        "write its manifest there, and version it; to its main document (on main only), numbered, recorded, and tagged "
-        "in git",
-    )
-    parts_command.add_argument(
-        "--target",
-        metavar="NAME_OR_URL",
-        help="with --release, release to another document (one of the set's targets, or a document's url), from any "
-        "branch, to try it out: not numbered, recorded, or tagged",
-    )
-    parts_bump = parts_command.add_mutually_exclusive_group()
-    for version_type in VersionType:
-        parts_bump.add_argument(
-            f"--{version_type}",
-            dest="bump",
-            action="store_const",
-            const=version_type,
-            help=f"with --release, release a new {version_type} version",
-        )
-    parts_command.add_argument(
-        "-d", "--description", default="", help="with --release, a brief, internal-only description of the changes"
-    )
-    parts_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-    no_push_tags(parts_command)
-    dry_run(parts_command)
+    build_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
 
     configuration_command = command(
         "configuration",
@@ -554,29 +536,15 @@ def make_parser() -> argparse.ArgumentParser:
     )
     features_command.add_argument("url", help="the Part Studio's url")
 
-    command(
+    releases_command = command(
         "releases",
-        "list the releases pending in releases/, which `fs run-releases` makes once they're merged into main, and "
-        "check their files (no API calls)",
+        "list and check the releases pending in releases/ (no API calls); with --run, make them, on main once it's "
+        "what origin has: each as `fs release` would, then delete its file and commit what it recorded",
         targets=False,
     )
-    run_releases_command = command(
-        "run-releases",
-        "make each release pending in releases/, on main once it's what origin has: run it as `fs release` or `fs parts "
-        "release` would, delete its file, and commit what it recorded",
-        targets=False,
-    )
-    no_push_tags(run_releases_command)
-    dry_run(run_releases_command)
-
-    app_manifest_command = command(
-        "app-manifest",
-        "write every released feature's entry in featurescripts.json, and its icon, as its latest release made them, "
-        "without releasing it: for features released before releases wrote them (3 API calls, 5 per feature)",
-        targets=False,
-    )
-    app_manifest_command.add_argument("-y", "--yes", action="store_true", help="don't ask to confirm")
-    dry_run(app_manifest_command)
+    releases_command.add_argument("--run", action="store_true", help="make the pending releases")
+    no_push_tags(releases_command)
+    dry_run(releases_command)
     return parser
 
 
@@ -586,22 +554,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
+    """Args:
+    remote: Stands in for Onshape, reaching every document (in tests); None to reach each with its keys.
+    """
     args = parse_args(argv)
     try:
         config = load_config()
-        migrate(config.state_path, config.studios_path)
-        if args.command in OFFLINE_COMMANDS and args.command not in STATE_COMMANDS and not getattr(args, "detect", False):
+        if args.command in OFFLINE_COMMANDS and args.command not in STATE_COMMANDS and not _online(args):
             return OFFLINE_COMMANDS[args.command](config, args)
+        if args.command == "push" and args.to is not None:
+            document = config.find_document(args.to, Role.BACKEND)
+            if document != config.backend_document:
+                # Changes nothing local, nor the backend, so needs neither its keys nor the state's lock
+                return push_to(config, args, remote or _onshape_remote(args.log, document), document)
         # Commands which change the state hold its lock, so two at once don't lose each other's changes
         with state_lock(config.studios_path):
-            if args.command in OFFLINE_COMMANDS and not getattr(args, "detect", False):
+            if args.command in OFFLINE_COMMANDS and not _online(args):
                 return OFFLINE_COMMANDS[args.command](config, args)
+            if args.command in MAIN_COMMANDS:
+                check_main_branch(config)
+            connect = None if remote is not None else lambda document: _onshape_remote(args.log, document)
             if remote is None:
-                remote = _onshape_remote(args.log)
-            backend = resolve_backend(config, command_access(args))
-            state = State.load(backend.state_path, config.studios_path)
+                remote = _onshape_remote(args.log, config.backend_document)
+            state = State.load(config.state_path, config.studios_path)
             try:
-                return COMMANDS[args.command](Workspace(config, state, remote, instance=backend.instance), args)
+                return COMMANDS[args.command](Workspace(config, state, remote, connect=connect), args)
             finally:
                 state.save()
     except (ConfigError, UsageError, GenerateError, UiError, BranchError) as error:
@@ -615,24 +592,26 @@ def main(argv: list[str] | None = None, remote: Remote | None = None) -> int:
         return 130
 
 
-# Commands which release, so run only on the main branch (see fs_cli/branches.py)
-MAIN_COMMANDS = {"release", "deprecate", "sync-versions", "run-releases", "app-manifest"}
+def _online(args: argparse.Namespace) -> bool:
+    """Whether an offline command was asked to call Onshape: `fs releases --run`."""
+    return getattr(args, "run", False)
 
 
-def command_access(args: argparse.Namespace) -> Access:
-    if args.command == "parts" and args.release:
-        # A target's release is tried from any branch
-        return Access.ANY if args.target else Access.MAIN
-    return Access.MAIN if args.command in MAIN_COMMANDS else Access.ANY
+# Commands which release to frontend documents, so run only on the main branch (see fs_cli/branches.py). `fs release`
+# checks for itself, since a release to a library runs on any branch.
+MAIN_COMMANDS = {"deprecate", "publish", "releases"}
 
 
-def _onshape_remote(log: bool) -> OnshapeRemote:
+def _onshape_remote(log: bool, document: Document) -> OnshapeRemote:
+    """Onshape, reaching a document: on its domain, with its own keys (every request signed) or the usual ones."""
     from onshape_api.api.key_api import make_key_api
 
     if log:
         os.environ["API_LOGGING"] = "true"
     try:
-        return OnshapeRemote(make_key_api())
+        if document.keys is not None:
+            return OnshapeRemote(make_key_api(prefix=document.keys, base_url=document.base_url, anonymous=False))
+        return OnshapeRemote(make_key_api(base_url=document.base_url))
     except KeyError as error:
         # Missing API credentials
         raise ConfigError(error.args[0]) from error
@@ -649,9 +628,9 @@ def releases(config: Config, args: argparse.Namespace) -> int:
     if not files:
         print("No releases pending.")
     for file in files:
-        kind = "part set" if file.part_set else "FeatureScript"
+        kind = "part set" if config.part_set(file.name) else "FeatureScript"
         bump = file.bump or "first"
-        print(f"{file.path.relative_to(config.root).as_posix()}: {kind} {file.target}, {bump} release")
+        print(f"{file.path.relative_to(config.root).as_posix()}: {kind} {file.name}, {bump} release")
     return 0
 
 
@@ -677,38 +656,45 @@ def run_releases(workspace: Workspace, args: argparse.Namespace) -> int:
             )
     for file in files:
         print(f"Running {RELEASES_FOLDER}/{file.path.name}:")
-        common = {
-            "bump": file.bump,
-            "description": file.described,
-            "yes": True,
-            "dry_run": args.dry_run,
-            "no_push_tags": args.no_push_tags,
-            "checked": True,
-        }
-        if file.script:
-            release(workspace, argparse.Namespace(script=file.script, publish=file.publish, **common))
-        else:
-            parts(
-                workspace,
-                argparse.Namespace(
-                    part_set=file.part_set, test=False, diagnose=False, release=True, target=None, **common
-                ),
-            )
+        release(
+            workspace,
+            argparse.Namespace(
+                name=file.name,
+                to=None,
+                bump=file.bump,
+                description=file.described,
+                hard=file.hard,
+                yes=True,
+                dry_run=args.dry_run,
+                no_push_tags=args.no_push_tags,
+                checked=True,
+            ),
+        )
         if not args.dry_run:
             file.path.unlink()
             # A release marks what it released in fs-studios.json
             workspace.state.save()
-            commit_all(config.root, f"Release {file.target} ({RELEASES_FOLDER}/{file.path.name})")
+            commit_all(config.root, f"Release {file.name} ({RELEASES_FOLDER}/{file.path.name})")
     return 0
 
 
+def push_for_release(workspace: Workspace, scripts: list[str], dry_run: bool) -> None:
+    """Pushes what releasing `scripts` needs as it is in the repo, over Onshape's: each FeatureScript, and every studio
+    and image it imports, directly or not, deleting nothing, so the backend version a release makes holds them."""
+    paths = sorted({path for script in scripts for path in release_paths(workspace, script)})
+    pushed = push(
+        workspace,
+        argparse.Namespace(
+            targets=[str(path) for path in paths], releasing=True, force=True, yes=True, dry_run=dry_run, no_commit=False
+        ),
+    )
+    if pushed != 0:
+        raise UsageError(f"Couldn't push what releasing {', '.join(scripts)} needs; nothing was released.")
+
+
 def push(workspace: Workspace, args: argparse.Namespace) -> int:
-    releasing = getattr(args, "release", False)
-    if releasing:
-        if not args.targets:
-            raise UsageError("Name the FeatureScripts to push for release, e.g. `fs push --release robotFrame`.")
-        paths = sorted({path for script in args.targets for path in release_paths(workspace, script)})
-        args = argparse.Namespace(**{**vars(args), "targets": [str(path) for path in paths], "force": True})
+    # Only `push_for_release`: a release's push deletes nothing, and puts only what's released in place
+    releasing = getattr(args, "releasing", False)
     targets = workspace.resolve_targets(args.targets)
     # Studios unchanged locally aren't pushed (except with --force, over changes in Onshape), so they aren't
     # downloaded to see if they changed in Onshape
@@ -767,6 +753,32 @@ def push(workspace: Workspace, args: argparse.Namespace) -> int:
     if not args.dry_run and not args.no_commit:
         commit_pushed(workspace, [*to_push, *images_to_push], to_delete, updated)
     return pushed or not_deleted or not_recreated or skipped
+
+
+def push_to(config: Config, args: argparse.Namespace, remote: Remote, document: Document) -> int:
+    """`fs push --to DOC`: the targets, with what they import, to another backend (see fs_cli/push_to.py). Reaches it
+    with its own keys if it has them (`remote` stands in for either, in tests)."""
+    from fs_cli.push_to import plan_push_to, run_push_to
+
+    if not args.targets:
+        raise UsageError(f"Name the FeatureScripts to push, e.g. `fs push robotFrame --to {document.name}`.")
+    instance = document.instance or remote.default_workspace(document.document_id)
+    scripts = [module.path for module in _select_modules(_project(config), args.targets)]
+    plan = plan_push_to(config, remote, document, instance, scripts)
+    verb = "Would push" if args.dry_run else "Pushing"
+    print(f"{verb} to {document.name} ({plan.url}):")
+    unchanged = [image.path for image in plan.unchanged_images]
+    for tab in [*plan.images, *plan.studios]:
+        if tab.path not in unchanged:
+            print(f"  {tab.path}{'' if tab.element_id else ' (new)'}")
+    if unchanged:
+        print(f"  ({_plural(len(unchanged), 'image')} already the same: {', '.join(unchanged)})")
+    if args.dry_run:
+        return 0
+    run_push_to(remote, plan)
+    pushed = len(plan.studios) + len(plan.images) - len(unchanged)
+    print(f"Pushed {_plural(pushed, 'tab')} to {document.name}.")
+    return 0
 
 
 def ask_to_overwrite(mismatched: list[Studio | Image], dry_run: bool) -> bool:
@@ -1232,20 +1244,20 @@ def unlink(config: Config, args: argparse.Namespace) -> int:
     state = State.load(config.state_path, config.studios_path)
     for element_id, path in _synced_studios(config, state, args.files):
         del state.studios[element_id]
-        released = " It's still released (see `fs released`)." if element_id in state.released else ""
+        released = " It's still released (see `fs mark-released`)." if element_id in state.released else ""
         print(f"{path} is no longer synced with its tab ({element_id}), which is left alone in Onshape.{released}")
     state.save()
     return 0
 
 
-def released(config: Config, args: argparse.Namespace) -> int:
+def mark_released(config: Config, args: argparse.Namespace) -> int:
     state = State.load(config.state_path, config.studios_path)
     if not args.files:
         files = {element_id: entry.file for element_id, entry in state.studios.items()}
         for element_id in sorted(state.released, key=lambda element_id: files.get(element_id, "")):
             print(files.get(element_id, f"{element_id} (not synced with a file)"))
         if not state.released:
-            print("Nothing is released. Mark released FeatureScripts with `fs released FILE` or `fs released --detect`.")
+            print("Nothing is released. `fs release` marks what it releases, or `fs mark-released FILE` marks a file.")
         return 0
     for element_id, path in _synced_studios(config, state, args.files):
         if args.remove:
@@ -1255,29 +1267,6 @@ def released(config: Config, args: argparse.Namespace) -> int:
             state.released.add(element_id)
             print(f"{path} is released.")
     state.save()
-    return 0
-
-
-def detect_released(workspace: Workspace, args: argparse.Namespace) -> int:
-    """Marks every tab with a release version (but no deprecated version) in the backend document."""
-    remote = workspace.remote
-    feature_names = set()
-    deprecated = set()
-    for version in remote.versions(workspace.instance):
-        parsed = parse_version_name(version.name)
-        if parsed:
-            feature_names.add(parsed.feature_name)
-        elif version.name.startswith(DEPRECATED):
-            deprecated.add(version.name.removeprefix(DEPRECATED))
-    files = {element_id: entry.file for element_id, entry in workspace.state.studios.items()}
-    marked = 0
-    for tab in remote.list_studios(workspace.instance):
-        feature_name = feature_name_for(tab.name)
-        if feature_name in feature_names - deprecated and tab.element_id not in workspace.state.released:
-            workspace.state.released.add(tab.element_id)
-            print(f"{files.get(tab.element_id, tab.name)} is released ({feature_name}).")
-            marked += 1
-    print(f"Marked {_plural(marked, 'FeatureScript')} released.")
     return 0
 
 
@@ -1310,49 +1299,132 @@ def _synced_studios(config: Config, state: State, args: list[str]) -> list[tuple
 
 
 def release(workspace: Workspace, args: argparse.Namespace) -> int:
-    paths = release_paths(workspace, args.script)
-    # `fs run-releases` checks once, before its first release commits
-    if not getattr(args, "checked", False):
-        check_synced_with_origin(workspace.config, paths)
-    # What's released, as it is on GitHub, over whatever Onshape has
-    pushed = push(
-        workspace,
-        argparse.Namespace(
-            targets=[args.script], release=True, force=True, yes=True, dry_run=args.dry_run, no_commit=False
-        ),
-    )
-    if pushed != 0:
-        raise UsageError(f"Couldn't push what {args.script} needs to be released; nothing was released.")
-    plan = plan_release(workspace, args.script, args.bump, args.publish)
+    """`fs release NAME`: a FeatureScript, or a part set with its Part Studios, to its frontend document, or `--to` a
+    library."""
+    config = workspace.config
+    part_set = config.part_set(args.name)
+    if args.to is not None:
+        document = config.find_document(args.to, Role.LIBRARY)
+    elif part_set is not None:
+        from fs_cli.parts import frontend_of
+
+        document = frontend_of(part_set)
+    else:
+        document = frontend_document(workspace)
+    # What's refused before anything's pushed
+    check_release_document(document, args.bump)
+    if part_set is not None:
+        from fs_cli.parts import part_set_script
+
+        script = part_set_script(workspace, part_set)
+    else:
+        script = args.name
+        for module in _select_modules(_project(config), [script]):
+            path = module.path.resolve().relative_to(config.code_dir.resolve()).as_posix()
+            sets = [each.name for each in config.parts if each.holds(path)]
+            if sets:
+                raise UsageError(
+                    f"{path} is a part set's FeatureScript; release the part set ({', '.join(sets)}) instead, e.g. "
+                    f"`fs release {sets[0]}`."
+                )
+    if document.role is Role.FRONTEND:
+        check_main_branch(config)
+        # `fs releases --run` checks once, before its first release commits
+        if not getattr(args, "checked", False):
+            check_synced_with_origin(config, release_paths(workspace, script))
+    # What's released, as it is in the repo (on GitHub, for a frontend), over whatever Onshape has
+    push_for_release(workspace, [script], args.dry_run)
+    if part_set is not None:
+        return release_part_set(workspace, part_set, document, args)
+    plan = plan_release(workspace, script, args.bump, document, args.hard)
     previous = plan.previous.name if plan.previous else "none"
-    print(
-        f"Releasing {plan.studio.path} as {plan.version_name} (previous release: {previous})"
-    )
+    print(f"{_release_kind(plan.released, args.hard)} of {plan.studio.path} to {document.name} as {plan.version_name} (previous release: {previous})")
     print(f"  1. Create version {plan.version_name} in the backend document")
-    steps = [f"Point {plan.studio.name} in the frontend document at that version"]
+    steps = [f"Point {plan.studio.name} in the {plan.label} at that version"]
     if plan.example is None:
-        steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the frontend document")
+        steps.append(f"Create an empty example Part Studio, {plan.display_name}, in the {plan.label}")
     else:
         steps.append(f"Keep {plan.example.name} as its example")
     steps.append("Write its icon and its entry in featurescripts.json there, for FRCDesignApp")
-    if args.publish:
-        steps.append(f"Create version {plan.version_name} in the frontend document")
+    if args.hard or plan.released is None:
+        steps.append(f"Create version {plan.version_name} in the {plan.label}")
     for number, step in enumerate(steps, 2):
         print(f"  {number}. {step}")
     if args.dry_run:
         return 0
     if not args.yes:
-        confirm("Backend versions can't be deleted.")
-    run_release(workspace, plan, args.description, args.publish)
+        confirm("Versions can't be deleted.")
+    run_release(workspace, plan, args.description, args.hard)
     print(f"Released {plan.version_name}.")
-    released = parse_version_name(plan.version_name)
-    assert released and plan.studio.local_code is not None
-    if not args.publish:
-        print("It's final once its version is in the frontend document: `fs sync-versions` creates it, and tags it in git.")
-    elif is_repository(workspace.config.root):
+    if plan.released is None:
+        return 0
+    assert plan.studio.local_code is not None
+    if not args.hard:
+        print(SOFT_RELEASED)
+    elif is_repository(config.root):
         # In sync, so its code is what was released
-        tag_release(workspace, plan.studio.path, released, plan.studio.local_code, not args.no_push_tags)
+        tag_release(workspace, plan.studio.path, plan.released, plan.studio.local_code, not args.no_push_tags)
     return 0
+
+
+def release_part_set(workspace: Workspace, part_set: PartSet, document: Document, args: argparse.Namespace) -> int:
+    from fs_cli.parts import plan_part_release, run_part_release
+
+    plan = plan_part_release(workspace, part_set, args.bump, document)
+    kind = _release_kind(plan.released, args.hard)
+    if plan.released:
+        previous = plan.previous.name if plan.previous else "none"
+        print(f"{kind} of the {part_set.name} part set to {document.name} as {plan.version_name} (previous release: {previous})")
+    else:
+        print(f"{kind} of the {part_set.name} part set to {document.name} as {plan.version_name}")
+    tabs = ", ".join(studio.tab_name for _, studios in plan.definitions for studio in studios)
+    steps = [
+        f"Create version {plan.version_name} in the backend document",
+        f"Point {plan.studio.name} in the {plan.label} at that version",
+        f"Build {tabs} in the {plan.label}, and write its manifest there",
+    ]
+    if plan.released is not None:
+        steps.append(
+            "Record where its Part Studios are beside "
+            + ", ".join(definition.name for definition, _ in plan.definitions)
+            + ", and write their exports again"
+        )
+    if args.hard or plan.released is None:
+        steps.append(f"Create version {plan.version_name} in the {plan.label}" + (", and tag the release" if plan.released else ""))
+    for number, step in enumerate(steps, 1):
+        print(f"  {number}. {step}")
+    if args.dry_run:
+        return 0
+    if not args.yes:
+        confirm("Versions can't be deleted.")
+    run_part_release(workspace, plan, args.description, args.hard)
+    print(f"Released {plan.version_name}.")
+    if plan.released is None:
+        return 0
+    print("Commit the recorded locations and exports.")
+    if not args.hard:
+        print(SOFT_RELEASED)
+    elif is_repository(workspace.config.root):
+        assert plan.studio.local_code is not None
+        tag_release(
+            workspace,
+            plan.studio.path,
+            plan.released,
+            plan.studio.local_code,
+            not args.no_push_tags,
+            tagged=part_set.name,
+        )
+    return 0
+
+
+SOFT_RELEASED = (
+    "It's a soft release: its frontend isn't versioned, so people's documents don't update to it yet. Once it's "
+    "checked there, `fs publish` versions the frontend for it, and tags it in git, as a hard release (--hard) would have."
+)
+
+
+def _release_kind(released: object, hard: bool) -> str:
+    return "Test release" if released is None else "Hard release" if hard else "Soft release"
 
 
 def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
@@ -1369,7 +1441,7 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
         f"example (unless another feature's is it too) {DEPRECATED}...",
         f"Rename it {plan.frontend_name}",
     ]
-    if args.publish:
+    if args.hard:
         steps.append(f"Create version {plan.version_name} in the frontend document")
     if args.keep_backend:
         assert studio.remote
@@ -1383,60 +1455,34 @@ def deprecate(workspace: Workspace, args: argparse.Namespace) -> int:
     if args.dry_run:
         return 0
     if not args.yes:
-        confirm("Backend versions can't be deleted.")
-    run_deprecate(workspace, plan, args.description, args.publish)
+        confirm("Versions can't be deleted.")
+    run_deprecate(workspace, plan, args.description, args.hard)
     print(f"Deprecated {studio.path}. Now rename any folders holding its tabs by hand (step {len(steps)}).")
     return 0
 
 
-def sync_versions(workspace: Workspace, args: argparse.Namespace) -> int:
-    missing = unsynced_versions(workspace, {feature_name_for(name) for name in args.features} or None)
-    if not missing:
-        print("The frontend document already has every release version.")
+def publish(workspace: Workspace, args: argparse.Namespace) -> int:
+    """`fs publish`: versions the frontends for soft releases, leaving them as hard releases would."""
+    config = workspace.config
+    names = {each.title if (each := config.part_set(name)) else feature_name_for(name) for name in args.names}
+    releases = soft_releases(workspace, names or None)
+    if not releases:
+        print("There are no soft releases to publish: every frontend has its release versions.")
         return 0
-    print("Versions missing from the frontend document:")
-    for version in missing:
-        description = f": {version.description}" if version.description else ""
-        print(f"  {version.name}{description}")
+    print("Soft releases, whose frontends don't have their versions:")
+    for release in releases:
+        description = f": {release.version.description}" if release.version.description else ""
+        print(f"  {release.version.name} (to {release.document.name}){description}")
     if args.dry_run:
         return 0
     if not args.yes:
         confirm("Versions can't be deleted.")
-    assert workspace.config.frontend
-    for version in missing:
-        workspace.remote.create_version(
-            workspace.config.frontend, version.name, version.description
-        )
-    print(f"Created {len(missing)} version{'s' if len(missing) != 1 else ''}.")
-    # They're final now
-    tag_versions(workspace, missing, not args.no_push_tags)
-    return 0
-
-
-def app_manifest(workspace: Workspace, args: argparse.Namespace) -> int:
-    features = plan_app_manifest(workspace)
-    if not features:
-        print("No released features to write.")
-        return 0
-    print(f"Entries for {MANIFEST_NAME}, each as of its latest release:")
-    for feature in features:
-        notes = [
-            note
-            for note, missing in (
-                ("no icon", feature.icon is None),
-                ("the default icon", feature.default_icon),
-                ("no GitHub link", "sourceUrl" not in feature.entry),
-                ("no example", not feature.has_example),
-            )
-            if missing
-        ]
-        print(f"  {feature.version.name}" + (f" ({'; '.join(notes)})" if notes else ""))
-    if args.dry_run:
-        return 0
-    if not args.yes:
-        confirm(f"This writes {MANIFEST_NAME} and the icons in the frontend document, and makes no version.")
-    write_app_manifest(workspace, features)
-    print(f"Wrote {len(features)} {'entry' if len(features) == 1 else 'entries'} in {MANIFEST_NAME}.")
+    for release in releases:
+        target = workspace.instance_of(release.document)
+        workspace.remote_for(release.document).create_version(target, release.version.name, release.version.description)
+    print(f"Created {_plural(len(releases), 'version')}.")
+    # They're hard releases now
+    tag_versions(workspace, releases, not args.no_push_tags)
     return 0
 
 
@@ -1947,50 +1993,49 @@ def _display_path(path: pathlib.Path) -> str:
 
 # Commands which don't need Onshape
 # Offline commands which change fs-studios.json or .fs-state.json, so hold their lock (see `state_lock`)
-def configuration(workspace: Workspace, args: argparse.Namespace) -> int:
-    from onshape_api.endpoints.elements import get_configuration
+def _api_for(workspace: Workspace, url: str):
+    """What reaches the document a url names: a document in [tool.fs.documents] with its own keys, else the usual
+    keys."""
     from onshape_api.paths.paths import url_to_element_path
 
-    assert isinstance(workspace.remote, OnshapeRemote)
-    print(json.dumps(get_configuration(workspace.remote.api, url_to_element_path(args.url)), indent=1))
+    path = url_to_element_path(url)
+    document = next((each for each in workspace.config.documents if each.document_id == path.document_id), None)
+    remote = workspace.remote_for(document) if document is not None else workspace.remote
+    assert isinstance(remote, OnshapeRemote)
+    return remote.api, path
+
+
+def configuration(workspace: Workspace, args: argparse.Namespace) -> int:
+    from onshape_api.endpoints.elements import get_configuration
+
+    print(json.dumps(get_configuration(*_api_for(workspace, args.url)), indent=1))
     return 0
 
 
 def features(workspace: Workspace, args: argparse.Namespace) -> int:
     from onshape_api.endpoints.part_studios import get_features
-    from onshape_api.paths.paths import url_to_element_path
 
-    assert isinstance(workspace.remote, OnshapeRemote)
-    print(json.dumps(get_features(workspace.remote.api, url_to_element_path(args.url)), indent=1))
+    print(json.dumps(get_features(*_api_for(workspace, args.url)), indent=1))
     return 0
 
 
-def parts(workspace: Workspace, args: argparse.Namespace) -> int:
-    from fs_cli.parts import part_set_script, plan_part_release, run_diagnose, run_part_release, run_test
+def build(workspace: Workspace, args: argparse.Namespace) -> int:
+    """`fs build SET`: a part set's test Part Studios, in the backend or (`--to`) another backend."""
+    from fs_cli.parts import part_set_script, run_build, run_diagnose
 
-    part_set = workspace.config.find_part_set(args.part_set)
-    if not args.release and (args.target or args.bump or args.description):
-        raise UsageError("--target, --major, --minor, --patch, and --description go with --release.")
-    if args.test:
-        if not args.yes:
-            confirm(
-                f"This builds the {part_set.name} Part Studios in the backend document, named `<Part> (TEST)`, "
-                "replacing any configuration they have."
-            )
-        for studio, built in run_test(workspace, part_set):
-            url = path_to_url(ElementPath.from_path(workspace.instance, built.element_id))
-            print(f"{studio.tab_name} ({'created' if built.created else 'updated'}, {built.status}): {url}")
-        return 0
-
+    config = workspace.config
+    part_set = config.find_part_set(args.part_set)
+    document = config.find_document(args.to, Role.BACKEND) if args.to else config.backend_document
+    remote, instance = workspace.remote_for(document), workspace.instance_of(document)
+    where = "the backend document" if document == config.backend_document else document.name
     if args.diagnose:
         if not args.yes:
             confirm(
-                f"This writes the {part_set.name} configurations in stages to `<Part> (DIAGNOSE)` Part Studios in the "
-                "backend document, stopping at the first stage Onshape refuses."
+                f"This writes the {part_set.name} configurations in stages to `<Part> (DIAGNOSE)` Part Studios in "
+                f"{where}, stopping at the first stage Onshape refuses."
             )
-        for studio, diagnosis in run_diagnose(workspace, part_set):
-            url = path_to_url(ElementPath.from_path(workspace.instance, diagnosis.element_id))
-            print(f"{studio.tab_name}: {url}")
+        for studio, diagnosis in run_diagnose(workspace, part_set, remote, instance):
+            print(f"{studio.tab_name}: {_tab_url(document, instance, diagnosis.element_id)}")
             if diagnosis.features is not None:
                 print(f"  Its (TEST) tab's features: {', '.join(diagnosis.features) or 'none'}")
             for stage in diagnosis.accepted:
@@ -1999,74 +2044,39 @@ def parts(workspace: Workspace, args: argparse.Namespace) -> int:
                 stage, error = diagnosis.refused
                 print(f"  refused {stage}: {error}")
         return 0
-
-    if args.target is None:
-        if not getattr(args, "checked", False):
-            check_synced_with_origin(workspace.config, [workspace.config.code_dir / part_set.folder])
-        # Its Feature Studio as it is on GitHub, over whatever Onshape has, as a FeatureScript's release pushes
-        pushed = push(
-            workspace,
-            argparse.Namespace(
-                targets=[part_set_script(workspace, part_set)],
-                release=True,
-                force=True,
-                yes=True,
-                dry_run=args.dry_run,
-                no_commit=False,
-            ),
-        )
-        if pushed != 0:
-            raise UsageError(f"Couldn't push what the {part_set.name} part set needs to be released; nothing was released.")
-    plan = plan_part_release(workspace, part_set, args.bump, args.target)
-    label = plan.label
-    if plan.released:
-        previous = plan.previous.name if plan.previous else "none"
-        print(f"Releasing the {part_set.name} part set as {plan.version_name} (previous release: {previous})")
-    else:
-        print(f"Releasing the {part_set.name} part set to {args.target} as {plan.version_name}")
-    tabs = ", ".join(studio.tab_name for _, studios in plan.definitions for studio in studios)
-    steps = [
-        f"Create version {plan.version_name} in the backend document",
-        f"Point {plan.studio.name} in the {label} at that version",
-        f"Build {tabs} in the {label}, and write its manifest there",
-    ]
-    if plan.released is None:
-        steps.append(f"Create version {plan.version_name} in the {label}")
-    else:
-        steps.append(
-            "Record where its Part Studios are beside "
-            + ", ".join(definition.name for definition, _ in plan.definitions)
-            + ", write their exports again, and tag the release"
-        )
-    for number, step in enumerate(steps, 1):
-        print(f"  {number}. {step}")
-    if args.dry_run:
-        return 0
     if not args.yes:
-        confirm("Versions can't be deleted.")
-    run_part_release(workspace, plan, args.description)
-    print(f"Released {plan.version_name}.")
-    if plan.released is None:
-        return 0
-    print("Version the main document in Onshape when you want FRCDesign to load it.")
-    print("Commit the recorded locations and exports.")
-    if is_repository(workspace.config.root):
-        assert plan.studio.local_code is not None
-        tag_release(
-            workspace,
-            plan.studio.path,
-            plan.released,
-            plan.studio.local_code,
-            not args.no_push_tags,
-            tagged=part_set.name,
+        confirm(
+            f"This builds the {part_set.name} Part Studios in {where}, named `<Part> (TEST)`, replacing any "
+            "configuration they have."
+        )
+    feature = None
+    if document != config.backend_document:
+        # Its FeatureScript, with what it imports, as `fs push --to` pushes it, which the studios are built from
+        from fs_cli.push_to import plan_push_to, run_push_to
+
+        script = pathlib.Path(part_set_script(workspace, part_set))
+        plan = plan_push_to(config, remote, document, instance, [script])
+        print(f"Pushing {', '.join(tab.path for tab in plan.studios)} to {document.name}...")
+        run_push_to(remote, plan)
+        pushed = next(tab for tab in plan.studios if tab.file.resolve() == script.resolve())
+        feature = next(each for each in remote.list_studios(instance) if each.element_id == pushed.element_id)
+    for studio, built in run_build(workspace, part_set, remote, instance, feature):
+        print(
+            f"{studio.tab_name} ({'created' if built.created else 'updated'}, {built.status}): "
+            f"{_tab_url(document, instance, built.element_id)}"
         )
     return 0
 
 
-STATE_COMMANDS = {"mv", "unlink", "released"}
+def _tab_url(document: Document, instance: InstancePath, element_id: str) -> str:
+    return f"{document.base_url}/documents/{instance.document_id}/w/{instance.instance_id}/e/{element_id}"
+
+
+STATE_COMMANDS = {"mv", "unlink", "mark-released"}
 
 OFFLINE_COMMANDS = {
     "check": check,
+    # Online with --run
     "releases": releases,
     "format": format_files,
     "mv": mv,
@@ -2086,8 +2096,7 @@ OFFLINE_COMMANDS = {
     "fsdoc": fsdoc,
     "step": step,
     "unlink": unlink,
-    # Online with --detect
-    "released": released,
+    "mark-released": mark_released,
 }
 
 COMMANDS = {
@@ -2101,13 +2110,11 @@ COMMANDS = {
     "pull-std": pull_std,
     "release": release,
     "deprecate": deprecate,
-    "sync-versions": sync_versions,
-    "app-manifest": app_manifest,
-    "run-releases": run_releases,
+    "publish": publish,
+    "releases": run_releases,
     "tabs": tabs,
     "link": link,
-    "released": detect_released,
-    "parts": parts,
+    "build": build,
     "configuration": configuration,
     "features": features,
 }
@@ -2242,7 +2249,7 @@ def skip_recreating_released(studios: list[Studio]) -> tuple[list[Studio], int]:
             print(
                 f"Skipping {studio.path}: it's released, but its tab was deleted in Onshape, and Part Studios using "
                 "its feature can't update to a new tab. Restore the tab from the document's history, or run "
-                "`fs released --remove` on it to make a new one anyway."
+                "`fs mark-released --remove` on it to make a new one anyway."
             )
         else:
             kept.append(studio)
