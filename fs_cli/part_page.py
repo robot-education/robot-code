@@ -264,8 +264,8 @@ def page(title: str, subtitle: str, entries: list[dict], artifact: bool = False)
   <div class="configs" id="configs" aria-label="Configurations"></div>
   <div class="main">
     <div class="stage" id="stage">
-      <div class="status" id="status">Loading the parts…</div>
-      <span class="hint">Drag to turn · pinch or scroll to zoom</span>
+      <div class="status" id="status">Loading the parts&hellip;</div>
+      <span class="hint">Drag to turn &middot; pinch or scroll to zoom</span>
       <div class="tools">
         <button class="tool" id="edges" type="button" aria-pressed="true">Edges</button>
         <button class="tool" id="mates" type="button" aria-pressed="true">Mate connectors</button>
