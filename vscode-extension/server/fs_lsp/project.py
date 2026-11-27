@@ -78,8 +78,22 @@ ANNOTATION_KEYS = frozenset(
         "Table Type Name", "Tolerance Type Name", "Tooltip Template", "UIHint", "message", "showDefaultAlignmentPoints",
         # Ours, which Onshape ignores: the function editing logic sets a hidden parameter from (see `_set_by_problems`)
         "Set By",
+        # Ours, which Onshape ignores: what a feature supports, for FRCDesignApp (see `_support_annotation_problems`)
+        "Auto Assembly", "Simplification",
     ]
 )
+# Our feature annotation keys saying what a feature supports, and what it must do for each
+SUPPORT_ANNOTATION_KEYS = {
+    "Auto Assembly": (
+        "declares no parts (it never calls declarePart, from core/autoAssembly.fs)",
+        "declares parts",
+    ),
+    "Simplification": (
+        "doesn't allow simplification (its precondition never calls simplificationPredicate, from core/simplify.fs)",
+        "allows simplification",
+    ),
+}
+DECLARE_PART = "declarePart"
 # Std predicates which declare the parameter they're given, e.g. `isLength(definition.width, LENGTH_BOUNDS)`
 # The std predicates which declare parameters, and the types of the parameters they declare
 PARAMETER_PREDICATES = {
@@ -933,6 +947,7 @@ class Project:
         problems.extend(self._duplicate_parameter_problems(module))
         problems.extend(self._editing_logic_key_problems(module))
         problems.extend(self._set_by_problems(module))
+        problems.extend(self._support_annotation_problems(module))
         problems.extend(self._vendor_order_problems(module))
         problems.extend(self._button_problems(module))
         problems.extend(self._unknown_key_problems(module))
@@ -1376,6 +1391,119 @@ class Project:
                         )
                     )
         return problems
+
+    def _support_annotation_problems(self, module: Module) -> list[Problem]:
+        """`"Auto Assembly"` and `"Simplification"`, our own keys in a feature's annotation, which `fs release` writes
+        into FRCDesignApp's manifest: each is `true` or `false`, only in a feature's annotation, and true exactly when
+        the feature does it: declares parts (`declarePart` is called in its file or a project file it imports), or
+        follows Simplified (its precondition declares `allowSimplification`, `simplificationPredicate`'s)."""
+        problems = []
+        feature_annotations = []
+        for feature in module.parsed.nodes:
+            if feature.type != "FeatureDeclaration":
+                continue
+            annotation = _feature_annotation(module, feature)
+            if annotation is None:
+                continue
+            feature_annotations.append(annotation)
+            values: dict[str, Token] = {}
+            name_token = None
+            for token in module.index.tokens:
+                if not annotation.start <= token.offset < annotation.end or token.kind != "string":
+                    continue
+                key = token.value.strip('"')
+                following = module.index.next_token(token)
+                if following is None or following.value != ":":
+                    continue
+                if key == "Feature Type Name":
+                    name_token = token
+                elif key in SUPPORT_ANNOTATION_KEYS:
+                    value = module.index.next_token(following)
+                    if value is None or value.value not in ("true", "false"):
+                        problems.append(
+                            Problem(token.offset, token.end, "error", f'"{key}" must be true or false.', "support-annotation")
+                        )
+                        continue
+                    values[key] = value
+            if name_token is None:
+                continue
+            does = {
+                "Auto Assembly": self._declares_parts(module),
+                "Simplification": any(
+                    parameter.name == "allowSimplification" for parameter in self.feature_parameters(module, feature)
+                ),
+            }
+            for key, (lacks, has) in SUPPORT_ANNOTATION_KEYS.items():
+                value = values.get(key)
+                said = value is not None and value.value == "true"
+                if said and not does[key]:
+                    problems.append(
+                        Problem(
+                            value.offset,
+                            value.end,
+                            "error",
+                            f'The feature says "{key}" : true, but it {lacks}.',
+                            "support-annotation",
+                        )
+                    )
+                elif does[key] and not said:
+                    problems.append(
+                        Problem(
+                            name_token.offset,
+                            name_token.end,
+                            "error",
+                            f'The feature {has}, so its annotation needs "{key}" : true, for FRCDesignApp to show '
+                            "it.",
+                            "support-annotation",
+                        )
+                    )
+        for token in module.index.tokens:
+            if token.kind != "string" or token.value.strip('"') not in SUPPORT_ANNOTATION_KEYS:
+                continue
+            following = module.index.next_token(token)
+            if following is None or following.value != ":":
+                continue
+            in_annotation = any(
+                node.type == "AnnotationMap" and node.start <= token.offset < node.end for node in module.parsed.nodes
+            )
+            if in_annotation and not any(a.start <= token.offset < a.end for a in feature_annotations):
+                problems.append(
+                    Problem(
+                        token.offset,
+                        token.end,
+                        "error",
+                        f'{token.value} belongs in a feature\'s annotation, before its defineFeature.',
+                        "support-annotation",
+                    )
+                )
+        return problems
+
+    def _declares_parts(self, module: Module) -> bool:
+        """Whether `declarePart` is called in the module or a project module it imports, directly or not."""
+        seen: set[int] = set()
+        pending = [module]
+        while pending:
+            current = pending.pop()
+            if id(current) in seen:
+                continue
+            seen.add(id(current))
+            tokens = current.index.tokens
+            for index, token in enumerate(tokens):
+                if (
+                    token.value == DECLARE_PART
+                    and token.kind != "string"
+                    and index + 1 < len(tokens)
+                    and tokens[index + 1].value == "("
+                    and (index == 0 or tokens[index - 1].value != "function")
+                ):
+                    return True
+            for imported in current.imports:
+                if imported.is_std:
+                    continue
+                resolved = self.resolve(imported)
+                if resolved is not None:
+                    pending.append(resolved)
+        return False
 
     def _set_by_problems(self, module: Module) -> list[Problem]:
         """Hidden parameters set by editing logic from a function of the definition, which their annotations name

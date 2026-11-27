@@ -1,0 +1,1499 @@
+{
+ "source": "https://app.frcdesign.org/api/configuration/insertable/{id}?v=235 (frc-design-lib)",
+ "parts": [
+  {
+   "name": "Kraken X60 Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "f000b0eb12c83199847430dc",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_XdfqJYPEo77Non",
+     "name": "Back Cap Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "Standard",
+       "name": "Standard"
+      },
+      {
+       "id": "WCP_Powerpole_Board",
+       "name": "WCP Powerpole Board"
+      },
+      {
+       "id": "ReFire_Powerpole_Board",
+       "name": "ReFire Powerpole Board"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_UJv4xof9ltWjt1",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "West Coast Products"
+      },
+      {
+       "id": "CTRE",
+       "name": "CTRE"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Kraken X44 Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "f1f0f9c5f908d4c8913aa92d",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_ASfBggz0UCMdFB",
+     "name": "Back Cap Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "Standard",
+       "name": "Standard"
+      },
+      {
+       "id": "WCP_Flipped_Powerpole_Adapter",
+       "name": "WCP Flipped Powerpole Adapter"
+      },
+      {
+       "id": "ReFire_Powerpole",
+       "name": "ReFire Powerpole"
+      }
+     ]
+    },
+    {
+     "id": "Include_ReFire_Board_Case",
+     "name": "Include ReFire Board Case",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_VjPLKnBihlFPVK",
+     "name": "Vendor Properties",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "WCP"
+      },
+      {
+       "id": "CTRE",
+       "name": "CTRE"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Falcon 500 Brushless Motor (V1/2)",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "0791d0671d4ddb40541fca38",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_HQzE93Ls4MhKHS",
+     "name": "Shaft Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "None",
+       "name": "None"
+      },
+      {
+       "id": "Default",
+       "name": "Long"
+      },
+      {
+       "id": "hort",
+       "name": "Short"
+      },
+      {
+       "id": "_8mm_Keyed__TTB_",
+       "name": "8mm Keyed (TTB)"
+      },
+      {
+       "id": "Copy_of_8mm_Keyed__TTB_",
+       "name": "8mm Keyed (REV)"
+      }
+     ]
+    },
+    {
+     "id": "Cooling_Port",
+     "name": "Cooling Port Open",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_pcS4etSrMn1cGJ",
+     "name": "Falcon 500 Vendor Properties",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "VEXpro"
+      },
+      {
+       "id": "CTRE",
+       "name": "CTRE"
+      }
+     ]
+    },
+    {
+     "id": "List_Ps0b9Yo4MP04iD",
+     "name": "Shaft Vendor Properties",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "VEXpro"
+      },
+      {
+       "id": "CTRE",
+       "name": "CTRE"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Falcon 500 Brushless Motor (V3)",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "aaa5caaa1f15aeac639273c1",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "List_bNwOt3BPlyPyp7",
+     "name": "Shaft Type",
+     "type": "enum",
+     "default": "Copy_of_Long",
+     "options": [
+      {
+       "id": "Copy_of_Long",
+       "name": "Long"
+      },
+      {
+       "id": "Short",
+       "name": "Short (Cut Down)"
+      }
+     ]
+    },
+    {
+     "id": "Cooling_Ports_Open",
+     "name": "Cooling Port 1 Open",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "Cooling_Port_2_Open",
+     "name": "Cooling Port 2 Open",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_G9T6HvTuGHgRPi",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "VEXpro"
+      },
+      {
+       "id": "CTRE",
+       "name": "CTRE"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "NEO Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "44ea8a976ead8dcadb96d4a5",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "List_BM4H9k4PYt7NUO",
+     "name": "Version",
+     "type": "enum",
+     "default": "V1_1",
+     "options": [
+      {
+       "id": "Default",
+       "name": "V1.0"
+      },
+      {
+       "id": "V1_1",
+       "name": "V1.1"
+      }
+     ]
+    },
+    {
+     "id": "Cut_Shaft__VersaPlanetary_",
+     "name": "Cut Shaft (VersaPlanetary)",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_wniqJa5lx4ledP",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "REV Robotics"
+      },
+      {
+       "id": "AndyMark",
+       "name": "AndyMark"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "NEO 2.0 Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "1a8ba92802371b4fd7dbfef0",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "NEO Vortex Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "8518ee22b4238dab8b3d9dc1",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_ROOPZd3C0SrMA7",
+     "name": "Shaft Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "No_Shaft",
+       "name": "No Shaft"
+      },
+      {
+       "id": "Default",
+       "name": "8mm Keyed"
+      },
+      {
+       "id": "_7t_20_DP_Gear",
+       "name": "7T 20DP Gear"
+      },
+      {
+       "id": "MAXSwerve",
+       "name": "MAXSwerve"
+      },
+      {
+       "id": "Falcon_Spline",
+       "name": "Falcon Spline"
+      },
+      {
+       "id": "SplineXS",
+       "name": "SplineXS"
+      },
+      {
+       "id": "MAXPlanetary",
+       "name": "MAXPlanetary"
+      }
+     ]
+    },
+    {
+     "id": "List_txSk5zcROdAUve",
+     "name": "Front Mount",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "SPARK Flex"
+      },
+      {
+       "id": "Solo_Adapter",
+       "name": "Solo Adapter"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "NEO 550 Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "9476bb3a984197286b9d8028",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_4RPOUv6azmVB3Y",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "REV Robotics"
+      },
+      {
+       "id": "AndyMark",
+       "name": "AndyMark"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CIM Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "6c7c486ffb52be92557b7dd8",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_3m4OgjsJ2hoyth",
+     "name": "Encoder",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "None",
+       "name": "CIMCoder"
+      },
+      {
+       "id": "CIMCoder_256",
+       "name": "CIMCoder 256"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Encoder_Model",
+     "name": "Simplified Encoder Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "Cut_Shaft__VersaPlanetary_",
+     "name": "Cut Shaft (VersaPlanetary)",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_JgiGNm4kJJeu9N",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "AndyMark"
+      },
+      {
+       "id": "VEXpro",
+       "name": "VEXpro"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Mini CIM Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "1b510a4d9d757ae6c58d691d",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_qw7euijXsYiB64",
+     "name": "Encoder",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "CIMCoder",
+       "name": "CIMCoder"
+      },
+      {
+       "id": "CIMCoder_256",
+       "name": "CIMCoder 256"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Encoder_Model",
+     "name": "Simplified Encoder Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "Cut_Shaft__VersaPlanetary_",
+     "name": "Cut Shaft (VersaPlanetary)",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "RS-775 Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "f8c2fa2da2d683616fd07f2e",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_BSRZdv0jUSshyr",
+     "name": "Type",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "775pro"
+      },
+      {
+       "id": "_775_RedLine",
+       "name": "775 RedLine"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Motor",
+     "name": "Simplified Motor",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "Vent_Spacer",
+     "name": "Vent Spacer",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_3D3otXNbMXz2kN",
+     "name": "Back Mount",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "_775_Connect",
+       "name": "775 Connect"
+      },
+      {
+       "id": "Ozzy_Board",
+       "name": "Ozzyboard"
+      }
+     ]
+    },
+    {
+     "id": "List_cWdXL1iqMcTT4T",
+     "name": "775 Connect Angle",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "0 Deg"
+      },
+      {
+       "id": "_45_Deg",
+       "name": "45 Deg"
+      },
+      {
+       "id": "_90_Deg",
+       "name": "90 Deg"
+      },
+      {
+       "id": "_135_Deg",
+       "name": "135 Deg"
+      },
+      {
+       "id": "_180_Deg",
+       "name": "180 Deg"
+      },
+      {
+       "id": "_215_Deg",
+       "name": "225 Deg"
+      },
+      {
+       "id": "_270_Deg",
+       "name": "270 Deg"
+      },
+      {
+       "id": "_315_Deg",
+       "name": "315 Deg"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Back Mount",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "Minion Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "6114d07c3241f6b3ca8083a7",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "List_4QchIVZNjdFmax",
+     "name": "Vendor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "CTRE"
+      },
+      {
+       "id": "West_Coast_Products",
+       "name": "West Coast Products"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Thrifty Pulsar 775 Brushless Motor",
+   "documentId": "1e490f667f2060acc06d66b0",
+   "elementId": "eefed883790305479b0d9b1d",
+   "elementType": "PARTSTUDIO",
+   "parameters": [
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "MAXPlanetary (REV)",
+   "documentId": "5661b13bbebaf6fd4bef03aa",
+   "elementId": "8cff3f98b55cf5a01ff67a7d",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_bZx1S6facIhH62",
+     "name": "Input Kit",
+     "type": "enum",
+     "default": "NEO_Vortex",
+     "options": [
+      {
+       "id": "NEO_Vortex",
+       "name": "Vortex"
+      },
+      {
+       "id": "Default",
+       "name": "X60"
+      },
+      {
+       "id": "Copy_of_NEO",
+       "name": "8mm Keyed"
+      },
+      {
+       "id": "Falcon500_V1_V2",
+       "name": "Falcon Spline"
+      },
+      {
+       "id": "_1_2__Hex",
+       "name": "1/2\" Hex"
+      },
+      {
+       "id": "KrakenX44",
+       "name": "X44"
+      },
+      {
+       "id": "Minion",
+       "name": "Minion"
+      },
+      {
+       "id": "_775Pro",
+       "name": "775"
+      },
+      {
+       "id": "NEO_550",
+       "name": "550"
+      }
+     ]
+    },
+    {
+     "id": "List_wQzu1BDizzIdxZ",
+     "name": "Ratio Slice 1",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "9:1"
+      },
+      {
+       "id": "None0",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_rMf5mSMyISc6sN",
+     "name": "Ratio Slice 2",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_lbcgM13OfRAwGb",
+     "name": "Ratio Slice 3",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_H7Bw7XQ4fReBPu",
+     "name": "Output",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "1/2\" Hex Bore"
+      },
+      {
+       "id": "MAX_90_Degree_Gearbox",
+       "name": "MAX 90 Degree Gearbox"
+      }
+     ]
+    },
+    {
+     "id": "List_Brw1eqtcmfjE0L",
+     "name": "Brake Cartridge",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "Input",
+       "name": "Input"
+      },
+      {
+       "id": "Output",
+       "name": "Output"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "PlanetaryX (WCP)",
+   "documentId": "5661b13bbebaf6fd4bef03aa",
+   "elementId": "832eab6eeecc6ba582c10bfb",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_XCW48Ydup9hBh6",
+     "name": "Input",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "SplineXS"
+      },
+      {
+       "id": "_8mm_Keyed",
+       "name": "8mm Keyed"
+      },
+      {
+       "id": "_1_2__Hex_Male",
+       "name": "1/2\" Hex Male"
+      },
+      {
+       "id": "_1_2__Hex_Female",
+       "name": "1/2\" Hex Female"
+      },
+      {
+       "id": "_180_Degree_Gearbox",
+       "name": "180 Degree Gearbox"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_AWQZrqt8mY5AEe",
+     "name": "Mounting Bolt Location",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "2\""
+      },
+      {
+       "id": "X44",
+       "name": "1.375\""
+      },
+      {
+       "id": "No_Fasteners",
+       "name": "No Mounting Bolts"
+      }
+     ]
+    },
+    {
+     "id": "List_gqPpQFmXVSu2wp",
+     "name": "Ratio Slice 1",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_LXBx2mcNsPAeuB",
+     "name": "Ratio Slice 2",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_BHQ9eV6ngxHyQj",
+     "name": "Ratio Slice 3",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "UltraPlanetary (REV)",
+   "documentId": "5661b13bbebaf6fd4bef03aa",
+   "elementId": "8b065768cb59579e80569d13",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_apPJIJzaCaPeqG",
+     "name": "Input Motor",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "Neo 550"
+      },
+      {
+       "id": "RS_550",
+       "name": "BaneBots 550"
+      },
+      {
+       "id": "Generic_Andymark_RS_550",
+       "name": "Generic Andymark RS-550"
+      }
+     ]
+    },
+    {
+     "id": "List_r6sMCxnDqvmwOs",
+     "name": "Ratio Slice 1",
+     "type": "enum",
+     "default": "None",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_GDSI7FuP0cOBAv",
+     "name": "Ratio Slice 2",
+     "type": "enum",
+     "default": "None",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_0Y5Kb6o9EWm0te",
+     "name": "Ratio Slice 3",
+     "type": "enum",
+     "default": "None",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1"
+      },
+      {
+       "id": "_4_1",
+       "name": "4:1"
+      },
+      {
+       "id": "_5_1",
+       "name": "5:1"
+      },
+      {
+       "id": "None",
+       "name": "None"
+      }
+     ]
+    },
+    {
+     "id": "List_uhyvefB5i9x9bC",
+     "name": "Output",
+     "type": "enum",
+     "default": "_1_2__Hex_Shaft",
+     "options": [
+      {
+       "id": "Default",
+       "name": "5mm Hex Bore"
+      },
+      {
+       "id": "_1_2__Hex_Shaft",
+       "name": "REV 1/2\" Hex Shaft"
+      },
+      {
+       "id": "Ultra_90_Gearbox",
+       "name": "Ultra 90 Gearbox"
+      },
+      {
+       "id": "TTB_1_2__Hex_Socket",
+       "name": "TTB 1/2\" Hex Socket"
+      },
+      {
+       "id": "TTB_3_8__Hex_Socket",
+       "name": "TTB 3/8\" Hex Socket"
+      },
+      {
+       "id": "TTB_8mm_Keyed",
+       "name": "TTB 8mm Keyed"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Motor",
+     "name": "Simplified Motor",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    },
+    {
+     "id": "Motor_Orientation_Offset",
+     "name": "Motor Orientation Offset",
+     "type": "quantity",
+     "default": "0 deg",
+     "options": []
+    }
+   ]
+  },
+  {
+   "name": "VersaPlanetary v2 (VEX)",
+   "documentId": "5661b13bbebaf6fd4bef03aa",
+   "elementId": "c424782cb9875b6f79c885a3",
+   "elementType": "ASSEMBLY",
+   "parameters": [
+    {
+     "id": "List_zf3tEfACjwgx1K",
+     "name": "Input",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "Falcon_500_V1_V2",
+       "name": "Falcon Spline (CIM Class)"
+      },
+      {
+       "id": "NEO",
+       "name": "8mm Keyed (CIM Class)"
+      },
+      {
+       "id": "NEO_550",
+       "name": "RS-550"
+      },
+      {
+       "id": "_775pro",
+       "name": "RS-775"
+      },
+      {
+       "id": "BAG",
+       "name": "BAG"
+      },
+      {
+       "id": "_180_Degree_Speed_Reducer",
+       "name": "180\u00b0 Speed Reducer"
+      }
+     ]
+    },
+    {
+     "id": "List_0PqOxEqTIQv4sR",
+     "name": "180 Deg Input",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "None"
+      },
+      {
+       "id": "RS_775",
+       "name": "RS-775"
+      },
+      {
+       "id": "RS_550",
+       "name": "RS-550"
+      }
+     ]
+    },
+    {
+     "id": "Flip_Input",
+     "name": "Flip Input",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_nkAmN9EP7hApa0",
+     "name": "Stages",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "_0_Stage",
+       "name": "0 Stage"
+      },
+      {
+       "id": "Default",
+       "name": "1 Stage"
+      },
+      {
+       "id": "_2",
+       "name": "2 Stage"
+      },
+      {
+       "id": "_3",
+       "name": "3 Stage"
+      },
+      {
+       "id": "_4",
+       "name": "4 Stage"
+      }
+     ]
+    },
+    {
+     "id": "List_o1E2iuhG4AdLa1",
+     "name": "Stage 1",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "3:1 Reduction"
+      },
+      {
+       "id": "_4_1_Reduction",
+       "name": "4:1 Reduction"
+      },
+      {
+       "id": "_5_1_Reduction",
+       "name": "5:1 Reduction"
+      },
+      {
+       "id": "_7_1_Reduction",
+       "name": "7:1 Reduction"
+      },
+      {
+       "id": "_9_1_Reduction",
+       "name": "9:1 Reduction"
+      },
+      {
+       "id": "_10_1_Reduction",
+       "name": "10:1 Reduction"
+      },
+      {
+       "id": "Encoder",
+       "name": "Encoder"
+      },
+      {
+       "id": "_90_Degree_Kit",
+       "name": "90 Degree Kit"
+      },
+      {
+       "id": "Ratchet__CW_",
+       "name": "Ratchet (CW)"
+      },
+      {
+       "id": "Ratchet__CCW_",
+       "name": "Ratchet (CCW)"
+      }
+     ]
+    },
+    {
+     "id": "Flip_Stage_1",
+     "name": "Flip Stage 1",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_q8ejw0iv4l2LSh",
+     "name": "Stage 2",
+     "type": "enum",
+     "default": "_3_1",
+     "options": [
+      {
+       "id": "_3_1",
+       "name": "3:1 Reduction"
+      },
+      {
+       "id": "_4_1_Reduction",
+       "name": "4:1 Reduction"
+      },
+      {
+       "id": "_5_1_Reduction",
+       "name": "5:1 Reduction"
+      },
+      {
+       "id": "_7_1_Reduction",
+       "name": "7:1 Reduction"
+      },
+      {
+       "id": "_9_1_Reduction",
+       "name": "9:1 Reduction"
+      },
+      {
+       "id": "_10_1_Reduction",
+       "name": "10:1 Reduction"
+      },
+      {
+       "id": "Encoder",
+       "name": "Encoder"
+      },
+      {
+       "id": "_90_Degree_Kit",
+       "name": "90 Degree Kit"
+      },
+      {
+       "id": "Ratchet__CW_",
+       "name": "Ratchet (CW)"
+      },
+      {
+       "id": "Ratchet__CCW_",
+       "name": "Ratchet (CCW)"
+      }
+     ]
+    },
+    {
+     "id": "Flip_Stage_2",
+     "name": "Flip Stage 2",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_74aRNcvQmj9TR3",
+     "name": "Stage 3",
+     "type": "enum",
+     "default": "_3_1",
+     "options": [
+      {
+       "id": "_3_1",
+       "name": "3:1 Reduction"
+      },
+      {
+       "id": "_4_1_Reduction",
+       "name": "4:1 Reduction"
+      },
+      {
+       "id": "_5_1_Reduction",
+       "name": "5:1 Reduction"
+      },
+      {
+       "id": "_7_1_Reduction",
+       "name": "7:1 Reduction"
+      },
+      {
+       "id": "_9_1_Reduction",
+       "name": "9:1 Reduction"
+      },
+      {
+       "id": "_10_1_Reduction",
+       "name": "10:1 Reduction"
+      },
+      {
+       "id": "Encoder",
+       "name": "Encoder"
+      },
+      {
+       "id": "_90_Degree_Kit",
+       "name": "90 Degree Kit"
+      },
+      {
+       "id": "Ratchet__CW_",
+       "name": "Ratchet (CW)"
+      },
+      {
+       "id": "Ratchet__CCW_",
+       "name": "Ratchet (CCW)"
+      }
+     ]
+    },
+    {
+     "id": "Flip_Stage_3",
+     "name": "Flip Stage 3",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_LaA9LClDKrFqoj",
+     "name": "Stage 4",
+     "type": "enum",
+     "default": "_3_1",
+     "options": [
+      {
+       "id": "_3_1",
+       "name": "3:1 Reduction"
+      },
+      {
+       "id": "_4_1_Reduction",
+       "name": "4:1 Reduction"
+      },
+      {
+       "id": "_5_1_Reduction",
+       "name": "5:1 Reduction"
+      },
+      {
+       "id": "_7_1_Reduction",
+       "name": "7:1 Reduction"
+      },
+      {
+       "id": "_9_1_Reduction",
+       "name": "9:1 Reduction"
+      },
+      {
+       "id": "_10_1_Reduction",
+       "name": "10:1 Reduction"
+      },
+      {
+       "id": "Encoder",
+       "name": "Encoder"
+      },
+      {
+       "id": "_90_Degree_Kit",
+       "name": "90 Degree Kit"
+      },
+      {
+       "id": "Ratchet__CW_",
+       "name": "Ratchet (CW)"
+      },
+      {
+       "id": "Ratchet__CCW_",
+       "name": "Ratchet (CCW)"
+      }
+     ]
+    },
+    {
+     "id": "Flip_Stage_4",
+     "name": "Flip Stage 4",
+     "type": "boolean",
+     "default": "false",
+     "options": []
+    },
+    {
+     "id": "List_TLFga5ULE0b2fq",
+     "name": "Output Shaft",
+     "type": "enum",
+     "default": "Default",
+     "options": [
+      {
+       "id": "Default",
+       "name": "1/2\" Hex Male"
+      },
+      {
+       "id": "_1_2__Round_Male",
+       "name": "1/2\" Round Male"
+      },
+      {
+       "id": "_3_8__Hex_Male",
+       "name": "3/8\" Hex Male"
+      },
+      {
+       "id": "CIM_Shaft",
+       "name": "CIM Shaft"
+      },
+      {
+       "id": "_1_2__Hex_Female",
+       "name": "1/2\" Hex Female"
+      },
+      {
+       "id": "_3_8__Hex_Female",
+       "name": "3/8\" Hex Female"
+      },
+      {
+       "id": "_1_4__Square_Female",
+       "name": "1/4\" Square Female"
+      },
+      {
+       "id": "_1_2__Hex_Male__Armabot_90_",
+       "name": "1/2\" Hex Male (Armabot 90 Gearbox)"
+      },
+      {
+       "id": "_3_8__Hex_Male__Armabot_90_Gearbox_",
+       "name": "3/8\" Hex Male (Armabot 90 Gearbox)"
+      }
+     ]
+    },
+    {
+     "id": "Simplified_Model",
+     "name": "Simplified Model",
+     "type": "boolean",
+     "default": "true",
+     "options": []
+    }
+   ]
+  }
+ ]
+}

@@ -4,6 +4,8 @@ from fs_cli.frontend import (
     FrontendTab,
     feature_description,
     find_example,
+    supports_auto_assembly,
+    supports_simplification,
     tabs_in_order,
 )
 
@@ -79,3 +81,10 @@ def test_tabs_in_order_follows_the_folder_tree_and_leaves_out_none():
 def test_the_description_is_its_literal_without_the_credit():
     code = '"Feature Type Description" : "Add \\"tube\\".<br><br>Or channel." ~ CREDIT,'
     assert feature_description(code) == 'Add "tube".\n\nOr channel.'
+
+
+def test_support_comes_from_the_features_own_annotation_keys():
+    code = '"Feature Type Name" : "Robot motor", "Auto Assembly" : true, "Simplification" : false,'
+    assert supports_auto_assembly(code)
+    assert not supports_simplification(code)
+    assert not supports_auto_assembly('"Feature Type Name" : "Robot grid",')

@@ -2460,6 +2460,8 @@ def test_release_writes_the_app_its_entry_icon_and_an_empty_example(repo, onshap
                 "description": "Add tube.\nOr channel.",
                 "version": "0.1.0",
                 "iconElementId": icon_id,
+                "autoAssembly": False,
+                "simplification": False,
                 "sourceUrl": "https://github.com/robot-education/robot-code/blob/main/featurescripts/released/frame/robotFrame.fs",
             }
         ],
