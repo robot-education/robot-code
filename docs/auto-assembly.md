@@ -360,8 +360,9 @@ A top level **Retention type** is Hat or Screws. Under Hat, a second, **Hat type
 
 - A standard hat's size is **Hat centers** (1.25, 1.5 or 2 in.). A standard or custom hat's bore is the edge's.
 - A COTS hat is **Hat**: one of FRCDesign's bearing hats part set's WCP hats, by the bearing's outside diameter and
-  centers (0.875 in. at 1.25 or 2 in., 1.125 in. at 1.5 or 2 in.; `hatTable`). It declares itself: its connector goes
-  on the host at the bore's center, X toward a mounting hole.
+  centers (0.875 in. at 1.25 or 2 in., 1.125 in. at 1.5 or 2 in.; `hatTable`). A hat for another bearing than the
+  one nearest the edge's diameter is an error. It declares itself: its connector goes on the host at the bore's
+  center, X toward a mounting hole.
 
 **Screws** retains the bearing with screw heads over its outer race or flange:
 

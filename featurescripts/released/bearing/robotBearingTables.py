@@ -96,7 +96,7 @@ def bushing_node() -> Node:
 
 def hat_node() -> Node:
     """The hats set's hats by the bearing's outer diameter and their centers ("1.125 in", "2 in"), for Robot bearing
-    retention: each its product, its centers, and the sizes a screw through it needs."""
+    retention: each its product, the bearing's outer diameter, its centers, and the sizes a screw through it needs."""
     location = HAT_SET["LOCATIONS"].get("bearingHat")
     shape = HAT_SET["SHAPE"]
     hats: dict[str, list[Value]] = {}
@@ -107,6 +107,7 @@ def hat_node() -> Node:
                 f"{HAT_SET['_CENTERS'][hat.centers]:g} in",
                 {
                     "product": _product(location, record.values, hat.name),
+                    "outerDiameter": inch(hat.outer_diameter),
                     "centers": inch(HAT_SET["_CENTERS"][hat.centers]),
                     "thickness": inch(shape.thickness),
                     "holeDiameter": inch(shape.hole_diameter),

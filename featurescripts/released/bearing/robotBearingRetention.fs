@@ -344,6 +344,11 @@ function retainWithHat(context is Context, id is Id, definition is map, bearing 
     if (definition.hatType == HatType.COTS)
     {
         const hat = getLookupTable(hatTable, definition.cotsHat);
+        const fitting = cotsHatBore(bearing.diameter);
+        if (definition.cotsHat.bore != fitting)
+        {
+            throw regenError("This hat is for a different bearing. Choose a " ~ fitting ~ " hat.", ["cotsHat", "bearingEdge"], definition.bearingEdge);
+        }
         if (hat.product.documentId == "")
         {
             reportFeatureInfo(context, id, "FRCDesign's library doesn't have this hat yet, so it isn't declared for Auto Assembly.");
@@ -387,6 +392,28 @@ function retainWithHat(context is Context, id is Id, definition is map, bearing 
     {
         cutMountingHoles(context, id, definition, plane, mountingLocations, bearing.host);
     }
+}
+
+/**
+ * The hats table's bore (`"1.125 in"`) whose bearing's outer diameter is nearest a bore's diameter.
+ */
+export function cotsHatBore(boreDiameter is ValueWithUnits) returns string
+{
+    var nearest;
+    var nearestGap;
+    for (var bore, byCenters in hatTable.entries)
+    {
+        for (var _, hat in byCenters.entries)
+        {
+            const gap = abs(boreDiameter - hat.outerDiameter);
+            if (nearestGap == undefined || gap < nearestGap)
+            {
+                nearest = bore;
+                nearestGap = gap;
+            }
+        }
+    }
+    return nearest;
 }
 
 function hatCenters(centers is HatCenters) returns ValueWithUnits

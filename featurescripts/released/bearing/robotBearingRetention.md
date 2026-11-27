@@ -8,7 +8,7 @@ whose heads overlap it. It declares a COTS hat and the screws for FRCDesignApp's
 | File | What it is |
 | --- | --- |
 | `robotBearingRetention.fs` | The feature: its dialog, the hat or screws, and the screws it declares |
-| `robotBearingTables.py` | The bearing hats part set's hats with their centers, thickness and holes (from `../../bearingHats/hatTables.py`), and the fasteners' Screw and Nut studios; generates `robotBearingTables.gen.fs` |
+| `robotBearingTables.py` | The bearing hats part set's hats with their bearing's outer diameter, centers, thickness and holes (from `../../bearingHats/hatTables.py`), and the fasteners' Screw and Nut studios; generates `robotBearingTables.gen.fs` |
 | `bearingHatTables.py` | The mounting holes' tables; generates `bearingHatTables.gen.fs` |
 | `../../core/autoAssembly.fs` | Declarations |
 
@@ -56,6 +56,7 @@ path changes.
 | The bearing edge must belong to a solid part. | error | the edge isn't a solid's | `bearingEdge`, the edge | none |
 | The bearing edge must be adjacent to a single hole. | error | the edge doesn't border one cylindrical face | `bearingEdge`, the edge | none |
 | `core/mounting.fs`'s angle reference errors | error | the angle reference | (theirs) | (theirs) |
+| This hat is for a different bearing. Choose a `<bore>` hat. | error | COTS hat, when another of the set's hats is for a bearing nearer the edge's diameter (`cotsHatBore`) | `cotsHat`, `bearingEdge`, the edge | none |
 | FRCDesign's library doesn't have this hat yet, so it isn't declared for Auto Assembly. | info | COTS hat, before the bearing hats part set is released | | none |
 | Select a location for the first mounting hole. / Select a location for the second mounting hole. | error | Custom hat, without its locations | the location | Select a sketch plane. |
 | FRCDesign's fasteners have no #10-24 screws, so the screws aren't declared. | info | Declare screws, with 24 tpi tapped holes | | none |
@@ -75,7 +76,8 @@ path changes.
    2. Hole diameter's info, if it's overridden.
    3. **Hat** (`retainWithHat`): its mounting locations: Custom hat's selections, or its centers apart on the plane's x
       axis (a COTS hat's from its Hat entry, a standard hat's Hat centers).
-      - A COTS hat is declared on the host (its Hat entry's product), on a `mateConnector` connector at the bore's
+      - A COTS hat must be for the bearing whose outer diameter is nearest the edge's (`cotsHatBore`), or it's an
+        error. It's declared on the host (its Hat entry's product), on a `mateConnector` connector at the bore's
         center, x toward a mounting hole. With Declare screws, a screw is declared at each mounting hole, seated as high
         as the hat is thick, with `seatHeight` and `seatHoleDiameter` in its spec: the hat isn't in the Part Studio, so
         Auto Assembly goes through a hole that size first.
@@ -103,5 +105,4 @@ path changes.
 - None of the new geometry has run in Onshape: the screws' places, and the hat around the edge's diameter.
 - A COTS hat's thickness and holes are the hats set's estimates (see `featurescripts/bearingHats/hatTables.py`): WCP
   publishes none.
-- Nothing checks a COTS hat's bore against the edge: a 0.875 in. hat can be chosen for a 1.125 in. bore.
 - Only #10 holes: the hole tables are #10's, as the hat's were.

@@ -65,6 +65,7 @@ export function testEveryCotsHatIsOneTheHatSetMakes()
             expectTrue(made != undefined, entry.product.name);
             expectEqual(entry.thickness, made.thickness);
             expectEqual(entry.centers, made.centers);
+            expectEqual(entry.outerDiameter, made.outerDiameter);
             expectEqual(entry.holeDiameter, made.holeDiameter);
         }
     }
@@ -83,4 +84,12 @@ export function testEveryHatReachesOverItsBearingAndHasItsHolesAtItsCenters()
             expectTrue(hat.centers / 2 - hat.holeDiameter / 2 > hat.outerDiameter / 2, hat.name);
         }
     }
+}
+
+export function testACotsHatIsTheOneForTheNearestBearing()
+{
+    expectEqual(cotsHatBore(0.875 * inch), "0.875 in");
+    // A bore cut with a free fit's clearance
+    expectEqual(cotsHatBore(1.125 * inch + 1 / 32 * inch), "1.125 in");
+    expectEqual(cotsHatBore(0.9 * inch), "0.875 in");
 }
