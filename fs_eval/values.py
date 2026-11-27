@@ -182,6 +182,8 @@ class Context(Builtin):
         self.sketches: dict = {}
         self.variables: dict = {}
         self.attributes: list = []
+        # Its geometry (`fs_eval.geometry.model.Model`), made by the geometry's built-ins when they're first used
+        self.model = None
 
     def __repr__(self) -> str:
         return "<Context>"

@@ -24,6 +24,19 @@ def shared_evaluator() -> Evaluator:
     return _evaluator
 
 
+_geometry_evaluator: Evaluator | None = None
+
+
+def geometry_evaluator() -> Evaluator:
+    """One evaluator whose operations model geometry (`fs_eval.geometry`), for tests that build parts; skips the test
+    when OpenCascade isn't installed (`uv sync --group render`)."""
+    global _geometry_evaluator
+    pytest.importorskip("OCP", reason="building parts needs OpenCascade: uv sync --group render")
+    if _geometry_evaluator is None:
+        _geometry_evaluator = Evaluator(geometry=True)
+    return _geometry_evaluator
+
+
 def pytest_collect_file(parent, file_path: pathlib.Path):
     if file_path.name.endswith("_test.fs"):
         return FeatureScriptFile.from_parent(parent, path=file_path)

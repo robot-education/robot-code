@@ -111,7 +111,7 @@ def audit_sections(writeup: str | None, problems: list[tuple[int, int, str]], ta
 
 def audit_page(title: str, source: str, shell: str, script: str, writeup: str | None, problems: list[tuple[int, int, str]],
                theme: str, tables: list[Table] | None = None, artifact: bool = False,
-               configurations: list[tuple[str, str, str]] | None = None) -> str:
+               configurations: list[tuple[str, str, str]] | None = None, parts: str | None = None) -> str:
     """The audit page: the dialog (in a frame of its own, as its styles are Onshape's), drawn by `script` (see
     `fs_cli.live_dialog.page_script`) in `shell` (a page `fs ui` renders, see `split_page`), and `audit_sections`.
 
@@ -120,7 +120,10 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
     only the dialog, Onshape's, takes), sets its colors.
 
     With `configurations` (each a Part Studio's label, and its panel's `shell` and `script`, see
-    `fs_cli.configurations.configuration_script`), the page shows those panels in the dialog's place."""
+    `fs_cli.configurations.configuration_script`), the page shows those panels in the dialog's place.
+
+    With `parts` (a page of `fs render`'s, see `fs_cli.render.feature_parts_page`), the page shows the parts its Part
+    Studios build, in 3D, after them."""
     if configurations:
         frames = "".join(
             f"<h3>{html.escape(label)}</h3>" + _frame(label, frame_shell, frame_script) for label, frame_shell, frame_script in configurations
@@ -131,6 +134,12 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
         )
     else:
         dialog_section = "<h2>Dialog</h2>\n" + _DIALOG_HELP + _frame("Dialog", shell, script)
+    if parts is not None:
+        dialog_section += (
+            '<h2 id="parts">Parts</h2>\n<p class="limit">Each Part Studio\'s default configuration, built offline from the '
+            "FeatureScript (<code>fs render</code>, without Onshape): turn it by dragging, and see what it's made of.</p>\n"
+            f'<iframe class="parts-frame" title="Parts" srcdoc="{html.escape(parts, quote=True)}"></iframe>\n'
+        )
     sections = audit_sections(writeup, problems, tables or [])
     head = _PAGE_HEAD.format(
         title=html.escape(title),
@@ -176,6 +185,7 @@ def _safe(script: str) -> str:
 
 # The sections' styles, using the page's colors: --fg, --bg, --muted, --line, --head, --code, --accent, and --empty
 SECTION_STYLE = """
+.parts-frame { width: 100%; max-width: 1100px; height: 760px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .limit { color: var(--muted); font-size: 12px; margin: 4px 0; }
 .writeup table { border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .writeup th, .writeup td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }

@@ -328,6 +328,40 @@ def make_parser() -> argparse.ArgumentParser:
         help="write it as a claude.ai Artifact's page, to publish: without the document around it, in the viewer's theme",
     )
 
+    render_parser = command(
+        "render",
+        "build part sets' parts offline (no Onshape) and draw them: a PNG, glTF model, and metadata of each "
+        "configuration, and a page with a 3D viewer of them (needs `uv sync --group render`; see docs/rendering.md)",
+        targets=False,
+    )
+    render_parser.add_argument(
+        "targets", nargs="+", metavar="SET[/STUDIO]", help="a part set (each of its studios), or one studio, like fasteners/screw"
+    )
+    render_parser.add_argument(
+        "--set", action="append", default=[], metavar="INPUT=OPTION",
+        help="choose a configuration input's option, like size=NO_10_32 (the rest take their defaults); can be repeated",
+    )
+    render_parser.add_argument(
+        "--each", action="append", default=[], metavar="INPUT",
+        help="render every option of an input offered with the other choices, like --each length; can be repeated",
+    )
+    render_parser.add_argument("--check-all", action="store_true",
+                               help="build every configuration and report those that fail, drawing nothing")
+    render_parser.add_argument("-o", "--output", help="the folder to write to (default: .fs-render/<targets>)")
+    render_parser.add_argument("--views", default="iso",
+                               help="the views to draw, comma separated, from iso, under, front, back, left, right, top, "
+                               "bottom (default: iso); several make one image of them all")
+    render_parser.add_argument("--size", type=int, default=640, help="each view's size in pixels (default: 640)")
+    render_parser.add_argument("--quality", type=float, default=1.0, help="mesh finer (> 1) or coarser (< 1)")
+    render_parser.add_argument("--limit", type=int, default=60, help="the most configurations to render at once (default: 60)")
+    render_parser.add_argument("--no-glb", action="store_true", help="don't write glTF models")
+    render_parser.add_argument("--no-page", action="store_true", help="don't write the viewer page")
+    render_parser.add_argument("--title", help="the viewer page's title")
+    render_parser.add_argument(
+        "--artifact", action="store_true",
+        help="write the viewer page as a claude.ai Artifact's, to publish, with its data in parts.json beside it",
+    )
+
     tabs_command = command(
         "tabs",
         "list tabs in Onshape and files which aren't paired, or whose names differ, to match them up by hand (an "
@@ -1761,6 +1795,15 @@ def evaluate(config: Config, args: argparse.Namespace) -> int:
     return 0
 
 
+def render(config: Config, args: argparse.Namespace) -> int:
+    from fs_cli.render import RenderError, render_command
+
+    try:
+        return render_command(config, args)
+    except RenderError as error:
+        raise UsageError(str(error)) from error
+
+
 def audit(config: Config, args: argparse.Namespace) -> int:
     from fs_cli.audit import OPEN_REQUEST, audit_page, check_problems, feature_tables, split_page
     from fs_cli.configurations import configuration_page, configuration_script, part_set_views
@@ -1787,8 +1830,14 @@ def audit(config: Config, args: argparse.Namespace) -> int:
         for view in part_set_views(config, path)
         if feature is None or view.feature == feature
     ]
+    parts = None
+    if configurations:
+        from fs_cli.render import feature_parts_page
+
+        parts = feature_parts_page(config, path, feature)
     page = audit_page(
-        name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact, configurations
+        name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact, configurations,
+        parts,
     )
     output = pathlib.Path(args.output) if args.output else config.root / ".fs-audit" / f"{args.feature or path.stem}.html"
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -2084,6 +2133,7 @@ OFFLINE_COMMANDS = {
     "eval": evaluate,
     "table": table,
     "audit": audit,
+    "render": render,
     "deps": deps,
     "strings": strings,
     "unused": unused,

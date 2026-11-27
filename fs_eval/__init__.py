@@ -23,13 +23,19 @@ class Evaluator:
     """Runs a repo's FeatureScripts (its code folder, and its copy of std), parsing each file once (cached across
     runs in `.fs-eval-cache`)."""
 
-    def __init__(self, start: pathlib.Path | None = None):
+    def __init__(self, start: pathlib.Path | None = None, geometry: bool = False):
+        """With `geometry`, operations model geometry (with OpenCascade, the `render` dependency group: see
+        `fs_eval.geometry`), rather than being errors."""
         from fs_cli.config import load_config
 
         config = load_config(start)
         self.config = config
         self.interpreter = Interpreter(config.std_dir, config.code_dir, config.studios_path,
                                        config.root / ".fs-eval-cache")
+        if geometry:
+            from fs_eval.geometry import GEOMETRY_BUILTINS
+
+            self.interpreter.builtins = {**self.interpreter.builtins, **GEOMETRY_BUILTINS}
 
     def module(self, path: str | pathlib.Path) -> Module:
         """Loads a module (and everything it imports), by its path in the code folder, or any path."""

@@ -351,6 +351,7 @@ uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # 
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
 uv run fs table featurescripts/released/shaft --name frcShaft   # lookup tables as rows (--md, or --html page.html)
 uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
+uv run fs render fasteners/screw --set size=QUARTER_20 --each head   # build part sets' parts offline: PNGs, glTF, metadata, a 3D viewer (see rendering.md)
 uv run fs cots 'hex shaft' --details   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
