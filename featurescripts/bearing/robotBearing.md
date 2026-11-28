@@ -3,7 +3,8 @@
 Cuts bores for bearings from FRCDesign's library, one at each sketch point, with a counterbore for a flanged bearing's
 flange. It declares each bearing for FRCDesignApp's Auto Assembly (see `docs/auto-assembly.md`). Robot bearing
 retention holds a bearing in. Its dialog follows std's hole's order: Style, the sketch points and merge scope, the
-bearing and its fit, Start plane and Opposite direction, then the counterbore, with the hole's names, ids and icons.
+bearing, Start plane and Opposite direction, then Bore fit where the hole's Diameter goes, and the counterbore, with
+the hole's names, ids and icons.
 
 | File | What it is |
 | --- | --- |
@@ -69,9 +70,8 @@ which shows Style. Editing logic also sets Counterbore diameter and Counterbore 
       doesn't show.
    4. `placeBearings`:
       - An error for an empty merge scope, or one not behind a plane.
-      - Where each bore starts (`holeStartPlane`), as std's hole's Start plane says: the sketch plane; where the
-        bore, or its counterbore, first fully enters the merge scope (std's cylinder cast); or where its axis meets
-        the selected plane.
+      - Where each bore starts (`holeStartPlane`), as std's hole's Start plane says: the sketch plane, or where its axis
+        meets the selected plane. Start from part isn't offered (`HoleStartPlane`).
       - The part each bearing sits in (`partBehind`), found before any cut.
       - Each bore extruded from its start through the merge scope behind, and each counterbore its depth. All are cut in one
         boolean.

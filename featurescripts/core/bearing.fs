@@ -53,7 +53,8 @@ export predicate bearingLocationPredicate(definition is map, name is string)
 }
 
 /**
- * Where they start, and which way they go into the parts: std's hole's Start plane and Opposite direction.
+ * Where they start, and which way they go into the parts: std's hole's Start plane (from the sketch plane or a selected
+ * plane) and Opposite direction.
  */
 export predicate bearingDirectionPredicate(definition is map)
 {
@@ -121,7 +122,7 @@ export function placeBearings(context is Context, id is Id, definition is map, p
     for (var i, face in planes)
     {
         const bearingId = id + bearingIdComponent(i);
-        const plane = holeStartPlane(context, bearingId + "start", definition, face, bore.counterboreDiameter ?? bore.diameter);
+        const plane = holeStartPlane(context, definition, face);
         starts = append(starts, plane);
         const bounds = evBox3d(context, { "topology" : definition.scope, "cSys" : coordSystem(plane), "tight" : false });
         const depth = -bounds.minCorner[2];
@@ -268,7 +269,7 @@ export function bearingEditLogic(context is Context, id is Id, oldDefinition is 
             "locations" : locationPoints(context, id + "new", definition),
             "scope" : definition.scope,
             "oppositeDirection" : definition.oppositeDirection,
-            "startStyle" : definition.startStyle,
+            "startStyle" : holeStartStyle(definition.startStyle),
             "startBoundEntity" : definition.startBoundEntity,
             "endStyle" : HoleEndStyle.THROUGH
         };
@@ -276,7 +277,7 @@ export function bearingEditLogic(context is Context, id is Id, oldDefinition is 
                 "locations" : locationPoints(context, id + "old", oldDefinition),
                 "scope" : oldDefinition.scope,
                 "oppositeDirection" : oldDefinition.oppositeDirection,
-                "startStyle" : oldDefinition.startStyle,
+                "startStyle" : holeStartStyle(oldDefinition.startStyle),
                 "startBoundEntity" : oldDefinition.startBoundEntity,
                 "endStyle" : HoleEndStyle.THROUGH
             };

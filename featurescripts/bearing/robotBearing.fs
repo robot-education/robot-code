@@ -17,8 +17,8 @@ export enum BoreStyle
 }
 
 /**
- * The dialog follows std's hole's order: Style, the sketch points and merge scope, what goes in the holes, which way
- * they go, then the counterbore.
+ * The dialog follows std's hole's order: Style, the sketch points and merge scope, what goes in the holes, where they
+ * start and which way they go, then the bore's fit where the hole's Diameter goes, and the counterbore.
  */
 annotation { "Feature Type Name" : "Robot bearing",
         "Feature Type Description" : "Cut bores for bearings." ~ CREDIT,
@@ -44,9 +44,10 @@ export const robotBearing = defineFeature(function(context is Context, id is Id,
         annotation { "Name" : "Bearing", "Lookup Table" : robotBearingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.bearing is LookupTablePath;
 
-        boreFitPredicate(definition);
-
         bearingDirectionPredicate(definition);
+
+        // Where the hole's Diameter goes, before its counterbore's
+        boreFitPredicate(definition);
 
         if (definition.flanged && definition.boreStyle == BoreStyle.COUNTERBORE)
         {
