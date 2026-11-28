@@ -22,18 +22,18 @@ export function testProfilesCloseOnTheAxis()
             const points = screwProfile(spec, head, headType, length);
             // Down to its tip, chamfered, and back up the axis
             const tip = indexOf(points, vector(0 * meter, -length));
-            expectSamePoint(points[tip - 1], vector(spec.majorDiameter / 2 - tipChamfer(spec), -length));
+            expectTolerantEquals(points[tip - 1], vector(spec.majorDiameter / 2 - tipChamfer(spec), -length));
             expectEqual(points[tip + 1][0], 0 * meter);
             if (headType == ScrewHead.BUTTON)
             {
                 // The dome closes it, from the head's side to its flat top
                 const dome = buttonDome(head);
-                expectSamePoint(dome.start, points[0]);
-                expectSamePoint(dome.end, points[size(points) - 1]);
+                expectTolerantEquals(dome.start, points[0]);
+                expectTolerantEquals(dome.end, points[size(points) - 1]);
             }
             else
             {
-                expectSamePoint(points[0], points[size(points) - 1]);
+                expectTolerantEquals(points[0], points[size(points) - 1]);
             }
         }
     }
@@ -46,18 +46,18 @@ export function testButtonDomeIsAnArcCenteredOnTheAxis()
     // A circle through all three points, centered on the axis
     const center = vector(0 * meter, (squaredNorm(dome.end) - squaredNorm(dome.start)) / (2 * (dome.end[1] - dome.start[1])));
     const radius = norm(dome.start - center);
-    expectNear(norm(dome.mid - center), radius, 1e-9 * meter);
-    expectNear(norm(dome.end - center), radius, 1e-9 * meter);
+    expectTolerantEquals(norm(dome.mid - center), radius);
+    expectTolerantEquals(norm(dome.end - center), radius);
     // Its flat top is wider than its socket's corners
     expectTrue(dome.end[0] > head.socketSize / sqrt(3), "Socket wider than the flat top");
-    expectSamePoint(dome.end, vector(1.4 * head.socketSize / 2, head.headHeight));
+    expectTolerantEquals(dome.end, vector(1.4 * head.socketSize / 2, head.headHeight));
 }
 
 export function testMetricSocketHeadsAreThreaded2DPlus12Millimeters()
 {
     const size = FASTENER_SIZES[FastenerSize.M4];
     const socket = SCREW_HEADS[FastenerSize.M4][ScrewHead.SOCKET];
-    expectNear(threadLength(size, socket, ScrewHead.SOCKET, 40 * millimeter, false), 20 * millimeter, 1e-9 * meter);
+    expectTolerantEquals(threadLength(size, socket, ScrewHead.SOCKET, 40 * millimeter, false), 20 * millimeter);
 }
 
 export function testVendorsFullyThreadedLengthsSaySo()
@@ -79,9 +79,9 @@ export function testHexHeadProfilesClose()
                 continue;
             }
             const points = hexHeadProfile(head);
-            expectSamePoint(points[0], points[size(points) - 1]);
+            expectTolerantEquals(points[0], points[size(points) - 1]);
             // Chamfered inside its corners, out to its flats at its top
-            expectSamePoint(points[3], vector(head.acrossFlats / 2, head.headHeight));
+            expectTolerantEquals(points[3], vector(head.acrossFlats / 2, head.headHeight));
             expectTrue(points[1][0] > head.headDiameter / 2, "Its chamfer starts past its corners");
         }
     }
@@ -97,13 +97,13 @@ export function testStandardSocketHeadsAreThreaded2DPlusHalfAnInch()
 {
     const size = FASTENER_SIZES[FastenerSize.QUARTER_20];
     const socket = SCREW_HEADS[FastenerSize.QUARTER_20][ScrewHead.SOCKET];
-    expectNear(threadLength(size, socket, ScrewHead.SOCKET, 3 * inch, false), 1 * inch, 1e-9 * meter);
-    expectNear(threadLength(size, socket, ScrewHead.SOCKET, 3 * inch, true), 3 * inch, 1e-9 * meter);
+    expectTolerantEquals(threadLength(size, socket, ScrewHead.SOCKET, 3 * inch, false), 1 * inch);
+    expectTolerantEquals(threadLength(size, socket, ScrewHead.SOCKET, 3 * inch, true), 3 * inch);
     // Short ones all the way up
-    expectNear(threadLength(size, socket, ScrewHead.SOCKET, 0.5 * inch, false), 0.5 * inch, 1e-9 * meter);
+    expectTolerantEquals(threadLength(size, socket, ScrewHead.SOCKET, 0.5 * inch, false), 0.5 * inch);
     // A flat head's up to its head
     const flat = SCREW_HEADS[FastenerSize.QUARTER_20][ScrewHead.FLAT];
-    expectNear(threadLength(size, flat, ScrewHead.FLAT, 1 * inch, false), 1 * inch - flatHeadDepth(size, flat), 1e-9 * meter);
+    expectTolerantEquals(threadLength(size, flat, ScrewHead.FLAT, 1 * inch, false), 1 * inch - flatHeadDepth(size, flat));
 }
 
 export function testSocketsStayInsideTheirHeads()
@@ -178,12 +178,12 @@ export function testNutProfilesClose()
                     {
                         // The dome closes it, from the top of its hex to its flat top
                         const dome = nylockDome(nut);
-                        expectSamePoint(dome.start, points[size(points) - 1]);
-                        expectSamePoint(dome.end, points[0]);
+                        expectTolerantEquals(dome.start, points[size(points) - 1]);
+                        expectTolerantEquals(dome.end, points[0]);
                     }
                     else
                     {
-                        expectSamePoint(points[0], points[size(points) - 1]);
+                        expectTolerantEquals(points[0], points[size(points) - 1]);
                     }
                 }
             }
@@ -219,18 +219,14 @@ export function testNutsMatchMcMasterCarrsModels()
 {
     const nuts = NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_10_32];
     const zinc = NutFinish.ZINC_PLATED;
-    expectNear(nuts[NutType.THIN_NYLOCK][zinc].height, 11 / 64 * inch, 1e-6 * inch);
+    expectTolerantEquals(nuts[NutType.THIN_NYLOCK][zinc].height, 11 / 64 * inch);
+    // The tables hold inches to 6 places
     expectNear(nuts[NutType.NYLOCK][zinc].height - nuts[NutType.NYLOCK][zinc].hexHeight, 5 / 128 * inch, 1e-6 * inch);
-    expectNear(NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_6_32][NutType.THIN_HEX][zinc].acrossFlats, 1 / 4 * inch, 1e-6 * inch);
+    expectTolerantEquals(NUTS[FastenerVendor.MCMASTER][FastenerSize.NO_6_32][NutType.THIN_HEX][zinc].acrossFlats, 1 / 4 * inch);
     // And its metric ones (90591A255 and 94645A101)
     const m4 = NUTS[FastenerVendor.MCMASTER][FastenerSize.M4];
-    expectNear(m4[NutType.HEX][zinc].height, 3.2 * millimeter, 1e-9 * meter);
-    expectNear(m4[NutType.NYLOCK][zinc].hexHeight, 4.17 * millimeter, 1e-9 * meter);
-}
-
-function expectSamePoint(actual is Vector, expected is Vector)
-{
-    expectNear(norm(actual - expected), 0 * meter, 1e-9 * meter);
+    expectTolerantEquals(m4[NutType.HEX][zinc].height, 3.2 * millimeter);
+    expectTolerantEquals(m4[NutType.NYLOCK][zinc].hexHeight, 4.17 * millimeter);
 }
 
 export function testAHiddenInputResolvesToTheOneMade()

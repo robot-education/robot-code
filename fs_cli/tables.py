@@ -106,6 +106,36 @@ def _nodes(node: Node) -> list[Node]:
     return found
 
 
+def _without_single_leaves(node: Node) -> Node:
+    """`node`, with each last level that has one option folded into the option above it, from the leaves up, so a
+    level left with one option is folded too. `node` itself stays, as a table needs a level."""
+    entries = []
+    for entry in node.entries:
+        if entry.next is not None:
+            below = _without_single_leaves(entry.next)
+            if len(below.entries) == 1 and below.entries[0].next is None:
+                # Values chosen closer to the root take precedence, as `_render_node` gives them
+                entry = dataclasses.replace(entry, values={**below.entries[0].values, **entry.values}, next=None)
+            else:
+                entry = dataclasses.replace(entry, next=below)
+        entries.append(entry)
+    return dataclasses.replace(node, entries=entries)
+
+
+def _single_option(node: Node, path: list[str]) -> list[str]:
+    """The path to the first level below `node` with one option, ending `level = option`, or [] for none."""
+    for entry in node.entries:
+        below = entry.next
+        if below is None:
+            continue
+        if len(below.entries) == 1:
+            return path + [entry.name, f"{below.display_name} = {below.entries[0].name}"]
+        found = _single_option(below, path + [entry.name])
+        if found:
+            return found
+    return []
+
+
 @dataclasses.dataclass
 class Table:
     """An exported constant holding a lookup table."""
@@ -118,6 +148,11 @@ class Table:
         for node in _nodes(self.node):
             if node is not self.node and node.name == VENDOR:
                 raise ValueError(f"{self.name}: its vendor is a level below its first; vendor goes first")
+        # A last choice with one option isn't a choice (docs/featurescript-style.md, "One option")
+        self.node = _without_single_leaves(self.node)
+        single = _single_option(self.node, [])
+        if single:
+            raise ValueError(f"{self.name}: {' > '.join(single)} is its level's one option; leave the level out")
 
     def render(self) -> str:
         lines = [f"export const {self.name} = {{"]

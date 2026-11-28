@@ -156,7 +156,8 @@ export function robotFrameEditLogic(context is Context, id is Id, oldDefinition 
 Parameter names, enum and lookup table options, group names, and messages are sentence case, as Onshape's are: "Vent
 holes", "Rounded hex", "Stainless steel". Product and company names keep their own capitalization ("Hex Lite",
 "UltraHex", "SplineXS", "The Thrifty Bot"), as do part names, which are titles ("3 in. Rounded Hex Shaft (WCP 1/2
-in.)").
+in.)"). FRCDesignApp's Auto Assembly is "Auto assembly" in a label or group name ("Auto assembly body"), and keeps its
+capitals in a description or message ("for FRCDesign's Auto Assembly to insert").
 
 ## Descriptions
 
@@ -178,6 +179,20 @@ which part it is (a bore, a size) still shows.
 `fs gen` refuses a table with a `vendor` level below its first, and a configured Part Studio whose `vendor` input isn't
 its first; `fs check` reports a feature's `vendor` that isn't its first shown parameter after its horizontal enums, and
 a `<part>Vendor` after another of its part's (`vendor-order`).
+
+## One option
+
+A choice with one option isn't a choice. In a lookup table:
+
+- A last level with one option is left out: its values go on the option above it. Then the level above may be left with
+  one option, and goes too. `fs gen` does this to every table it generates, so write the table as the parts are, and
+  let it fold them.
+- Any other level with one option is left out too, so its option's next level is asked in its place (as Robot shaft
+  skips Type and Size for Swyft, which sells one of each). `fs gen` refuses a table with one; its definition skips it.
+- A table's first level can have one option, as a table needs a level.
+
+Taking a level out is safe for documents: `getLookupTable` walks the table's own levels, so a saved path's extra key is
+ignored. Adding a level back isn't: a path saved without it finds nothing.
 
 ## Horizontal enums go at the top
 
@@ -280,6 +295,13 @@ wall). An offset or distance with an Opposite direction (or a flip manipulator) 
 it, and a negative value goes the other way again, as std's extrude offsets do. Manipulator change functions that set
 one from a dragged manipulator set its absolute value and the flip, as std's do.
 
+## Holes like std's
+
+A feature that cuts holes of its own asks what std's hole asks the way the hole does: in its order, with its names and
+parameter ids (`cBoreDiameter`, `startStyle`), so its icons and behavior carry over. `core/stdHole.fs` holds them,
+with functions doing what the hole does with them (`holeStartPredicate` and `holeStartPlane` for Start plane). Add
+one there before writing it into a feature. Robot bearing is the example.
+
 ## Fits
 
 Wherever one part goes in or over another (a bore on a shaft, a pocket for a part, a hole for a screw), use the fit
@@ -302,8 +324,9 @@ are left for what isn't a fit, like a pulley's teeth.
 ## Selections
 
 A selection of where to place something takes one pick (`"MaxNumberOfPicks" : 1`), and is named for it, e.g. "Edge to
-place nut strip" or "Sketch point to place nut strip"; to place more, add more features. Selections of what to act on,
-like a merge scope or the faces to extrude, can take several.
+place nut strip" or "Sketch point to place nut strip"; to place more, add more features. The exception is a feature
+placing many of the same part, like Robot bearing's and Robot bushing's "Sketch points to place bearings". Selections of
+what to act on, like a merge scope or the faces to extrude, can take several.
 
 ## No defaults maps
 
@@ -347,6 +370,12 @@ as touching (both unitless, in meters; see `docs/std-functions.md`). Make tools 
 (`evBox3d` with `"tight" : true`): a cut ending flush with a part's face cuts through, as booleans treat faces within
 their tolerance as the same (Robot lighten's Through all relies on this; it's yet to be tried in Onshape). Where something can't be smaller than a tolerance (a hole left by thickening an arc
 toward its center), compare against that tolerance.
+
+`fs check` flags a number no bigger than 0.001, other than 0, outside a bound spec (`small-constant`): it's a tolerance
+of our own. Compare with a tolerant function, or write it in terms of `TOLERANCE` (Robot lighten's `TIE_OFFSET` is ten
+times `booleanDefaultTolerance`), or a bound's minimum (`SHELL_OFFSET_BOUNDS[meter][0]`). A small number that isn't a
+tolerance says so where it's ignored, as `SOLD_LENGTH_TOLERANCE` (`core/robotProperties.fs`) does: lengths are shown
+to 0.001 in., so a part that looks like a sold length is one.
 
 ## Comparing lengths and angles
 
@@ -679,6 +708,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A `"Set By"` parameter's function exists, takes the definition, and returns the parameter's type; the parameter is
   hidden; and the feature's editing logic declares `isCreating` and sets it from the function first thing (see
   "Hidden parameters set by editing logic").
+- A number no bigger than 0.001 (but 0), outside a bound spec, is flagged as a tolerance of our own; see "Tolerances,
+  not margins" (`small-constant`).
 - A feature's `vendor` is the first parameter its dialog shows after its horizontal enums, and a `<part>Vendor`
   (`screwVendor`) comes before the rest of its part's (`screwHead`); see "Vendor goes first".
 - `"Auto Assembly"` and `"Simplification"`, keys of ours in a feature's annotation (see `docs/auto-assembly.md`), are

@@ -143,13 +143,16 @@ def sizes_node(sizes: list[Value]) -> Node:
 def vendor(
     name: str, url: str, appearance: str | None, sizes: list[Value] | Node, material: str | None = None
 ) -> Value:
-    """A vendor's frames, by size (or by `profiles`), which all have `appearance`, unless it's None (as values closer
+    """A vendor's frames, by size (or by `profiles`; without the size, where it sells one), which all have `appearance`, unless it's None (as values closer
     to the root win), and are `material` (robotProperties.fs's), unless it's None (Aluminum - 6061)."""
     values = {"vendor": string(name), "url": string(url)}
     if appearance is not None:
         values["appearance"] = appearance
     if material is not None:
         values["material"] = material
+    if isinstance(sizes, list) and len(sizes) == 1 and sizes[0].next is not None:
+        # One size isn't a choice: the vendor's next choice is its size's (as values closer to the root win)
+        return Value(name, {**sizes[0].values, **values}, sizes[0].next)
     return Value(name, values, sizes if isinstance(sizes, Node) else sizes_node(sizes))
 
 

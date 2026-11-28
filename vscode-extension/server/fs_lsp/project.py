@@ -933,6 +933,7 @@ class Project:
         problems.extend(_duplicate_overload_problems(module, providers))
         problems.extend(_boolean_comparison_problems(module))
         problems.extend(_bound_default_problems(module))
+        problems.extend(_small_constant_problems(module))
         problems.extend(_keyword_key_problems(module))
         problems.extend(_feature_annotation_problems(module))
         problems.extend(_unused_variable_problems(module))
@@ -3333,6 +3334,67 @@ def _bound_default_problems(module: Module) -> list[Problem]:
                     "bound-defaults",
                 )
             )
+    return problems
+
+
+# A number this small (or smaller, but for 0) is a tolerance picked by eye: whether two things are the same is std's
+# call, through its tolerant functions or `TOLERANCE` (docs/featurescript-style.md, "Tolerances, not margins")
+SMALL_CONSTANT = 1e-3
+
+
+def _bound_spec_spans(tokens: list) -> list[tuple[int, int]]:
+    """The offsets each `{ ... } as <X>BoundSpec` map spans, whose minimums are std's way (1e-5 m) and not tolerances."""
+    spans = []
+    for index, token in enumerate(tokens):
+        if not (
+            token.value.endswith("BoundSpec")
+            and index >= 2
+            and tokens[index - 1].value == "as"
+            and tokens[index - 2].value == "}"
+        ):
+            continue
+        depth, cursor = 0, index - 2
+        while cursor >= 0:
+            value = tokens[cursor].value
+            if value in ("}", "]", ")"):
+                depth += 1
+            elif value in ("{", "[", "("):
+                depth -= 1
+                if depth == 0:
+                    break
+            cursor -= 1
+        if cursor >= 0:
+            spans.append((tokens[cursor].offset, tokens[index - 2].end))
+    return spans
+
+
+def _small_constant_problems(module: Module) -> list[Problem]:
+    """Numbers no bigger than `SMALL_CONSTANT` (but 0), outside bounds: tolerances of our own, where std's tolerant
+    functions or `TOLERANCE` say whether two things are the same."""
+    if module.path.name.endswith(".gen.fs"):
+        return []
+    tokens = module.index.tokens
+    spans = _bound_spec_spans(tokens)
+    problems = []
+    for token in tokens:
+        if token.kind != "number":
+            continue
+        try:
+            value = float(token.value)
+        except ValueError:
+            continue
+        if value == 0 or value > SMALL_CONSTANT or any(start <= token.offset < end for start, end in spans):
+            continue
+        problems.append(
+            Problem(
+                token.offset,
+                token.end,
+                "warning",
+                f"{token.value} looks like a tolerance of our own. Compare with a tolerant function (tolerantEquals, "
+                "tolerantLessThan, ...), or use TOLERANCE.zeroLength, zeroAngle or booleanDefaultTolerance.",
+                "small-constant",
+            )
+        )
     return problems
 
 

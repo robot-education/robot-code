@@ -2,6 +2,11 @@ FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/hole.fs", version : "2960.0");
 
+/**
+ * Emulating std's hole: its parameters, with its names and ids, and what they do, for features that cut holes of their
+ * own.
+ */
+
 export predicate holeDiameterPredicate(definition is map)
 {
     annotation { "Name" : "Hole diameter", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_EXPRESSION"] }
@@ -16,6 +21,64 @@ export predicate holeMergeScopePredicate(definition is map)
     annotation { "Name" : "Merge scope",
                 "Filter" : (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && AllowMeshGeometry.YES) }
     definition.scope is Query;
+}
+
+/**
+ * Std's hole's Start plane options (`HoleStartStyle`), but for Start from part.
+ */
+export enum HoleStartPlane
+{
+    annotation { "Name" : "Start from sketch plane" }
+    SKETCH,
+    annotation { "Name" : "Start from selected plane" }
+    PLANE
+}
+
+/**
+ * Std's hole's Start plane, with its names and ids: `startStyle` (a `HoleStartPlane`), and `startBoundEntity` to start
+ * from a selected plane (see `holeStartPlane`).
+ */
+export predicate holeStartPredicate(definition is map)
+{
+    annotation { "Name" : "Start plane", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+    definition.startStyle is HoleStartPlane;
+
+    if (definition.startStyle == HoleStartPlane.PLANE)
+    {
+        annotation { "Name" : "Hole start plane or mate connector", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
+        definition.startBoundEntity is Query;
+    }
+}
+
+/**
+ * Where a hole at `plane` starts, as std's hole's Start plane puts it: `plane`, or where its axis meets
+ * `startBoundEntity`, which must be parallel to it.
+ */
+export function holeStartPlane(context is Context, definition is map, plane is Plane) returns Plane
+{
+    if (definition.startStyle != HoleStartPlane.PLANE)
+    {
+        return plane;
+    }
+    if (isQueryEmpty(context, definition.startBoundEntity))
+    {
+        throw regenError(ErrorStringEnum.HOLE_NO_START_BOUND, ["startBoundEntity"]);
+    }
+    const start = evPlane(context, { "face" : definition.startBoundEntity });
+    if (!parallelVectors(plane.normal, start.normal))
+    {
+        throw regenError(ErrorStringEnum.HOLE_START_BOUND_INVALID, ["startBoundEntity"], definition.startBoundEntity);
+    }
+    plane.origin = intersection(start, line(plane.origin, plane.normal)).intersection;
+    return plane;
+}
+
+/**
+ * A `HoleStartPlane` as std's hole's own, for its heuristics.
+ */
+export function holeStartStyle(startStyle is HoleStartPlane) returns HoleStartStyle
+{
+    return startStyle == HoleStartPlane.PLANE ? HoleStartStyle.PLANE : HoleStartStyle.SKETCH;
 }
 
 // export predicate holeEndStylePredicate(definition is map)

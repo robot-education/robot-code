@@ -24,24 +24,24 @@ function editLogic(oldDefinition is map, definition is map) returns map
 
 export function testTappedHoleStartsAtItsTapDrill()
 {
-    expectNear(editLogic(modifyHole(ModifyHoleType.SIMPLE), modifyHole(ModifyHoleType.TAPPED)).holeDiameter, 0.159 * inch, 1e-6 * inch);
+    expectTolerantEquals(editLogic(modifyHole(ModifyHoleType.SIMPLE), modifyHole(ModifyHoleType.TAPPED)).holeDiameter, 0.159 * inch);
 }
 
 export function testClearanceHoleStartsAtItsFit()
 {
-    expectNear(editLogic(modifyHole(ModifyHoleType.SIMPLE), modifyHole(ModifyHoleType.CLEARANCE)).holeDiameter, 0.201 * inch, 1e-6 * inch);
+    expectTolerantEquals(editLogic(modifyHole(ModifyHoleType.SIMPLE), modifyHole(ModifyHoleType.CLEARANCE)).holeDiameter, 0.201 * inch);
 }
 
 export function testNewFeatureStartsAtTheTable()
 {
-    expectNear(editLogic({}, modifyHole(ModifyHoleType.TAPPED)).holeDiameter, 0.159 * inch, 1e-6 * inch);
+    expectTolerantEquals(editLogic({}, modifyHole(ModifyHoleType.TAPPED)).holeDiameter, 0.159 * inch);
 }
 
 export function testChangingThreadSetsItsTapDrill()
 {
     var unc = modifyHole(ModifyHoleType.TAPPED);
     unc.tappedHolePath.pitch = "24 tpi (UNC)";
-    expectNear(editLogic(modifyHole(ModifyHoleType.TAPPED), unc).holeDiameter, 0.1495 * inch, 1e-6 * inch);
+    expectTolerantEquals(editLogic(modifyHole(ModifyHoleType.TAPPED), unc).holeDiameter, 0.1495 * inch);
 }
 
 export function testOverriddenDiameterIsKept()
@@ -61,7 +61,7 @@ export function testTappedHoleSpecHasItsThread()
     expectEqual(spec.holeDiameter, 0.25 * inch);
     expectEqual(spec.size, "#10");
     expectEqual(spec.thread.pitch, "32 tpi (UNF)");
-    expectNear(spec.thread.majorDiameter, 0.19 * inch, 1e-6 * inch);
+    expectTolerantEquals(spec.thread.majorDiameter, 0.19 * inch);
 }
 
 export function testClearanceHoleSpecHasItsSize()

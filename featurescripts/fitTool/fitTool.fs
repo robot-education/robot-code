@@ -410,7 +410,8 @@ function addFitToolManipulators(context is Context, id is Id, definition is map,
                 "direction" : direction,
                 "offset" : definition.maxFit / 2,
                 "sources" : definition.profile,
-                "minValue" : 1e-5 * meter
+                // Max fit's least (std's shell offset's)
+                "minValue" : SHELL_OFFSET_BOUNDS[meter][0] * meter / 2
             });
 
     var previewManipulator = undefined;

@@ -181,7 +181,7 @@ function getAdjustIndex(context is Context, definition is map, loopPlane is Plan
     const location = worldToPlane(loopPlane, center);
     for (var i, circle in circles)
     {
-        if (norm(location - circle.location) < 1e-6 * meter)
+        if (tolerantEquals(location, circle.location))
         {
             return i;
         }

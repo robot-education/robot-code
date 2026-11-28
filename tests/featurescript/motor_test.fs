@@ -70,21 +70,16 @@ export function testHolesClearThePilot()
     }
 }
 
-function expectAt(position is Vector, expected is Vector)
-{
-    expectNear(norm(position - expected), 0 * meter, 1e-9 * meter);
-}
-
 export function testHolePositions()
 {
     // As drawn looking at the face: counterclockwise from the right. The plane's x axis points left, so 0° is at -x.
     const neo = holePositions(motor(frcMotorTable, { "motor" : "NEO", "version" : "V1.1" }));
     expectEqual(size(neo), 4);
-    expectAt(neo[0], vector(-1, 0) * inch);
-    expectAt(neo[1], vector(0, 1) * inch);
+    expectTolerantEquals(neo[0], vector(-1, 0) * inch);
+    expectTolerantEquals(neo[1], vector(0, 1) * inch);
     // The Minion's 775 holes, at 53.5° and 233.5°, are up and to the right
     const minion = holePositions(motor(frcMotorTable, { "motor" : "Minion", "pattern" : "775" }));
-    expectAt(minion[0], vector(-cos(53.5 * degree), sin(53.5 * degree)) * 14.5 * millimeter);
+    expectTolerantEquals(minion[0], vector(-cos(53.5 * degree), sin(53.5 * degree)) * 14.5 * millimeter);
 }
 
 export function testHolePatterns()
@@ -101,7 +96,7 @@ export function testHolePatterns()
     // goBILDA's 16 mm square, or with two more 24 mm apart
     const square = motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM", "pattern" : "16 mm square" });
     expectEqual(size(holePositions(square)), 4);
-    expectAt(holePositions(square)[0], vector(-8, 8) * millimeter);
+    expectTolerantEquals(holePositions(square)[0], vector(-8, 8) * millimeter);
     expectEqual(size(holePositions(motor(ftcMotorTable, { "motor" : "Yellow Jacket", "speed" : "435 RPM", "pattern" : "All" }))), 6);
 }
 
@@ -110,7 +105,7 @@ export function testBlockModels()
     // FRCDesign's Block Motor, its Krakens turned so their bumps are by the missing hole
     const kraken = motor(frcMotorTable, { "motor" : "Kraken X44" });
     expectEqual(kraken.blockMotor, "Kraken_X44");
-    expectNear(kraken.blockAngle, -90 * degree, 1e-9 * degree);
+    expectTolerantEquals(kraken.blockAngle, -90 * degree);
     expectTrue(hasBlockModel(motor(frcMotorTable, { "motor" : "NEO", "version" : "V2.0" })), "No block model of the NEO 2.0");
     expectTrue(!hasBlockModel(motor(frcMotorTable, { "motor" : "CIM" })), "A block model of the CIM");
     // Versions with the same face, with their own block models
@@ -140,12 +135,12 @@ export function testManipulatorChange()
     expectEqual(toggled.skippedHoles, [{ "index" : 1 }, { "index" : 4 }]);
     // Dragging the angle sets its value and direction
     const dragged = robotMotorManipulatorChange(newContext(), definition, { "angleOffsetManipulator" : { "angle" : -30 * degree } });
-    expectNear(dragged.angleOffset, 30 * degree, 1e-9 * radian);
+    expectTolerantEquals(dragged.angleOffset, 30 * degree);
     expectTrue(dragged.angleOffsetOppositeDirection, "Dragging back doesn't flip the angle");
     expectEqual(dragged.skippedHoles, []);
     // Dragging the start offset sets its depth and direction
     const offset = robotMotorManipulatorChange(newContext(), definition, { "startOffsetManipulator" : { "offset" : -0.25 * inch } });
-    expectNear(offset.startOffsetDistance, 0.25 * inch, 1e-9 * meter);
+    expectTolerantEquals(offset.startOffsetDistance, 0.25 * inch);
     expectTrue(offset.startOffsetOppositeDirection, "Dragging back doesn't flip the offset");
 }
 

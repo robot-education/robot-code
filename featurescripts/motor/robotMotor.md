@@ -42,7 +42,7 @@ materials. An undeclared one keeps FRCDesign's Block Motor's appearance, or ours
 
 | Parameter | Description |
 | --- | --- |
-| Auto Assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s): here, the block motor |
+| Auto assembly body | Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part. (`core/autoAssembly.fs`'s): here, the block motor |
 | Allow simplification | Build less while the Part Studio's Simplified configuration is on. (`core/simplify.fs`'s) |
 | Fit, Bore fit, and their clearances | `core/fit.fs`'s |
 

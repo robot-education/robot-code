@@ -21,7 +21,11 @@ export const AUTO_ASSEMBLY_VERSION = 1;
 export enum AutoAssemblyKind
 {
     MOTOR,
-    GEARBOX
+    GEARBOX,
+    BEARING,
+    BUSHING,
+    BEARING_HAT,
+    SCREW
 }
 
 /**
@@ -90,7 +94,7 @@ export function declarePart(context is Context, id is Id, definition is map)
  */
 export predicate autoAssemblyBodyPredicate(definition is map)
 {
-    annotation { "Name" : "Auto Assembly body", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
+    annotation { "Name" : "Auto assembly body", "Default" : true, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"],
                 "Description" : "Model a simple body where the part goes, which FRCDesign's Auto Assembly swaps for the part." }
     definition.autoAssemblyBody is boolean;
 }

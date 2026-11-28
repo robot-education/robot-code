@@ -64,7 +64,7 @@ def test_render():
 
 
 def test_values_closer_to_the_root_win():
-    leaf = Node("b", [Value("x", {"key": "2"})])
+    leaf = Node("b", [Value("x", {"key": "2"}), Value("z", {"key": "3"})])
     node = Node("a", [Value("y", {"key": "1"}, leaf)])
     assert '"x" : { "key" : 1 }' in render([Table("t", node)], "1", "t.py")
 
@@ -171,6 +171,17 @@ def test_imports(tmp_path):
         generate(tmp_path, "2960", {})
 
 
+
+def test_a_definition_can_import_another_definitions_output_before_its_written(tmp_path):
+    (tmp_path / "parts").mkdir()
+    (tmp_path / "parts" / "aTables.py").write_text("from fs_cli.tables import Enum\nCONTENTS = [Enum('A', ['X'])]\n")
+    (tmp_path / "parts" / "bTables.py").write_text(
+        "from fs_cli.gen import Import\nCONTENTS = [Import('parts/aTables.gen.fs')]\n"
+    )
+    results = {result.output.name: result for result in generate(tmp_path, "2960", {})}
+    assert 'import(path : "parts/aTables.gen.fs", version : "");' in results["bTables.gen.fs"].code
+
+
 # Sketches
 
 
@@ -244,3 +255,24 @@ def test_a_tables_vendor_is_its_first_level():
     Table("t", Node("vendor", [Value("WCP", next=sizes)]))
     with pytest.raises(ValueError, match="vendor goes first"):
         Table("t", Node("size", [Value("1/2 in", next=Node("vendor", [Value("WCP", {"x": "1"})]))]))
+
+
+def test_a_last_level_with_one_option_is_folded_into_the_option_above():
+    seals = Node("seal", [Value("Shielded", {"seal": "1"})])
+    sizes = Node("size", [Value("1/2 in", {"size": "2"}, seals), Value("3/8 in", {"size": "3"})])
+    table = Table("t", Node("vendor", [Value("WCP", {"vendor": "4"}, sizes)]))
+    # Seal goes into 1/2 in; Size has two options, so it stays
+    half = table.node.entries[0].next.entries[0]
+    assert half.next is None and half.values == {"seal": "1", "size": "2"}
+    # A level left with one option is folded too, but the first level stays
+    single = Table("t", Node("vendor", [Value("REV", {}, Node("size", [Value("8 mm", {"x": "1"})]))]))
+    assert single.node.name == "vendor" and single.node.entries[0].next is None
+
+
+def test_a_level_with_one_option_below_the_first_is_refused():
+    materials = Node("material", [Value("7075", {"x": "1"}), Value("6061", {"x": "2"})])
+    sizes = Node("size", [Value("1/2 in", next=materials)])
+    with pytest.raises(ValueError, match="Swyft > Size = 1/2 in is its level's one option"):
+        Table("t", Node("vendor", [Value("Swyft", next=sizes), Value("WCP", {"x": "3"})]))
+    # The first level can have one
+    Table("t", Node("vendor", [Value("Swyft", next=materials)]))

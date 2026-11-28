@@ -1040,9 +1040,6 @@ function shaftLengthString(definition is map, length is ValueWithUnits) returns 
         roundToPrecision(length / millimeter, 1) ~ " mm";
 }
 
-// How close a shaft has to be to a length it's sold in to be that length: lengths are shown to 3 decimal places
-const SOLD_LENGTH_TOLERANCE = 0.001 * inch;
-
 /**
  * Names a COTS shaft (its length, then its `partName`), gives it the part number of the stock it's cut from (or, for a
  * shaft sold in its length, its own) and a link to buy it, and sets its vendor, material, and appearance. Warns if it's

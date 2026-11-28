@@ -321,6 +321,25 @@ def test_length_bounds_have_inch_and_millimeter_defaults(project):
     assert "(inch) and (millimeter)" in messages[2]
 
 
+def test_small_constants_are_flagged_but_in_bounds_and_where_ignored(project):
+    path = project.code_dir / "small.fs"
+    path.write_text(
+        "FeatureScript 2909;\n"
+        "export const NEAR = 1e-6 * meter;\n"
+        "export const ALSO = 0.001 * inch;\n"
+        # Not small: a real size, and 0
+        "export const WALL = 0.002 * inch;\n"
+        "export const NONE = 0 * meter;\n"
+        # Bounds start at std's minimum
+        "export const B = { (meter) : [1e-5, 0.0127, 500], (inch) : 0.5, (millimeter) : 12 } as LengthBoundSpec;\n"
+        "// fs check: ignore small-constant: a display precision\n"
+        "export const SHOWN = 0.001 * inch;\n"
+    )
+    module = project.module(path)
+    flagged = [module.parsed.source[p.start:p.end] for p in project.check(module) if p.code == "small-constant"]
+    assert flagged == ["1e-6", "0.001"]
+
+
 def test_parameter_enums_must_be_exported(project):
     (project.code_dir / "core" / "shapes.fs").write_text(
         "FeatureScript 2909;\nexport enum Shape { CIRCLE }\n"

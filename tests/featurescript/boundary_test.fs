@@ -12,10 +12,10 @@ export function testCircleToCircle()
 {
     // Equal circles: the tangent line runs alongside the line between their centers
     const points = circleToCircle(circle(0, 0, 1), circle(4, 0, 1), false);
-    expectNear(points[0][0], 0 * inch, 1e-9 * inch);
-    expectNear(points[0][1], 1 * inch, 1e-9 * inch);
-    expectNear(points[1][0], 4 * inch, 1e-9 * inch);
-    expectNear(points[1][1], 1 * inch, 1e-9 * inch);
+    expectTolerantEquals(points[0][0], 0 * inch);
+    expectTolerantEquals(points[0][1], 1 * inch);
+    expectTolerantEquals(points[1][0], 4 * inch);
+    expectTolerantEquals(points[1][1], 1 * inch);
 }
 
 export function testCircleToCircleRejectsCoincidentAndNestedCircles()

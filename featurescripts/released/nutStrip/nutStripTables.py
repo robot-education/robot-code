@@ -88,11 +88,12 @@ def size(
 
 
 def vendor(name: str, url: str, sizes: list[Value], appearance: str, default_size: str | None = None) -> Value:
-    return Value(
-        name,
-        {"vendor": string(name), "url": string(url), "appearance": appearance},
-        Node("size", sizes, default=default_size),
-    )
+    """A vendor's nut strips, by size, but where it sells one size: then by that size's next choice."""
+    values = {"vendor": string(name), "url": string(url), "appearance": appearance}
+    if len(sizes) == 1 and sizes[0].next is not None:
+        # Values closer to the root win
+        return Value(name, {**sizes[0].values, **values}, sizes[0].next)
+    return Value(name, values, Node("size", sizes, default=default_size))
 
 
 # https://wcproducts.com/products/nut-strips

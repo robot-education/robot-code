@@ -1060,13 +1060,7 @@ export const frcFrameTable = {
                         "displayName" : "Size",
                         "default" : "2x1",
                         "entries" : {
-                            "1/2x1/2" : {
-                                "name" : "wall",
-                                "displayName" : "Wall",
-                                "entries" : {
-                                    "1/16 in." : { "appearance" : MEDIUM_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1/2x1/2 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3289", "url" : "https://www.revrobotics.com/MAXTube-0.5x0.5/" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
-                                },
-                            },
+                            "1/2x1/2" : { "appearance" : MEDIUM_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "1/2x1/2 Tube (REV, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3289", "url" : "https://www.revrobotics.com/MAXTube-0.5x0.5/" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
                             "1x1" : {
                                 "name" : "wall",
                                 "displayName" : "Wall",
@@ -1114,27 +1108,9 @@ export const frcFrameTable = {
                                 "name" : "pattern",
                                 "displayName" : "Pattern",
                                 "entries" : {
-                                    "Grid" : {
-                                        "name" : "wall",
-                                        "displayName" : "Wall",
-                                        "entries" : {
-                                            "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3288", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                                        },
-                                    },
-                                    "MAX Pattern" : {
-                                        "name" : "wall",
-                                        "displayName" : "Wall",
-                                        "entries" : {
-                                            "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern)", "profile" : REV_MAXTUBE_2X2_MAX, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3286", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                                        },
-                                    },
-                                    "MAX Pattern and grid" : {
-                                        "name" : "wall",
-                                        "displayName" : "Wall",
-                                        "entries" : {
-                                            "1/8 in." : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern and grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3287", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                                        },
-                                    },
+                                    "Grid" : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3288", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                                    "MAX Pattern" : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern)", "profile" : REV_MAXTUBE_2X2_MAX, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3286", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 2 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                                    "MAX Pattern and grid" : { "appearance" : MEDIUM_GRAY, "height" : 2 * inch, "holeDiameter" : 0.19685039370078738 * inch, "open" : false, "partName" : "2x2 Tube (REV, MAX Pattern and grid)", "profile" : REV_MAXTUBE_2X2, "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3287", "url" : "https://www.revrobotics.com/MAXTube-2x2/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }], "yRows" : [{ "start" : 1.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch, "maxSpline" : true }] }, { "start" : 0.5 * inch, "pitch" : 2 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                                 },
                             },
                             "1 in. Extrusion" : {
@@ -1147,13 +1123,7 @@ export const frcFrameTable = {
                             },
                         },
                     },
-                    "Angle" : {
-                        "name" : "size",
-                        "displayName" : "Size",
-                        "entries" : {
-                            "0.74x0.74" : { "angle" : true, "appearance" : MEDIUM_GRAY, "height" : 0.74 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "0.74x0.74 Angle (REV)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3207", "url" : "https://www.revrobotics.com/rev-21-3207/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 0.74 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }] },
-                        },
-                    },
+                    "Angle" : { "angle" : true, "appearance" : MEDIUM_GRAY, "height" : 0.74 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "0.74x0.74 Angle (REV)", "stock" : [{ "length" : 47 * inch, "partNumber" : "REV-21-3207", "url" : "https://www.revrobotics.com/rev-21-3207/" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.revrobotics.com/MAXTube", "vendor" : "REV", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 0.74 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0.13 * inch }] }] },
                 },
             },
             "AndyMark" : {
@@ -1208,17 +1178,11 @@ export const frcFrameTable = {
                 },
             },
             "ThriftyBot" : {
-                "name" : "size",
-                "displayName" : "Size",
+                "name" : "wall",
+                "displayName" : "Wall",
                 "entries" : {
-                    "2x1" : {
-                        "name" : "wall",
-                        "displayName" : "Wall",
-                        "entries" : {
-                            "0.080 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 0.080 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0291", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.08 * inch, "wallY" : 0.08 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                            "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0094", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                        },
-                    },
+                    "0.080 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 0.080 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0291", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.08 * inch, "wallY" : 0.08 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
+                    "1/8 in." : { "appearance" : LIGHT_GRAY, "height" : 1 * inch, "holeDiameter" : 0.1968503937007874 * inch, "open" : false, "partName" : "2x1 Tube (TTB, 1/8 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "TTB-0094", "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://www.thethriftybot.com/products/thrifty-box-extrusion", "vendor" : "ThriftyBot", "wallX" : 0.125 * inch, "wallY" : 0.125 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
                 },
             },
             "Swyft" : {
@@ -1262,19 +1226,7 @@ export const frcFrameTable = {
                     },
                 },
             },
-            "Last Anvil" : {
-                "name" : "size",
-                "displayName" : "Size",
-                "entries" : {
-                    "2x1" : {
-                        "name" : "wall",
-                        "displayName" : "Wall",
-                        "entries" : {
-                            "1/16 in." : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "material" : ALUMINUM_7075, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
-                        },
-                    },
-                },
-            },
+            "Last Anvil" : { "appearance" : BLACK, "height" : 1 * inch, "holeDiameter" : 0.196 * inch, "material" : ALUMINUM_7075, "open" : false, "partName" : "2x1 Tube (Last Anvil, 1/16 in. wall)", "stock" : [{ "length" : 47 * inch, "partNumber" : "240114", "url" : "https://lastanvil.com/products/patterned-tube?variant=42303483773134" }], "tieStart" : 0.5 * inch, "tieUnit" : 0.5 * inch, "url" : "https://lastanvil.com/products/patterned-tube", "vendor" : "Last Anvil", "wallX" : 0.0625 * inch, "wallY" : 0.0625 * inch, "width" : 2 * inch, "xRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.5 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : -0.5 * inch }, { "along" : 0 * meter, "offset" : 0 * inch }, { "along" : 0 * meter, "offset" : 0.5 * inch }] }] },
         },
     };
 
@@ -1552,19 +1504,7 @@ export const ftcFrameTable = {
                     },
                 },
             },
-            "Swyft" : {
-                "name" : "size",
-                "displayName" : "Size",
-                "entries" : {
-                    "Channel" : { "appearance" : BLACK, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Channel (Swyft)", "stock" : [{ "length" : 424 * millimeter, "partNumber" : "SR-CHANNEL-L48-424", "url" : "https://swyftrobotics.com/structure/swyft-channel" }], "tieStart" : 20 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://swyftrobotics.com/structure/swyft-channel", "vendor" : "Swyft", "wallX" : 2 * millimeter, "wallY" : 2 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 4 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 20 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : -0.5 * inch, "diameter" : 5 * millimeter }, { "along" : 0 * meter, "offset" : 0.5 * inch, "diameter" : 5 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 5 * millimeter, "slot" : 1.4 * millimeter }] }, { "start" : 4 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }] },
-                },
-            },
-            "AndyMark" : {
-                "name" : "size",
-                "displayName" : "Size",
-                "entries" : {
-                    "1/2x1/2 (Robits)" : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
-                },
-            },
+            "Swyft" : { "appearance" : BLACK, "height" : 12 * millimeter, "holeDiameter" : 4 * millimeter, "open" : true, "partName" : "Channel (Swyft)", "stock" : [{ "length" : 424 * millimeter, "partNumber" : "SR-CHANNEL-L48-424", "url" : "https://swyftrobotics.com/structure/swyft-channel" }], "tieStart" : 20 * millimeter, "tieUnit" : 24 * millimeter, "url" : "https://swyftrobotics.com/structure/swyft-channel", "vendor" : "Swyft", "wallX" : 2 * millimeter, "wallY" : 2 * millimeter, "width" : 48 * millimeter, "xRows" : [{ "start" : 4 * millimeter, "pitch" : 8 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 2 * millimeter }] }], "yRows" : [{ "start" : 20 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 14 * millimeter }, { "along" : 0 * meter, "offset" : -0.5 * inch, "diameter" : 5 * millimeter }, { "along" : 0 * meter, "offset" : 0.5 * inch, "diameter" : 5 * millimeter }] }, { "start" : 8 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * millimeter, "diameter" : 5 * millimeter, "slot" : 1.4 * millimeter }] }, { "start" : 4 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }, { "start" : 12 * millimeter, "pitch" : 24 * millimeter, "shapes" : [{ "along" : 0 * meter, "offset" : -8 * millimeter }, { "along" : 0 * meter, "offset" : -16 * millimeter }, { "along" : 0 * meter, "offset" : -13.8564 * millimeter, "diameter" : 3 * millimeter }, { "along" : 0 * meter, "offset" : 8 * millimeter }, { "along" : 0 * meter, "offset" : 16 * millimeter }, { "along" : 0 * meter, "offset" : 13.8564 * millimeter, "diameter" : 3 * millimeter }] }] },
+            "AndyMark" : { "appearance" : LIGHT_GRAY, "height" : 0.5 * inch, "holeDiameter" : 0.201 * inch, "open" : false, "partName" : "1/2x1/2 Tube (AndyMark Robits)", "stock" : [{ "length" : 47 * inch, "partNumber" : "am-5001-4700", "url" : "https://andymark.com/am-5001-4700" }], "tieStart" : 0.25 * inch, "tieUnit" : 0.5 * inch, "url" : "https://andymark.com/products/pre-drilled-box-tube-extrusion", "vendor" : "AndyMark", "wallX" : 0.063 * inch, "wallY" : 0.063 * inch, "width" : 0.5 * inch, "xRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }], "yRows" : [{ "start" : 0.25 * inch, "pitch" : 0.5 * inch, "shapes" : [{ "along" : 0 * meter, "offset" : 0 * inch }] }] },
         },
     };

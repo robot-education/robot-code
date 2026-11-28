@@ -29,7 +29,20 @@ export function expectEqual(actual, expected)
 }
 
 /**
- * Throws unless `actual` is within `tolerance` of `expected` (numbers, or values with units).
+ * Throws unless `actual` equals `expected` as std's `tolerantEquals` compares them, with its tolerances: numbers,
+ * lengths, angles, vectors, coordinate systems, planes, lines, transforms.
+ */
+export function expectTolerantEquals(actual, expected)
+{
+    if (!tolerantEquals(actual, expected))
+    {
+        throw "Expected " ~ toString(expected) ~ ", but got " ~ toString(actual);
+    }
+}
+
+/**
+ * Throws unless `actual` is within `tolerance` of `expected` (numbers, or values with units): only for a value rounded
+ * where it's published, such as a vendor's drawing, the rounding its tolerance. Otherwise, `expectTolerantEquals`.
  */
 export function expectNear(actual, expected, tolerance)
 {

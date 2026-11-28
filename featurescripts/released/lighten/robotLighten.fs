@@ -18,8 +18,8 @@ const FILLET_RADIUS_BOUNDS = { (meter) : [1e-5, 0.0015875, 500], (inch) : 0.0625
 // are grown back by as much, rounding their corners this much more than Fillet radius; without, the walls and ribs are
 // left this much thicker. Walls which would exactly meet, or a pocket exactly the bit, at the sizes given (as round
 // ones are) meet a little past them, rather than leaving pockets touching along an edge, or slivers, which the cuts
-// and growing back fail on. More than std's boolean tolerance, so it's never taken as touching.
-const TIE_OFFSET = 1e-4 * meter;
+// and growing back fail on. Ten times std's boolean tolerance, so it's never taken as touching.
+const TIE_OFFSET = 10 * TOLERANCE.booleanDefaultTolerance * meter;
 
 // Errors which exact sizes can cause end with this
 const TRY_EXACT_POCKETS = " Try toggling the exact pockets option.";

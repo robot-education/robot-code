@@ -53,6 +53,8 @@ Since v1.2.0 (`fs changes robotFrame`).
 - WCP's 1x1 and 2x2 3/32 in. wall tubes' walls are 3/32 in. (0.09375 in.), as their 2x1's are, rather than 0.093 in.
 - Ends cut by trims (or miters) are tagged as frame caps, as an uncut end is, and shown (or colored) with the tied
   holes; they weren't.
+- Frame asks no question with one answer: a level with one option is gone (Last Anvil's 2x1 and its wall, REV's
+  Angle size, a tube's one wall, ThriftyBot's 2x1). Existing documents' frames still resolve.
 
 ## Strings
 

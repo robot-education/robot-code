@@ -182,8 +182,12 @@ def _resolver(
 
 
 def _code_dir_has(source: pathlib.Path, path: str) -> bool:
-    """Whether a folder containing source (e.g. the code folder) has the file at path."""
-    return any((folder / path).is_file() for folder in source.parents)
+    """Whether a folder containing source (e.g. the code folder) has the file at path, or the definition generating it
+    (a `.gen.fs` file a run writes, which another definition's output may import before it's written)."""
+    candidates = [path]
+    if path.endswith(GENERATED_SUFFIX):
+        candidates.append(path[: -len(GENERATED_SUFFIX)] + ".py")
+    return any((folder / candidate).is_file() for folder in source.parents for candidate in candidates)
 
 
 def _version(code: str) -> str | None:
