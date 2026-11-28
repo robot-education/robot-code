@@ -121,7 +121,7 @@ def test_part_set_views_are_the_studios_using_a_files_features(tmp_path):
         "import runpy\n"
         f"STUDIOS = {{'part': runpy.run_path({str(pathlib.Path(__file__))!r})['studio']()}}\n"
     )
-    part_set = types.SimpleNamespace(title="Parts", folder="parts", definition="partTables.py")
+    part_set = types.SimpleNamespace(name="parts", title="Parts", folder="parts", definition="partTables.py")
     config = types.SimpleNamespace(parts=[part_set], code_dir=tmp_path)
     [view] = part_set_views(config, folder / "parts.fs")
     assert (view.label, view.tab) == ("Parts: Part", "Part")

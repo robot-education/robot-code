@@ -327,6 +327,11 @@ def make_parser() -> argparse.ArgumentParser:
         "--artifact", action="store_true",
         help="write it as a claude.ai Artifact's page, to publish: without the document around it, in the viewer's theme",
     )
+    audit_command.add_argument(
+        "--each-option", action="store_true",
+        help="for a part set's Feature Studio, also build each option of each configuration input (the rest at their "
+        "defaults), so its Parts viewer shows more of what the configuration panels choose",
+    )
 
     render_parser = command(
         "render",
@@ -335,7 +340,9 @@ def make_parser() -> argparse.ArgumentParser:
         targets=False,
     )
     render_parser.add_argument(
-        "targets", nargs="+", metavar="SET[/STUDIO]", help="a part set (each of its studios), or one studio, like fasteners/screw"
+        "targets", nargs="*", metavar="SET[/STUDIO]",
+        help="a part set (each of its studios), or one studio, like fasteners/screw; with --all or --check-all, every "
+        "part set when none is given"
     )
     render_parser.add_argument(
         "--set", action="append", default=[], metavar="INPUT=OPTION",
@@ -347,6 +354,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     render_parser.add_argument("--check-all", action="store_true",
                                help="build every configuration and report those that fail, drawing nothing")
+    render_parser.add_argument(
+        "--all", action="store_true",
+        help="render every configuration (with --set, every one with those choices), past --limit, as a catalog: "
+        "each in SET/STUDIO/ and an index.json of them, with no viewer page (for thumbnails, see docs/rendering.md)",
+    )
+    render_parser.add_argument("--step", action="store_true", help="also write a STEP file of each, in millimeters")
     render_parser.add_argument("-o", "--output", help="the folder to write to (default: .fs-render/<targets>)")
     render_parser.add_argument("--views", default="iso",
                                help="the views to draw, comma separated, from iso, under, front, back, left, right, top, "
@@ -1826,7 +1839,8 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     writeup = writeup_path.read_text() if writeup_path.is_file() else None
     source = pathlib.Path(os.path.relpath(path.resolve(), config.root)).as_posix()
     configurations = [
-        (view.label, split_page(configuration_page(view.tab, view.configuration, {}, args.theme))[0], configuration_script(view.configuration, args.theme))
+        (view.label, split_page(configuration_page(view.tab, view.configuration, {}, args.theme))[0],
+         configuration_script(view.configuration, args.theme), view.target)
         for view in part_set_views(config, path)
         if feature is None or view.feature == feature
     ]
@@ -1834,7 +1848,7 @@ def audit(config: Config, args: argparse.Namespace) -> int:
     if configurations:
         from fs_cli.render import feature_parts_page
 
-        parts = feature_parts_page(config, path, feature)
+        parts = feature_parts_page(config, path, feature, each_option=args.each_option)
     page = audit_page(
         name, source, shell, page_script(data, conditions), writeup, problems, args.theme, tables, args.artifact, configurations,
         parts,

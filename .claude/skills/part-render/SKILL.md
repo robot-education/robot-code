@@ -1,6 +1,6 @@
 ---
 name: part-render
-description: Build FeatureScript-backed parts (part sets: fasteners like screws, nuts, washers, and retainers; bearings; bushings) offline, without Onshape, and show them: PNG renders, their metadata (name, vendor, part number, material, mass, size, threads), and a 3D viewer page published as an Artifact the user can open on a phone. Use when the user asks to see, render, screenshot, preview, or check a part set's part or configurations, or after changing a part set's FeatureScript or tables.
+description: Build FeatureScript-backed parts (part sets: fasteners like screws, nuts, washers, and retainers; bearings; bushings) offline, without Onshape, and show them: PNG renders, their metadata (name, vendor, part number, material, mass, size, threads), STEP files, and a 3D viewer page published as an Artifact the user can open on a phone. Use when the user asks to see, render, screenshot, preview, or check a part set's part or configurations, or after changing a part set's FeatureScript or tables.
 ---
 
 # Rendering parts
@@ -18,6 +18,9 @@ dependency group, so `uv run` installs it the first time, in a cloud session too
      `uv run fs render fasteners/screw --set size=QUARTER_20 --set head=BUTTON --set length=IN_0_5 --artifact -o <scratchpad>/render`
    - "what nuts are there for #10-32?": `uv run fs render fasteners/nut --set size=NO_10_32 --each type --artifact -o <scratchpad>/render`
    - "the default bearing": `uv run fs render bearings/bearing --artifact -o <scratchpad>/render`
+   - "show me bearings and bushings": name each, on one page: `uv run fs render bearings/bearing bushings/bushing --each bore --artifact -o <scratchpad>/render`
+     (each studio takes the `--set` and `--each` inputs it has)
+   - "a STEP file of it": add `--step`, and send the `.step` with SendUserFile (`display: "attach"`)
    Always add `--artifact` when the user will look at it: the page is then an Artifact's, its data in `parts.json`
    beside it.
 2. Look at the PNGs yourself (Read them) before showing anything: check the part is what was asked for (its head,

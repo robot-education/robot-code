@@ -113,6 +113,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .toggle[aria-pressed="true"] .switch::after { transform: translateX(10px); background: #fff; }
 .step { font-variant-numeric: tabular-nums; font-size: 0.8rem; color: var(--muted); padding: 0 6px; min-width: 4.5em; text-align: center; }
 .status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); padding: 16px; text-align: center; }
+.notice {
+  position: absolute; left: 10px; right: 10px; bottom: 54px; z-index: 2; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 8px; box-shadow: var(--shadow); padding: 8px 11px; font-size: 0.82rem; color: var(--muted);
+}
+.notice code { font-family: var(--mono); font-size: 0.76rem; color: var(--ink); overflow-wrap: anywhere; }
+.stage.stale canvas { opacity: 0.35; }
 
 .sheet { overflow-y: auto; padding: 16px; display: grid; align-content: start; gap: 14px; }
 .sheet h2 { margin: 0; font-size: 1.05rem; font-weight: 600; line-height: 1.3; text-wrap: balance; }
@@ -262,10 +268,16 @@ SCRIPT = r"""
     index = (index + entries.length) % entries.length;
     state.index = index;
     state.selected = -1;
+    notice(null);
     const entry = entries[index];
     document.querySelectorAll(".item").forEach((b) => b.setAttribute("aria-current", String(Number(b.dataset.index) === index)));
     const current = document.querySelector(`.item[data-index="${index}"]`);
-    if (current) current.scrollIntoView({ block: "nearest" });
+    // Scrolled into the list's view (not with scrollIntoView, which scrolls the page, and a page around its frame)
+    if (current) {
+      const items = $("items"), box = items.getBoundingClientRect(), at = current.getBoundingClientRect();
+      if (at.top < box.top) items.scrollTop -= box.top - at.top;
+      else if (at.bottom > box.bottom) items.scrollTop += at.bottom - box.bottom;
+    }
     $("step").textContent = `${index + 1} / ${entries.length}`;
     if (part) { scene.remove(part); part.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
     part = new THREE.Group();
@@ -368,28 +380,64 @@ SCRIPT = r"""
     store.set("fs-render-" + name, on ? "1" : "0");
   }
 
-  function start(data) {
+  // Shows `data`'s parts (again, when a host sends new ones): the one shown before, if it's still there
+  function load(data, key) {
     state.data = data;
     const n = data.parts.length;
     $("count").textContent = n;
     $("search").hidden = n < 8;
-    $("search").addEventListener("input", (e) => list(e.target.value));
-    $("items").addEventListener("click", (e) => { const b = e.target.closest(".item"); if (b) show(Number(b.dataset.index)); });
     $("app").classList.toggle("single", n < 2);
-    for (const name of ["edges", "mates"]) if (store.get("fs-render-" + name) === "0") setToggle(name, false);
-    list("");
-    const i = data.parts.findIndex((p) => p.key === store.get("fs-render-config"));
+    list($("search").value || "");
+    notice(null);
+    if (!n) { fail(data.status || "No parts."); return; }
+    const i = data.parts.findIndex((p) => p.key === (key || store.get("fs-render-config")));
     status.hidden = true;
     show(i >= 0 ? i : 0);
+  }
+
+  // A note over the viewer: why what's asked for isn't the part shown (dimmed meanwhile)
+  function notice(html) {
+    $("notice").hidden = !html;
+    $("notice").innerHTML = html || "";
+    stage.classList.toggle("stale", !!html);
+  }
+
+  // The configuration a configuration panel chose (every input's value): the part built for it, or a note saying
+  // how to build it. The best match is the one agreeing on the most inputs, all its own.
+  function showConfiguration(target, values) {
+    if (!state.data) return;
+    let best = -1, most = -1;
+    state.data.parts.forEach((entry, i) => {
+      if (entry.target !== target || !entry.configuration) return;
+      const keys = Object.keys(entry.configuration);
+      if (keys.every((k) => values[k] === entry.configuration[k]) && keys.length > most) { best = i; most = keys.length; }
+    });
+    if (best >= 0) { show(best); return; }
+        const sets = Object.entries(values).map(([k, v]) => `--set ${k}=${v}`).join(" ");
+    notice(`This configuration wasn't built for this page.` + ` To see it: <code>fs render ${esc(target)} ${esc(sets)}</code>`);
+  }
+
+  window.addEventListener("message", (event) => {
+    const message = event.data || {};
+    if (message.fsShow) showConfiguration(message.fsShow.target, message.fsShow.values);
+    if (message.fsParts) load(message.fsParts, message.fsParts.show);
+    if (message.fsStatus !== undefined) notice(message.fsStatus ? esc(message.fsStatus) : null);
+  });
+
+  function start(data) {
+    $("search").addEventListener("input", (e) => list(e.target.value));
+    $("items").addEventListener("click", (e) => { const b = e.target.closest(".item"); if (b) show(Number(b.dataset.index)); });
+    for (const name of ["edges", "mates"]) if (store.get("fs-render-" + name) === "0") setToggle(name, false);
+    load(data);
     (function loop() { controls.update(); placeGlyphs(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
   }
 
   for (const name of ["edges", "mates"]) $(name).addEventListener("click", () => setToggle(name, !state[name]));
   document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => view(b.dataset.view)));
-  $("prev").addEventListener("click", () => show(state.index - 1));
-  $("next").addEventListener("click", () => show(state.index + 1));
+  $("prev").addEventListener("click", () => { if (state.data && state.data.parts.length) show(state.index - 1); });
+  $("next").addEventListener("click", () => { if (state.data && state.data.parts.length) show(state.index + 1); });
   document.addEventListener("keydown", (e) => {
-    if (!state.data || e.target.closest("input")) return;
+    if (!state.data || !state.data.parts.length || e.target.closest("input")) return;
     if (e.key === "ArrowDown" || e.key === "j") { show(state.index + 1); e.preventDefault(); }
     if (e.key === "ArrowUp" || e.key === "k") { show(state.index - 1); e.preventDefault(); }
   });
@@ -414,9 +462,18 @@ SCRIPT = r"""
 """
 
 
-def page(title: str, entries: list[dict], artifact: bool = False) -> tuple[str, str | None]:
-    """The page, and (for an Artifact) its data, to write beside it as parts.json."""
-    data = json.dumps({"parts": entries}, separators=(",", ":"))
+def page(title: str, entries: list[dict], artifact: bool = False, status: str | None = None) -> tuple[str, str | None]:
+    """The page, and (for an Artifact) its data, to write beside it as parts.json. With no entries, it shows `status`
+    until a host sends it parts.
+
+    A host (`fs audit`'s page, VS Code's preview) can post it messages: `{fsParts: data}` shows other parts (`data` as
+    this writes it; its `show`, a key, the one to show), `{fsShow: {target, values}}` the part of the configuration a
+    Part Studio's configuration panel chose (`target` its studio, as `fs render` takes it) (or a note saying it wasn't built), and `{fsStatus: text}` a note (empty
+    clears it)."""
+    payload = {"parts": entries}
+    if status:
+        payload["status"] = status
+    data = json.dumps(payload, separators=(",", ":"))
     i = ICONS
     body = f"""<div class="app" id="app">
   <aside class="panel list">
@@ -428,6 +485,7 @@ def page(title: str, entries: list[dict], artifact: bool = False) -> tuple[str, 
   </aside>
   <main class="panel stage" id="stage">
     <div class="status" id="status">Loading&hellip;</div>
+    <div class="notice" id="notice" role="status" hidden></div>
     <div class="bar top">
       <div class="group-btns">
         <button class="btn toggle" id="edges" type="button" aria-pressed="true"><span class="switch"></span><span class="label">Edges</span></button>

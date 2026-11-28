@@ -2,6 +2,7 @@
 repo's washers, the quickest part set to build. Skipped without OpenCascade (`uv sync --group render`)."""
 
 import json
+import math
 import pathlib
 import struct
 
@@ -11,7 +12,7 @@ pytest.importorskip("OCP", reason="building parts needs OpenCascade: uv sync --g
 
 from fs_cli.cli import main  # noqa: E402
 from fs_cli.config import load_config  # noqa: E402
-from fs_cli.render import RenderError, combinations_for, configuration, part_set_studios  # noqa: E402
+from fs_cli.render import PartBuilder, RenderError, combinations_for, configuration, part_set_studios  # noqa: E402
 
 ROOT = pathlib.Path(__file__).parents[1]
 
@@ -78,6 +79,75 @@ def test_a_part_sets_audit_shows_its_parts(in_repo, tmp_path):
     assert main(["audit", "featurescripts/fasteners/fasteners.fs", "--feature", "fastenerWasher", "-o", str(output)]) == 0
     page = output.read_text(encoding="utf-8")
     assert 'class="parts-frame"' in page and "Washer" in page
+    # Each configuration panel names its studio, which the viewer shows the configuration it chooses of
+    assert 'data-target="fasteners/washer"' in page and "fsShow" in page
+
+
+def test_a_part_sets_audit_can_build_each_option(in_repo, tmp_path):
+    output = tmp_path / "audit.html"
+    args = ["audit", "featurescripts/fasteners/fasteners.fs", "--feature", "fastenerWasher", "-o", str(output)]
+    assert main(args) == 0
+    defaults = output.read_text(encoding="utf-8").count("&quot;key&quot;:")
+    assert main(args + ["--each-option"]) == 0
+    assert output.read_text(encoding="utf-8").count("&quot;key&quot;:") > defaults
+
+
+def test_each_varies_the_studios_with_that_input(in_repo, tmp_path, capsys):
+    # Washers have no head: each renders its default, and every screw head
+    args = ["render", "fasteners/washer", "fasteners/screw", "--each", "head", "-o", str(tmp_path), "--views", "", "--no-glb", "--no-page"]
+    assert main(args) == 0
+    names = sorted(p.name for p in tmp_path.glob("*.json"))
+    assert len([n for n in names if n.startswith("fasteners-washer-")]) == 1
+    assert len([n for n in names if n.startswith("fasteners-screw-")]) >= 2
+    capsys.readouterr()
+    # An input none of them has is a usage error, as is a choice
+    assert main(["render", "fasteners/washer", "fasteners/screw", "--each", "colour"]) == 2
+    assert "None of fasteners/washer, fasteners/screw has an input colour" in capsys.readouterr().err
+    assert main(["render", "fasteners/washer", "--set", "colour=RED"]) == 2
+    assert "fasteners/washer has no input colour" in capsys.readouterr().err
+
+
+def test_step_files_are_named_colored_and_in_millimeters(in_repo, tmp_path):
+    from OCP.Bnd import Bnd_Box
+    from OCP.BRepBndLib import BRepBndLib
+    from OCP.STEPControl import STEPControl_Reader
+
+    assert main(["render", "fasteners/nut", "--set", "size=QUARTER_20", "--set", "type=NYLOCK", "--step", "-o", str(tmp_path),
+                 "--views", "", "--no-glb", "--no-page"]) == 0
+    [step] = tmp_path.glob("*.step")
+    text = step.read_text(encoding="utf-8")
+    assert "PRODUCT('1/4-20 Nylock Nut'" in text
+    assert "SI_UNIT(.MILLI.,.METRE.)" in text
+    # The nut's color, and its insert's (white, which STEP names)
+    assert "COLOUR_RGB" in text and "DRAUGHTING_PRE_DEFINED_COLOUR('white')" in text
+    reader = STEPControl_Reader()
+    reader.ReadFile(str(step))
+    reader.TransferRoots()
+    box = Bnd_Box()
+    BRepBndLib.Add_s(reader.OneShape(), box)
+    # 7/16 in across flats, so across its corners, read back in millimeters
+    assert box.CornerMax().X() - box.CornerMin().X() == pytest.approx(7 / 16 * 25.4 / math.cos(math.radians(30)), abs=0.05)
+
+
+def test_all_writes_a_catalog_of_every_configuration(in_repo, tmp_path):
+    assert main(["render", "fasteners/washer", "--set", "vendor=MCMASTER", "--all", "-o", str(tmp_path), "--size", "64", "--no-glb"]) == 0
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    assert index["inputs"]["fasteners/washer"][:2] == ["vendor", "size"]
+    entries = index["configurations"]
+    assert len(entries) > 1 and all(e["configuration"]["vendor"] == "MCMASTER" for e in entries)
+    first = entries[0]
+    assert first["partSet"] == "fasteners" and first["studio"] == "washer" and first["name"]
+    assert first["files"]["png"].startswith("fasteners/washer/") and (tmp_path / first["files"]["png"]).is_file()
+    assert not (tmp_path / "index.html").exists()
+
+
+def test_a_part_builder_builds_what_a_configuration_panel_chooses(in_repo):
+    builder = PartBuilder(load_config(ROOT))
+    entry = builder.build("fasteners/washer", {"size": "QUARTER_20"})
+    assert entry["target"] == "fasteners/washer" and entry["configuration"]["size"] == "QUARTER_20"
+    assert entry["metadata"]["parts"][0]["name"].startswith("1/4 in Washer")
+    # A choice the panel doesn't offer takes what it shows, as Onshape's does
+    assert builder.build("fasteners/washer", {"size": "NOT_A_SIZE"})["configuration"]["size"] != "NOT_A_SIZE"
 
 
 def test_unknown_targets_are_usage_errors(in_repo, capsys):

@@ -119,14 +119,16 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
     (`<!doctype>`, `<html>`, `<head>`, and `<body>`, which publishing adds), so the viewer's theme, not `theme` (which
     only the dialog, Onshape's, takes), sets its colors.
 
-    With `configurations` (each a Part Studio's label, and its panel's `shell` and `script`, see
-    `fs_cli.configurations.configuration_script`), the page shows those panels in the dialog's place.
+    With `configurations` (each a Part Studio's label, its panel's `shell` and `script`, see
+    `fs_cli.configurations.configuration_script`, and optionally its studio, as `fs render` takes it), the page shows
+    those panels in the dialog's place.
 
     With `parts` (a page of `fs render`'s, see `fs_cli.render.feature_parts_page`), the page shows the parts its Part
-    Studios build, in 3D, after them."""
+    Studios build, in 3D, after them: the configuration a panel with its studio chooses, where `parts` has it."""
     if configurations:
         frames = "".join(
-            f"<h3>{html.escape(label)}</h3>" + _frame(label, frame_shell, frame_script) for label, frame_shell, frame_script in configurations
+            f"<h3>{html.escape(label)}</h3>" + _frame(label, frame_shell, frame_script, rest[0] if rest else None)
+            for label, frame_shell, frame_script, *rest in configurations
         )
         dialog_section = (
             "<h2>Configurations</h2>\n<p class=\"limit\">Its Part Studios' configurations, as <code>fs build</code> writes them to Onshape: "
@@ -136,8 +138,9 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
         dialog_section = "<h2>Dialog</h2>\n" + _DIALOG_HELP + _frame("Dialog", shell, script)
     if parts is not None:
         dialog_section += (
-            '<h2 id="parts">Parts</h2>\n<p class="limit">Each Part Studio\'s default configuration, built offline from the '
-            "FeatureScript (<code>fs render</code>, without Onshape): turn it by dragging, and see what it's made of.</p>\n"
+            '<h2 id="parts">Parts</h2>\n<p class="limit">Its Part Studios\' parts, built offline from the FeatureScript '
+            "(<code>fs render</code>, without Onshape): turn one by dragging, and see what it's made of. Choosing in a "
+            "configuration panel above shows that configuration, where it was built for this page.</p>\n"
             f'<iframe class="parts-frame" title="Parts" srcdoc="{html.escape(parts, quote=True)}"></iframe>\n'
         )
     sections = audit_sections(writeup, problems, tables or [])
@@ -160,15 +163,19 @@ def audit_page(title: str, source: str, shell: str, script: str, writeup: str | 
     return _DOCUMENT_START.format(theme=theme) + head + "</head>\n<body>\n" + body + "</body>\n</html>\n"
 
 
-def _frame(label: str, shell: str, script: str) -> str:
-    """A dialog, in a frame of its own (its styles are Onshape's), drawn by `script` in `shell`."""
+def _frame(label: str, shell: str, script: str, target: str | None = None) -> str:
+    """A dialog, in a frame of its own (its styles are Onshape's), drawn by `script` in `shell`; a Part Studio's
+    configuration panel names its studio (`target`, as `fs render` takes it), which the parts viewer knows its
+    configurations by."""
     page = (
         shell.replace("\0", "")
         .replace("<body>", "<body>" + _DIALOG_TOOLBAR, 1)
         .replace("</body>", f"<script>{script}\n{_safe(DIALOG_PAGE_SCRIPT)}\n{_DIALOG_SCRIPT}</script></body>", 1)
         .replace("<style>", "<style>" + _DIALOG_STYLE, 1)
     )
-    return f'<iframe class="dialog-frame" title="{html.escape(label)}" srcdoc="{html.escape(page, quote=True)}"></iframe>\n'
+    target_attribute = f' data-target="{html.escape(target, quote=True)}"' if target is not None else ""
+    return (f'<iframe class="dialog-frame" title="{html.escape(label)}"{target_attribute} '
+            f'srcdoc="{html.escape(page, quote=True)}"></iframe>\n')
 
 
 _DIALOG_HELP = (
@@ -242,6 +249,7 @@ const page = dialogPage(dialog, {
     }
     note.hidden = true;
     draw();
+    chosen();
   },
   note(text) {
     note.textContent = text;
@@ -254,6 +262,13 @@ const page = dialogPage(dialog, {
 function draw() {
   list.innerHTML = renderList({ ...settings }).html;
   page.drawn();
+}
+
+// A configuration panel tells the page what's chosen, every input's value, for the parts viewer to show
+function chosen() {
+  if (typeof inputValues === "function") {
+    parent.postMessage({ fsConfiguration: inputValues({ ...settings }) }, "*");
+  }
 }
 
 draw();
@@ -322,6 +337,11 @@ window.addEventListener("message", (event) => {{
   const frame = [...document.querySelectorAll(".dialog-frame")].find((each) => each.contentWindow === event.source);
   if (frame && event.data && event.data.fsAuditHeight) {{
     frame.style.height = Math.max(200, event.data.fsAuditHeight) + "px";
+  }}
+  // A configuration panel's choices: the parts viewer shows that configuration (fs_cli/part_page.py)
+  const parts = document.querySelector(".parts-frame");
+  if (frame && parts && event.data && event.data.fsConfiguration && frame.dataset.target) {{
+    parts.contentWindow.postMessage({{ fsShow: {{ target: frame.dataset.target, values: event.data.fsConfiguration }} }}, "*");
   }}
 }});
 </script>

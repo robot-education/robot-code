@@ -11,6 +11,8 @@ uv run fs render fasteners/screw --set size=QUARTER_20 --each head    # every he
 uv run fs render bearings --views iso,under,front,top    # each bearing studio's default, four views each
 uv run fs render fasteners --check-all                   # build every configuration, report the ones that fail
 uv run fs render fasteners/nut --artifact -o <dir>       # the viewer page as an Artifact's, to publish
+uv run fs render fasteners/nut --set size=QUARTER_20 --step   # a STEP file of each, too
+uv run fs render --all --step --size 256 -o <dir>        # every configuration of every part set, as a catalog
 ```
 
 Its OpenCascade (OCP) and numpy are the `render` dependency group, one of the project's default groups, so `uv run`
@@ -28,6 +30,9 @@ To `.fs-render/<targets>/` (or `-o`), for each configuration (`<set>-<studio>-<c
 - `.json`: what it is: name, vendor, part number, link, material, density, appearance, volume, mass, center of mass,
   size, threads (from the hole attributes threading it, as std's External thread and Hole set them), and mate
   connectors.
+- `.step`, with `--step`: its solids as STEP (AP214, written with OpenCascade's XDE, `fs_cli/part_step.py`), in
+  millimeters, named as the part is and colored as its appearance (a face with its own, like a nylock's insert, keeps
+  it). Mate connectors and cosmetic threads aren't STEP geometry, so they're only in the `.json`.
 
 And `index.html`, a page with a 3D viewer of what it rendered (three.js, from jsDelivr): turn, zoom, and pan by mouse
 or touch, view from the top, front, or side, and the part's spec sheet beside it. Its mate connectors are drawn as
@@ -39,11 +44,60 @@ with the Artifact tool (`files: {"parts.json": ...}`), so it can be opened on a 
 Choose configurations by their configuration inputs' ids and option ids (as the part set's definition names them, like
 `size=NO_10_32`, `head=BUTTON`, `length=IN_0_5`): `--set` picks options (the rest take their defaults, or the first
 option offered with the choices), and `--each INPUT` renders every option of an input offered with them. Choices are
-checked against what the configuration offers, so a mistyped or unoffered option says what is. At most `--limit` (60)
-configurations render at once; `--check-all` builds them all (about 2,100, in under two minutes) and draws nothing.
+checked against what the configuration offers, so a mistyped or unoffered option says what is. Rendering several
+studios, each takes the `--set` and `--each` inputs it has (an input none of them has is an error). At most `--limit`
+(60) configurations render at once; `--check-all` builds them all (about 2,100, in under two minutes) and draws
+nothing, and `--all` renders them all as a catalog (see [A catalog for apps](#a-catalog-for-apps)).
 
-`fs audit` of a part set's Feature Studio shows the same viewer, of each Part Studio's default configuration, in a
-Parts section after their configurations.
+## In fs audit and VS Code's preview
+
+`fs audit` of a part set's Feature Studio shows the same viewer in a Parts section after its Part Studios'
+configuration panels, and choosing in a panel shows that configuration's part. The page can't build parts, so it holds
+what `fs audit` built: each Part Studio's default configuration, or with `--each-option`, also each option of each
+input with the rest at their defaults (so changing any one dropdown shows a part). Choosing a configuration it doesn't
+hold says so, with the `fs render` command that builds it. Each panel posts its choices (every input's value) to the
+page, which passes them to the viewer (`{fsShow: {target, values}}`, see `fs_cli/part_page.py`); the viewer shows the
+part built for them.
+
+VS Code's feature preview builds whatever's chosen: for a part set's Feature Studio, under the configuration panel, it
+shows the part the panel's choices build, built by the language server (its `featurescript/buildPart` request, with
+`fs_cli.render.PartBuilder`) when they change, from the files as saved, so saving a FeatureScript or a definition
+builds it again. The first build loads std (a few seconds); after that, each takes about half a second, as the builder
+keeps its evaluator until a FeatureScript changes on disk. The viewer lists the last few built, to go back to.
+
+## A catalog for apps
+
+`fs render --all` renders every configuration of the part sets named (every part set, when none is), past `--limit`,
+as a catalog: each configuration's files in `<set>/<studio>/<choices>` (`.png`, `.glb`, `.json`, and with `--step`,
+`.step`), and an `index.json` of them, with no viewer page:
+
+```json
+{
+    "inputs": {"fasteners/washer": ["vendor", "size", "type", "finish"]},
+    "configurations": [
+        {
+            "partSet": "fasteners",
+            "studio": "washer",
+            "configuration": {"vendor": "MCMASTER", "size": "NO_10_32", "type": "OD_7_16_X_0_03", "finish": "STAINLESS"},
+            "name": "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)",
+            "partNumber": "92141A011",
+            "files": {"png": "fasteners/washer/MCMASTER-NO_10_32-OD_7_16_X_0_03-STAINLESS.png", "glb": "...", "step": "...", "json": "..."}
+        }
+    ]
+}
+```
+
+A configuration is keyed by its input and option ids, as the Part Studio's configuration has them and as FRCDesignApp
+inserts it with (see `featurescripts/fasteners/fastenerTables.py`), so an app finds a configuration's thumbnail, model,
+or STEP file without asking Onshape. Its inputs are those shown with its choices (a hidden input is left out).
+
+The Parts catalog workflow (`.github/workflows/parts.yml`) builds it on main whenever the FeatureScript or the tooling
+changes (or by hand, from the Actions tab), at 256 px, with STEP files, and publishes it with GitHub Pages:
+`https://<owner>.github.io/<repo>/parts/index.json`, with the files beside it. It needs Pages turned on with GitHub
+Actions as its source (the repo's Settings, Pages). Every part set takes about six minutes and 100 MB; a configuration
+that fails to build fails the workflow, so the catalog is never missing one quietly. The images are the evaluator's
+builds, not Onshape's: the tests hold them to the tables and vendors' STEP files, and the catalog is rebuilt from main
+as the FeatureScript changes.
 
 ## How it works
 

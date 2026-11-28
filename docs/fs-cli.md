@@ -351,7 +351,7 @@ uv run fs ui featurescripts/nutStrip/robotNutStrip.fs --set placement=POINT   # 
 uv run fs eval "getSprocketRadius(0.25 * inch, 16) / inch" -m chain/robotChain.fs   # evaluate an expression (see below)
 uv run fs table featurescripts/released/shaft --name frcShaft   # lookup tables as rows (--md, or --html page.html)
 uv run fs audit featurescripts/released/lighten/robotLighten.fs   # one page: its working dialog, writeup, and problems (--open: in VS Code)
-uv run fs render fasteners/screw --set size=QUARTER_20 --each head   # build part sets' parts offline: PNGs, glTF, metadata, a 3D viewer (see rendering.md)
+uv run fs render fasteners/screw --set size=QUARTER_20 --each head   # build part sets' parts offline: PNGs, glTF, STEP, metadata, a 3D viewer (see rendering.md)
 uv run fs cots 'hex shaft' --details   # how often teams use COTS parts, from FRCDesign (see docs/cots-research.md)
 uv run fs step REV-21-2162.STEP featurescripts/frame/vendor/REV-21-2162.STEP   # keep only a vendor STEP file's cross section
 ```
@@ -388,7 +388,9 @@ Where a choice is hidden, the panel shows the first option shown (what Onshape s
 `ConfiguredStudio.configuration_body` writes, or what `fs configuration URL` reads back from Onshape) and works out
 what it shows (`Configuration.state`), and the page's script (its `RUNTIME`) does the same; a test checks the two draw
 alike, and another that every configuration a part set's manifest lists shows its own choices. The panels are read
-from the definitions as they are on disk, as `fs build` would build them.
+from the definitions as they are on disk, as `fs build` would build them. Under them, the part a panel's choices build
+is shown in 3D, built offline: on the page, of those `fs audit` built (`--each-option` builds more), and in VS Code's
+preview, whatever's chosen (see [rendering.md](rendering.md#in-fs-audit-and-vs-codes-preview)).
 
 `fs audit --artifact` writes the page as a claude.ai Artifact's, to publish (Claude Code's Artifact tool) so people can
 comment on it: without the document around it (publishing adds one), its colors following the viewer's theme (`--theme`
