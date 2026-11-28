@@ -22,6 +22,12 @@ fs-lsp = "fs_lsp.server:main"
 dev = ["pytest>=8.0.0", "pytest-xdist>=3.6", "shapely>=2.0"]
 # For regenerating fs_cli/onshape_ui (see its extract.py)
 onshape-ui = ["beautifulsoup4>=4.12", "tinycss2>=1.3"]
+# For building FeatureScript-backed parts offline and drawing them (fs_eval.geometry, `fs render`): OpenCascade, without VTK, and numpy
+render = ["cadquery-ocp-novtk>=8.0.1", "numpy>=2.0"]
+
+[tool.uv]
+# `uv run` installs these itself, so `fs render` works anywhere with no setup (a cloud session's included)
+default-groups = ["dev", "render"]
 
 [tool.fs]
 # Folder the backend document's Feature Studios are mirrored to (Onshape folders become subfolders).

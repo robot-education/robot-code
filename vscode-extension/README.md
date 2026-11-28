@@ -31,7 +31,9 @@ The extension provides:
   problems (click one to go to it), which follow saved files. The dialog works like Onshape's: clicking a tab,
   checkbox, button, or dropdown option, or entering a value, changes that parameter (showing and hiding the parameters
   which depend on it), and setting one back to its default unsets it; groups and array items open and close; and array
-  items can be added and removed. Clicking a number selects it all. Hovering over a parameter shows a tooltip like
+  items can be added and removed. Clicking a number selects it all. A part set's Feature Studio shows its Part
+  Studios' configuration panels instead, and under them, the part the configuration chosen builds, in 3D, built
+  offline by the language server from the saved files (see `docs/rendering.md`). Hovering over a parameter shows a tooltip like
   Onshape's (its name, a number's value, and its description), with its default and UI hints under it. The language
   server renders it, keeping the parsed std library between renders, so it updates in tens of milliseconds; the
   script making its controls work is `fs_cli/dialog_page.js` (shared with `fs audit`'s page), which the server gives

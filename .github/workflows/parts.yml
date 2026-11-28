@@ -1,0 +1,50 @@
+# Builds every part set's every configuration offline (fs render --all: no Onshape, no API calls) and publishes them
+# with GitHub Pages, as static files an app can show without asking Onshape: a thumbnail (PNG), a glTF model, a STEP
+# file, and metadata of each, and an index.json of them all (see docs/rendering.md#a-catalog-for-apps). Needs Pages
+# turned on, with GitHub Actions as its source (the repo's Settings, Pages).
+name: Parts catalog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "featurescripts/**"
+      - "fs_cli/**"
+      - "fs_eval/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/parts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# The newest main's catalog wins
+concurrency:
+  group: parts-catalog
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Build every configuration
+        run: uv run fs render --all --step --size 256 -o _site/parts
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}parts/index.json
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

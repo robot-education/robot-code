@@ -9,7 +9,7 @@ Ask before anything that calls Onshape, and run it only once the user says yes, 
 MCP's tools, and every `fs` command that talks to Onshape (`push`, `pull`, `sync`, `status`, `release`, `build`,
 `publish`, `deprecate`, `releases --run`, `configuration`, `features`, `pull-std`, `update-std`, and the rest). Each call
 spends the user's Onshape API allocation, and a write to a released or library document can't be undone. Offline work needs no
-asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, and `pytest`, which run against fakes. Nor does regenerating the API reference (`uv run python -m onshape_api.reference.generate`): it downloads Onshape's
+asking: `fs gen`, `check`, `format`, `audit`, `ui`, `eval`, `table`, `render`, and `pytest`, which run against fakes. Nor does regenerating the API reference (`uv run python -m onshape_api.reference.generate`): it downloads Onshape's
 OpenAPI definition unsigned, which spends no allocation. When the
 user runs a command themselves, say exactly what to run.
 
@@ -23,6 +23,11 @@ tests' `write_text` write `\n`.
 What the tooling writes to Onshape (file tabs like manifests, and generated Feature Studios) is formatted for people
 reading it there: JSON indented (`json.dumps(..., indent=4)`), code laid out as by hand. Only for what's written from
 now on: don't rewrite what Onshape already holds just to reformat it.
+
+FeatureScript-backed parts can be built and drawn offline, without Onshape (or asking): `fs render` writes PNGs,
+glTF models, STEP files, their metadata, and a 3D viewer page to publish as an Artifact; see `docs/rendering.md` and
+`.claude/skills/part-render/SKILL.md`. Its OpenCascade is in the `render` dependency group, which `uv run` installs
+itself.
 
 Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
 sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval` beside

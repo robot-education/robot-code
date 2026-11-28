@@ -205,3 +205,4 @@ node_modules/
 out/
 .fs-eval-cache/
 .fs-audit/
+.fs-render/

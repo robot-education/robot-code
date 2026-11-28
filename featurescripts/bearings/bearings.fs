@@ -10,7 +10,9 @@ export import(path : "9211f87982e44e327e4bdfbc", version : "2199803f5a8d2ec941a6
 /**
  * FRCDesign's library bearings, generated for FRCDesignApp: flanged and radial ball bearings. They're made in a Part
  * Studio whose configuration sets every parameter and offers only what's made (see bearingTables.py), so this dialog is
- * rarely seen: a flat list of enums, with no conditions, which the configuration filters.
+ * rarely seen: a flat list of enums, with no conditions, which the configuration filters. Each Part Studio fixes the
+ * Catalog to its own, and the feature looks the bearing up in that catalog's alone, so an input its configuration hides
+ * resolves to the one bearing that studio makes there.
  *
  * Each bearing is built along the Z axis, with a mate connector at the origin pointing out of the hole it sits in: a
  * flanged bearing's flange is above the origin, and the rest of it below; a radial bearing is below, its
@@ -52,9 +54,12 @@ export const libraryBearing = defineFeature(function(context is Context, id is I
 
         annotation { "Name" : "Seal", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.seal is BearingSeal;
+
+        annotation { "Name" : "Catalog", "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
+        definition.catalog is BearingCatalog;
     }
     {
-        const choices = resolveChoices(BEARINGS, definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]);
+        const choices = resolveChoices(BEARINGS[definition.catalog], definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]);
         if (choices.unmade == "bearingType")
         {
             throw regenError("Selected vendor does not make this type of bearing, change the type.", ["bearingType"]);

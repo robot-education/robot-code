@@ -70,6 +70,9 @@ class FeatureScriptServer(LanguageServer):
         self.projects: list[Project] = []
         self.open_uris: set[str] = set()
         self.publishing_others: asyncio.Future | None = None
+        # Each project's part builder (see build_part), and a lock, as one evaluator builds one part at a time
+        self.part_builders: dict[pathlib.Path, object] = {}
+        self.building = asyncio.Lock()
 
     def analysis(self, document: TextDocument) -> Analysis:
         cached = self.analyses.get(document.uri)
@@ -764,15 +767,20 @@ RENDER_UI = "featurescript/renderUi"
 PREVIEW_PAGE = "featurescript/previewPage"
 # The rest of `fs audit`'s page, for the preview: the lookup tables, writeup, and problems
 AUDIT = "featurescript/audit"
+# A part set's part, built offline in the configuration its preview chose (see fs_cli.render.PartBuilder)
+BUILD_PART = "featurescript/buildPart"
 
 
 @server.feature(PREVIEW_PAGE)
 def preview_page(ls: FeatureScriptServer, params) -> dict:
-    """Returns the `script` making the dialog's controls work (`dialog_page.js`, shared with `fs audit`'s page), and
-    the `style` of the audit's sections."""
+    """Returns the `script` making the dialog's controls work (`dialog_page.js`, shared with `fs audit`'s page), the
+    `style` of the audit's sections, and the `partsPage`, the viewer a part set's preview shows its parts in."""
     from fs_cli.audit import DIALOG_PAGE_SCRIPT, SECTION_STYLE
+    from fs_cli.part_page import page
 
-    return {"script": DIALOG_PAGE_SCRIPT, "style": SECTION_STYLE}
+    # The parts viewer, empty until build_part's parts are posted to it
+    parts_page = page("Parts", [], status="Building the part\u2026")[0]
+    return {"script": DIALOG_PAGE_SCRIPT, "style": SECTION_STYLE, "partsPage": parts_page}
 
 
 @server.feature(AUDIT)
@@ -848,7 +856,8 @@ async def render_ui(ls: FeatureScriptServer, params) -> dict:
 
 async def _render_configuration(project: Project, path: pathlib.Path, feature: str | None, settings: dict[str, str], theme: str) -> dict | None:
     """A part set's Feature Studio's preview: its Part Studios' configurations (see `fs_cli.configurations`), as
-    `render_ui` returns a dialog, each a "feature" to choose by its label; or None for any other file. They're read
+    `render_ui` returns a dialog, each a "feature" to choose by its label, and `partSet` (its parts can be built, by
+    `build_part`); or None for any other file. They're read
     from the definitions on disk."""
     from fs_cli.config import ConfigError, load_config
     from fs_cli.configurations import ConfigurationError, configuration_page, part_set_views
@@ -864,7 +873,43 @@ async def _render_configuration(project: Project, path: pathlib.Path, feature: s
     defaults = view.configuration.defaults()
     page = configuration_page(view.tab, view.configuration, settings, theme)
     kept = [[key, value] for key, value in settings.items() if key in defaults and value != defaults[key]]
-    return {"html": page, "warnings": [], "features": labels, "feature": view.label, "settings": kept}
+    return {"html": page, "warnings": [], "features": labels, "feature": view.label, "settings": kept, "partSet": True}
+
+
+@server.feature(BUILD_PART)
+async def build_part(ls: FeatureScriptServer, params) -> dict:
+    """Params: `uri`, `feature` (a part set's Part Studio, by its label, as `render_ui` gives it), and `settings` (its
+    configuration panel's, as [input, option] pairs). Returns the `part` (a viewer page entry, see
+    `fs_cli.render.page_entry`) that configuration builds, from the FeatureScripts on disk, or an `error`."""
+    from fs_cli.config import ConfigError, load_config
+    from fs_cli.configurations import ConfigurationError, part_set_views
+    from fs_cli.render import PartBuilder, RenderError
+
+    uri = _param(params, "uri")
+    path = _path(uri) if uri else None
+    found = ls.project_module(uri) if path else None
+    if path is None or found is None:
+        return {"error": "Open a part set's Feature Studio in the robot-code repo to build its parts."}
+    project, _ = found
+    settings = {str(key): str(value) for key, value in _param(params, "settings") or []}
+    feature = _param(params, "feature")
+
+    def build() -> dict:
+        config = load_config(project.root)
+        views = part_set_views(config, path)
+        view = next((each for each in views if each.label == feature), views[0] if views else None)
+        if view is None:
+            return {"error": f"{path.name} isn't a part set's Feature Studio."}
+        builder = ls.part_builders.get(project.root)
+        if builder is None:
+            builder = ls.part_builders[project.root] = PartBuilder(config)
+        return {"part": builder.build(view.target, settings)}
+
+    try:
+        async with ls.building:
+            return await asyncio.to_thread(build)
+    except (ConfigError, ConfigurationError, RenderError) as error:
+        return {"error": str(error)}
 
 
 def _param(params, name: str):

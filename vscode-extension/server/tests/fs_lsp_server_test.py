@@ -1,6 +1,7 @@
 """Drives the language server over stdio, like VS Code does."""
 
 import json
+import pathlib
 import subprocess
 import sys
 import threading
@@ -58,18 +59,18 @@ class Client:
     def notify(self, method: str, params: dict) -> None:
         self.send({"method": method, "params": params})
 
-    def wait_for(self, predicate) -> dict:
+    def wait_for(self, predicate, timeout: float = 20) -> dict:
         while True:
-            message = self.messages.get(timeout=20)
+            message = self.messages.get(timeout=timeout)
             if predicate(message):
                 return message
 
-    def request(self, method: str, params: dict):
+    def request(self, method: str, params: dict, timeout: float = 20):
         self.next_id += 1
         request_id = self.next_id
         self.send({"id": request_id, "method": method, "params": params})
         response = self.wait_for(
-            lambda m: m.get("id") == request_id and "method" not in m
+            lambda m: m.get("id") == request_id and "method" not in m, timeout
         )
         assert "error" not in response, response
         return response["result"]
@@ -480,6 +481,35 @@ def test_render_ui_shows_a_part_sets_configurations(tmp_path):
         # Its default unsets it
         result = client.request("featurescript/renderUi", {"uri": uri, "settings": [["size", "SMALL"]]})
         assert result["settings"] == []
+    finally:
+        client.close()
+
+
+def test_build_part_builds_the_configuration_chosen():
+    """A part set's preview shows the part its configuration panel's choices build, offline, from the repo's files."""
+    pytest.importorskip("OCP", reason="building parts needs OpenCascade: uv sync --group render")
+    root = pathlib.Path(__file__).parents[3]
+    path = root / "featurescripts" / "fasteners" / "fasteners.fs"
+    uri = path.as_uri()
+    client = Client()
+    try:
+        client.request("initialize", {"processId": None, "rootUri": root.as_uri(), "capabilities": {}})
+        client.notify("initialized", {})
+        assert "fsParts" in client.request("featurescript/previewPage", {})["partsPage"]
+        client.notify(
+            "textDocument/didOpen",
+            {"textDocument": {"uri": uri, "languageId": "featurescript", "version": 1, "text": path.read_text(encoding="utf-8")}},
+        )
+        result = client.request("featurescript/renderUi", {"uri": uri, "feature": "Fasteners: Washer", "settings": []})
+        assert result["partSet"] is True
+        params = {"uri": uri, "feature": "Fasteners: Washer", "settings": [["size", "QUARTER_20"]]}
+        part = client.request("featurescript/buildPart", params, timeout=180)["part"]
+        assert part["target"] == "fasteners/washer" and part["configuration"]["size"] == "QUARTER_20"
+        assert part["metadata"]["parts"][0]["name"].startswith("1/4 in Washer")
+        assert part["mesh"]["primitives"]
+        # A choice the panel doesn't offer takes what it shows, as Onshape's does
+        params["settings"] = [["size", "NO_SUCH_SIZE"]]
+        assert "part" in client.request("featurescript/buildPart", params, timeout=60)
     finally:
         client.close()
 

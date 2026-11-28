@@ -346,6 +346,7 @@ class StudioView:
     tab: str
     feature: str
     configuration: Configuration
+    target: str = ""  # As `fs render` takes it: SET/STUDIO
 
 
 def part_set_views(config, path: pathlib.Path) -> list[StudioView]:
@@ -363,10 +364,11 @@ def part_set_views(config, path: pathlib.Path) -> list[StudioView]:
             continue
         definitions = [folder / part_set.definition] if part_set.definition else sorted(folder.rglob("*.py"))
         for definition in definitions:
-            for studio in configured_studios(_run(definition)):
+            for studio in configured_studios(run_definition(definition)):
                 if defines(code, studio.feature):
                     configuration = parse_configuration(studio.configuration_body())
-                    views.append(StudioView(f"{part_set.title}: {studio.tab_name}", studio.tab_name, studio.feature, configuration))
+                    views.append(StudioView(f"{part_set.title}: {studio.tab_name}", studio.tab_name, studio.feature, configuration,
+                                           f"{part_set.name}/{studio.name}"))
     return views
 
 
@@ -374,7 +376,7 @@ def part_set_views(config, path: pathlib.Path) -> list[StudioView]:
 _RUNS: dict[tuple[pathlib.Path, float], dict] = {}
 
 
-def _run(definition: pathlib.Path) -> dict:
+def run_definition(definition: pathlib.Path) -> dict:
     stamp = max(file.stat().st_mtime for file in definition.parent.rglob("*") if file.is_file())
     key = (definition, stamp)
     if key not in _RUNS:

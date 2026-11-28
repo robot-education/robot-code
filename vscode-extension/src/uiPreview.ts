@@ -18,12 +18,24 @@ interface RenderResult {
   features: string[];
   feature?: string;
   settings?: [string, string][];
+  /** It's a part set's Feature Studio, whose Part Studios' parts featurescript/buildPart builds. */
+  partSet?: boolean;
 }
 
-/** What its featurescript/previewPage request returns: the script making the dialog work, and the sections' style. */
+/**
+ * What its featurescript/previewPage request returns: the script making the dialog work, the sections' style, and the
+ * parts viewer's page (fs_cli/part_page.py), which a part set's preview shows the configuration chosen in.
+ */
 interface PageResult {
   script: string;
   style: string;
+  partsPage?: string;
+}
+
+/** What its featurescript/buildPart request returns: the part (a viewer page entry), or why it couldn't be built. */
+interface BuildResult {
+  part?: { key: string };
+  error?: string;
 }
 
 /** What its featurescript/audit request returns: `fs audit`'s other sections. */
@@ -47,6 +59,10 @@ const EDIT_DELAY_MS = 250;
  * button, or dropdown option, or entering a value, changes that parameter (as `fs ui --set` does), which shows and
  * hides the parameters which depend on it; groups and array items open and close; and array items can be added and
  * removed.
+ *
+ * A part set's Feature Studio shows its Part Studios' configuration panels instead, and under them, the part the
+ * configuration chosen builds, in 3D (built offline by the language server, from the saved files, as `fs render`
+ * builds it).
  */
 export class UiPreview {
   private static readonly previews = new Map<string, UiPreview>();
@@ -54,6 +70,9 @@ export class UiPreview {
   private readonly settings = new Map<string, string>();
   private rendering = 0;
   private auditing = 0;
+  private building = 0;
+  // The feature and settings the part shown was built for, so it's built again only when they change (or a file's saved)
+  private built: string | undefined;
   private pendingEdit: NodeJS.Timeout | undefined;
 
   /** Shows a file's preview, of `feature` if it's given (or the one it showed, or the file's first). */
@@ -85,6 +104,13 @@ export class UiPreview {
 
   /** Updates the other tabs when a file they read is saved: any FeatureScript (which can hold tables), or a writeup. */
   static saved(document: vscode.TextDocument): void {
+    // Parts are built from saved files: a FeatureScript, or a part set's definition
+    if (document.languageId === "featurescript" || document.uri.fsPath.endsWith(".py")) {
+      for (const preview of UiPreview.previews.values()) {
+        preview.built = undefined;
+        preview.renderSoon();
+      }
+    }
     UiPreview.changed(document);
     if (document.languageId === "featurescript" || document.uri.fsPath.endsWith(".md")) {
       for (const preview of UiPreview.previews.values()) {
@@ -236,6 +262,31 @@ export class UiPreview {
       ...result,
       settings: [...this.settings].map(([name, value]) => `${name}=${value}`)
     });
+    const wanted = JSON.stringify([this.feature, [...this.settings]]);
+    if (result.partSet && wanted !== this.built) {
+      this.built = wanted;
+      void this.build();
+    }
+  }
+
+  /** Builds the part the configuration chosen makes, and shows it. */
+  private async build(): Promise<void> {
+    const building = ++this.building;
+    void this.panel.webview.postMessage({ type: "building" });
+    let result: BuildResult;
+    try {
+      result = await this.request<BuildResult>("featurescript/buildPart", {
+        uri: this.uri.toString(),
+        feature: this.feature,
+        settings: [...this.settings]
+      });
+    } catch (error) {
+      result = { error: error instanceof Error ? error.message : String(error) };
+    }
+    // Unless a newer build started while this one ran
+    if (building === this.building) {
+      void this.panel.webview.postMessage({ type: "part", ...result });
+    }
   }
 
   private async audit(): Promise<void> {
@@ -287,16 +338,23 @@ function errorPage(message: string): string {
  */
 function shell(page: PageResult): string {
   const nonce = crypto.randomBytes(16).toString("base64");
-  const csp = `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';`;
+  // The parts viewer loads three.js from jsDelivr, and its fonts from Google's; it's in a frame of its own (srcdoc,
+  // under this policy, so its scripts carry the nonce)
+  const csp =
+    `default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; ` +
+    `img-src data:; script-src 'nonce-${nonce}' https://cdn.jsdelivr.net; frame-src 'self' about:;`;
+  const partsPage = (page.partsPage ?? "").replace(/<script\b/g, `<script nonce="${nonce}"`);
   return (
     `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">` +
     `<style>${PANEL_STYLE}</style><style id="dialog-style"></style></head><body>` +
     `<nav class="fs-tabs">${TABS.map(([tab, label]) => `<button data-tab="${tab}">${label}</button>`).join("")}</nav>` +
     `<div class="fs-page" data-page="dialog"><div id="dialog"></div>` +
     `<div class="toolbar"><select id="feature" hidden></select><span id="settings"></span>` +
-    `<button id="reset" hidden>Reset</button></div><pre id="messages" hidden></pre></div>` +
+    `<button id="reset" hidden>Reset</button></div><pre id="messages" hidden></pre>` +
+    `<iframe id="parts" title="Parts" hidden></iframe></div>` +
     `<div class="fs-page" data-page="sections" id="sections" hidden></div>` +
     `<script nonce="${nonce}">const SECTION_STYLE = ${scriptText(JSON.stringify(SECTIONS_HOST_STYLE + page.style))};\n` +
+    `const PARTS_PAGE = ${scriptText(JSON.stringify(partsPage))};\n` +
     `${scriptText(page.script)}\n${SCRIPT}</script></body></html>`
   );
 }
@@ -317,6 +375,8 @@ body { margin: 0; }
 .toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font: 12px var(--vscode-font-family, sans-serif); color: var(--vscode-foreground); text-align: left; }
 .toolbar #settings { flex: 1; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toolbar button, .toolbar select { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: 1px solid var(--vscode-contrastBorder, transparent); border-radius: 2px; }
+#parts { display: block; width: calc(100% - 20px); height: 760px; margin: 4px 10px 10px; border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35)); border-radius: 6px; }
+#parts[hidden] { display: none; }
 #messages { color: var(--vscode-editorWarning-foreground); white-space: pre-wrap; font: 11px var(--vscode-editor-font-family, monospace); margin: 0 10px 6px; text-align: left; }
 `;
 
@@ -415,7 +475,47 @@ document.querySelector(".fs-tabs").addEventListener("click", (event) => {
 });
 showTab(state.tab);
 
+// A part set's parts: the viewer (fs_cli/part_page.py) in a frame, sent what's built (the last few, to go back to)
+const parts = document.getElementById("parts");
+let partsLoaded = false;
+let partsQueued = [];
+let builtParts = [];
+const BUILT_KEPT = 24;
+
+function toParts(message) {
+  if (partsLoaded) {
+    parts.contentWindow.postMessage(message, "*");
+  } else {
+    partsQueued.push(message);
+  }
+}
+
+parts.addEventListener("load", () => {
+  partsLoaded = true;
+  for (const message of partsQueued) {
+    parts.contentWindow.postMessage(message, "*");
+  }
+  partsQueued = [];
+});
+
+function showParts(shown) {
+  parts.hidden = !shown;
+  if (shown && !parts.srcdoc) {
+    parts.srcdoc = PARTS_PAGE;
+  }
+}
+
+function showPart(message) {
+  if (message.part) {
+    builtParts = [message.part, ...builtParts.filter((part) => part.key !== message.part.key)].slice(0, BUILT_KEPT);
+    toParts({ fsParts: { parts: builtParts, show: message.part.key } });
+  } else {
+    toParts({ fsStatus: message.error || "It couldn't be built." });
+  }
+}
+
 function showRender(message) {
+  showParts(!!message.partSet);
   featureSelect.replaceChildren(...message.features.map((name) => new Option(name, name, false, name === message.feature)));
   featureSelect.hidden = message.features.length < 2;
   document.getElementById("settings").textContent = message.settings.join(", ");
@@ -458,6 +558,10 @@ window.addEventListener("message", (event) => {
     showRender(event.data);
   } else if (event.data.type === "audit") {
     showAudit(event.data);
+  } else if (event.data.type === "building") {
+    toParts({ fsStatus: "Building\u2026" });
+  } else if (event.data.type === "part") {
+    showPart(event.data);
   }
 });
 

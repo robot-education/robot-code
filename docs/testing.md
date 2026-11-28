@@ -37,9 +37,11 @@ each process (`fs_lsp.project`'s `_file_modules`, and `fs_cli.ui`'s `_parsed_fil
 `fs_eval` runs FeatureScript locally: a parser and an interpreter for the language, which runs std's own FeatureScript
 (units, vectors, transforms, lookup tables, and so on) on top of the built-ins (`@size`, `@sqrt`, ...) it implements in
 Python. So code which computes values can be tested without Onshape: math, lookup tables, editing logic and
-manipulator change functions which don't query the Part Studio, and sketches. Nothing which models geometry runs:
-operations (`opExtrude`), evaluations (`evDistance`), and queries' results aren't available, and calling them is an
-error saying so.
+manipulator change functions which don't query the Part Studio, and sketches. By default nothing which models
+geometry runs: operations (`opExtrude`), evaluations (`evDistance`), and queries' results aren't available, and calling
+them is an error saying so. `Evaluator(geometry=True)` (with the `render` dependency group's OpenCascade, which `uv run` installs) models what
+the part sets use in OpenCascade, so their parts can be built and measured offline (`fs_eval.pytest_plugin`'s
+`geometry_evaluator()` in tests, which skips them without it): see [rendering.md](rendering.md).
 
 Sketches are recorded rather than solved: each `skArc`, `skLineSegment`, and so on is kept as it's given, and
 `fs_eval.sketch` reads a solved sketch back as geometry, so a test can check properties of a profile (that its curves
