@@ -20,6 +20,10 @@ vendors' bearings alone.
 Unreleased. They're part sets (`[tool.fs.parts.bearings]` and `[tool.fs.parts.ftcBearings]`, see docs/parts.md), not
 released to the frontend document: each Part Studio is built from its definition's `STUDIOS`, never by hand. FRC's set
 has two, Bearing and Specialty Bearing (below), FTC's one, Bearing.
+
+Each Part Studio fixes the feature's Catalog (FRC, FRC specialty, or FTC) to its own, and the feature looks its bearing
+up in that catalog's alone: a configuration hides an input where its studio makes one option, and the feature resolves
+it to that one, which it couldn't from every studio's bearings, where another studio can make more there.
 FRC's is released into the FRCDesignLib document the fasteners are, FTC's into ConfigLib's.
 
 ## Strings

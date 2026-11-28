@@ -84,6 +84,9 @@ BearingBore = Enum(
     {"HEX": "Hex", "ROUNDED_HEX": "Rounded hex", "ROUND": "Round", "REX": "REX"},
 )
 
+# Which studio's bearings the feature builds from: each Part Studio fixes it, so an input it hides resolves to the one
+# bearing that studio makes there, though another studio's make more
+BearingCatalog = Enum("BearingCatalog", ["FRC", "FRC_SPECIALTY", "FTC"], {"FRC": "FRC", "FRC_SPECIALTY": "FRC specialty", "FTC": "FTC"})
 BearingSeal = Enum("BearingSeal", ["SHIELDED", "SEALED", "OPEN"], {"SHIELDED": "Shielded", "SEALED": "Sealed", "OPEN": "Open"})
 # Each bearing's material, as robotProperties.fs's constant and as Onshape names it: steel, but some of McMaster-Carr's
 # 440C stainless
@@ -638,6 +641,7 @@ class StudioSpec:
 
     name: str
     tab: str
+    catalog: str
     offers: Callable[[tuple], bool]
     defaults: tuple[str, str, str, str, str, str]
 
@@ -656,6 +660,8 @@ class Catalog:
         self.tables: dict[str, LookupTable] = {}
         self.studios: dict[str, ConfiguredStudio] = {}
         self.records: dict[str, dict[tuple, Record]] = {}
+        # Each studio's catalog (`BearingCatalog`), which the feature looks its bearings up in
+        self.catalogs: dict[str, str] = {}
         for spec in specs:
             offered = {key: value for key, value in bearings.items() if spec.offers(key)}
             table = LookupTable(COLUMNS, list(offered))
@@ -663,12 +669,17 @@ class Catalog:
             self.studios[spec.name] = ConfiguredStudio(
                 spec.name,
                 "libraryBearing",
-                [self._list(table, id, *_ENUMS[id], default) for id, default in zip(COLUMNS, spec.defaults)],
+                [
+                    *(self._list(table, id, *_ENUMS[id], default) for id, default in zip(COLUMNS, spec.defaults)),
+                    # Fixed, so never shown: the feature's set to it on insertion
+                    Input("catalog", "Catalog", "catalog", [Option(spec.catalog, BearingCatalog.names[spec.catalog], spec.catalog)], enum_name=BearingCatalog.name),  # type: ignore[index]
+                ],
                 tab=spec.tab,
                 mate_connector=SEAT_MATE_CONNECTOR,
                 top_mate_connector="topMateConnector",
                 bottom_mate_connector="bottomMateConnector",
             )
+            self.catalogs[spec.name] = spec.catalog
             self.records[spec.name] = {
                 key: Record(table.shown(key), bearing_name(bearing), key[0], stock, bearing)
                 for key, (bearing, stock) in offered.items()
@@ -690,10 +701,11 @@ class Catalog:
 FRC = Catalog(
     FRC_BEARINGS,
     [
-        StudioSpec("bearing", "Bearing", is_standard, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED")),
+        StudioSpec("bearing", "Bearing", "FRC", is_standard, ("GENERIC", "FLANGED", "ROUNDED_HEX", "IN_1_2", "OD_1_125_X_0_313", "SHIELDED")),
         StudioSpec(
             "specialtyBearing",
             "Specialty Bearing",
+            "FRC_SPECIALTY",
             lambda key: not is_standard(key),
             ("GENERIC", "FLANGED", "ROUND", "MM_8", "MM_22_X_7", "SHIELDED"),
         ),
@@ -701,7 +713,7 @@ FRC = Catalog(
 )
 FTC = Catalog(
     FTC_BEARINGS,
-    [StudioSpec("bearing", "Bearing", lambda key: True, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"))],
+    [StudioSpec("bearing", "Bearing", "FTC", lambda key: True, ("GOBILDA", "FLANGED", "ROUND", "MM_8", "MM_14_X_5", "SHIELDED"))],
     ["GOBILDA", "REV", "ANDYMARK", "MCMASTER"],
 )
 
@@ -709,6 +721,13 @@ STUDIOS = FRC.studios
 RECORDS = FRC.records
 # Every part either set makes, by its key, which the feature's tables hold
 ALL_RECORDS = {key: record for catalog in (FRC, FTC) for records in catalog.records.values() for key, record in records.items()}
+# What each catalog makes, by its catalog and key, which the feature's tables hold
+CATALOG_RECORDS = {
+    (catalog.catalogs[name], *key): (catalog.bearings[key][0], record)
+    for catalog in (FRC, FTC)
+    for name, records in catalog.records.items()
+    for key, record in records.items()
+}
 
 # Where the studio was last released: `fs release bearings` records it beside this file, FTC's beside
 # ftcBearingTables.py
@@ -779,6 +798,7 @@ CONTENTS = [
     BearingSize,
     BearingDimensions,
     BearingSeal,
+    BearingCatalog,
     Code(
         "/** Each bore's shape: a round bore's `diameter`, or a hex's `acrossFlats`, with its corners rounded to"
         " `diameter` where they are. */\nexport const BEARING_BORES = "
@@ -791,11 +811,11 @@ CONTENTS = [
         + ";"
     ),
     Code(
-        "/** What each vendor makes, by vendor, type, bore, size, dimensions, and seal: each bearing's dimensions, a"
+        "/** What each catalog's vendors make, by catalog, vendor, type, bore, size, dimensions, and seal: each bearing's dimensions, a"
         " flanged one's flange, and its properties. */\nexport const BEARINGS = "
         + _nested(
-            {key: (bearing, ALL_RECORDS[key]) for key, (bearing, _) in BEARINGS.items()},
-            [BearingVendor, BearingType, BearingBore, BearingSize, BearingDimensions, BearingSeal],
+            CATALOG_RECORDS,
+            [BearingCatalog, BearingVendor, BearingType, BearingBore, BearingSize, BearingDimensions, BearingSeal],
             _bearing_fields,
             0,
         )

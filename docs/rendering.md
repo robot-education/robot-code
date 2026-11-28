@@ -7,12 +7,15 @@ from a phone) can show what a part looks like, and check a change to one, withou
 spending API calls.
 
 ```
-uv sync --group render                                   # once: OpenCascade (OCP) and numpy
 uv run fs render fasteners/screw --set size=QUARTER_20 --each head    # every head of a 1/4-20 screw
 uv run fs render bearings --views iso,under,front,top    # each bearing studio's default, four views each
 uv run fs render fasteners --check-all                   # build every configuration, report the ones that fail
 uv run fs render fasteners/nut --artifact -o <dir>       # the viewer page as an Artifact's, to publish
 ```
+
+Its OpenCascade (OCP) and numpy are the `render` dependency group, one of the project's default groups, so `uv run`
+installs them itself the first time, anywhere (`uv sync --no-default-groups` leaves them out, and `fs render` then says
+to run `uv sync --group render`).
 
 ## What it writes
 
@@ -26,9 +29,11 @@ To `.fs-render/<targets>/` (or `-o`), for each configuration (`<set>-<studio>-<c
   size, threads (from the hole attributes threading it, as std's External thread and Hole set them), and mate
   connectors.
 
-And `index.html`, a page with a 3D viewer of them all (three.js, from jsDelivr): turn, zoom, and pan by mouse or touch,
-a configuration per button, each with its spec sheet, its edges and mate connectors (red X, green Y, blue Z) shown or
-hidden. With `--artifact` it's written as a claude.ai Artifact's page, its data in `parts.json` beside it, to publish
+And `index.html`, a page with a 3D viewer of what it rendered (three.js, from jsDelivr): turn, zoom, and pan by mouse
+or touch, view from the top, front, or side, and the part's spec sheet beside it. Its mate connectors are drawn as
+Onshape draws them, a circle and its center, and one tapped (in the viewer or the sheet) shows its triad (red X, green
+Y, blue Z); edges and mate connectors switch on and off. Several configurations are listed beside it (filtered, where
+there are many, and stepped through by arrow keys); one is shown alone. With `--artifact` it's written as a claude.ai Artifact's page, its data in `parts.json` beside it, to publish
 with the Artifact tool (`files: {"parts.json": ...}`), so it can be opened on a phone.
 
 Choose configurations by their configuration inputs' ids and option ids (as the part set's definition names them, like
@@ -74,20 +79,11 @@ What it doesn't model is an error naming the built-in or query (`@opFillet isn't
 `tests/featurescript/part_sets_geometry_test.py` builds every configuration of every part set, and checks the parts
 against their tables (washers' and nuts' sizes, screws' lengths below their seats) and vendors' STEP files (bearings,
 in `bearings/vendor/`, within 0.05 mm). `tests/fs_eval_geometry_test.py` tests the operations, queries, and rollback on
-FeatureScript of its own, and `tests/fs_render_test.py` the command. They're skipped without the `render` group; CI
-installs it.
-
-Some bearing configurations can't be built (`KNOWN_UNBUILDABLE` in that test): their configuration hides Dimensions
-where the table makes two, so the feature can't tell which, in Onshape too.
+FeatureScript of its own, and `tests/fs_render_test.py` the command. They're skipped without the `render` group.
 
 ## In a cloud session
 
-A Claude Code cloud environment needs the `render` group installed by its setup script:
-
-```
-uv sync --group render
-```
-
-OCP's wheels are on PyPI for Linux, macOS, and Windows (Python 3.11 to 3.14), so the environment's network access must
-reach PyPI. Then Claude renders, looks at the PNGs itself, and publishes the viewer page as an Artifact (see the
+A Claude Code cloud session needs no setup: `uv run fs render` installs the `render` group the first time (OCP's
+wheels are on PyPI for Linux, macOS, and Windows, Python 3.11 to 3.14, so the environment's network access must reach
+PyPI). Then Claude renders, looks at the PNGs itself, and publishes the viewer page as an Artifact (see the
 `part-render` skill), which opens in the Claude app.

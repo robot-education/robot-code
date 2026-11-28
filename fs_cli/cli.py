@@ -331,7 +331,7 @@ def make_parser() -> argparse.ArgumentParser:
     render_parser = command(
         "render",
         "build part sets' parts offline (no Onshape) and draw them: a PNG, glTF model, and metadata of each "
-        "configuration, and a page with a 3D viewer of them (needs `uv sync --group render`; see docs/rendering.md)",
+        "configuration, and a page with a 3D viewer of them (see docs/rendering.md)",
         targets=False,
     )
     render_parser.add_argument(

@@ -27,7 +27,10 @@ def _shown(input_id: str, selection: dict[str, str], studio=STUDIO) -> list[str]
 
 
 def test_the_configuration_asks_vendor_then_type_bore_size_dimensions_and_seal():
-    assert [input.id for input in STUDIO.inputs] == ["vendor", "type", "bore", "size", "dimensions", "seal"]
+    assert [input.id for input in STUDIO.configured_inputs()] == ["vendor", "type", "bore", "size", "dimensions", "seal"]
+    # The catalog's fixed, so the feature looks its bearings up in this studio's alone
+    [catalog] = [input for input in STUDIO.inputs if input.id == "catalog"]
+    assert catalog.fixed and catalog.options[0].id == "FRC"
     # 1/2 in and 3/8 in come first, wherever they're made
     generic_round = {"vendor": "GENERIC", "type": "FLANGED", "bore": "ROUND"}
     assert _shown("size", generic_round)[:2] == ["IN_1_2", "IN_3_8"]

@@ -18,14 +18,8 @@ CONFIG = load_config(ROOT)
 STUDIOS = {ref.label: ref for ref in part_set_studios(CONFIG)}
 INCH = 0.0254
 
-# Configurations the configuration offers but the feature can't build, as Onshape couldn't either: the configuration
-# hides Dimensions where only one is made with the earlier choices, but the table makes two there, so the feature can't
-# tell which. Fix the bearing tables, then remove them here.
-KNOWN_UNBUILDABLE = {
-    "bearings/bearing": 7,
-    "bearings/specialtyBearing": 7,
-    "ftcBearings/bearing": 2,
-}
+# Configurations the configuration offers but the feature can't build, as Onshape couldn't either, by studio
+KNOWN_UNBUILDABLE: dict[str, int] = {}
 
 
 def bounds(part):

@@ -315,8 +315,7 @@ def render_command(config: Config, args) -> int:
     print(f"Wrote {len(entries)} configuration{'s' if len(entries) != 1 else ''} to {_display(config, output)}/")
     if entries and not args.no_page:
         title = args.title or _title(config, refs)
-        subtitle = f"{len(entries)} configuration{'s' if len(entries) != 1 else ''}, built offline"
-        document, data = page(title, subtitle, entries, artifact=args.artifact)
+        document, data = page(title, entries, artifact=args.artifact)
         index = output / "index.html"
         with open(index, "w", newline="", encoding="utf-8") as file:
             file.write(document)
@@ -361,7 +360,7 @@ def feature_parts_page(config: Config, path: pathlib.Path, feature: str | None =
                         "choices": choice_names(ref.studio, combination), "metadata": info, "mesh": page_data(mesh_part(built))})
     if not entries:
         return None
-    return page(_title(config, refs), f"{len(entries)} Part Studio{'s' if len(entries) != 1 else ''}, default configurations", entries)[0]
+    return page(_title(config, refs), entries)[0]
 
 
 def _title(config: Config, refs: list[StudioRef]) -> str:

@@ -104,7 +104,7 @@ Open the repo's root folder. VS Code offers the extensions it recommends (`.vsco
 
 Don't use a Python formatter like Black: the Python here isn't formatted with one, so formatting on save would rewrite
 whole files. `fs ui` (screenshots of a feature's dialog) needs Chrome, Edge, or Chromium. `fs render` (building and
-drawing part sets' parts offline, see [docs/rendering.md](docs/rendering.md)) needs OpenCascade: `uv sync --group render`.
+drawing part sets' parts offline, see [docs/rendering.md](docs/rendering.md)) needs OpenCascade, in the `render` dependency group, which `uv sync` and `uv run` install.
 
 ## Using it
 

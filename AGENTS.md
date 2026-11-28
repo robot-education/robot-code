@@ -26,7 +26,8 @@ now on: don't rewrite what Onshape already holds just to reformat it.
 
 FeatureScript-backed parts can be built and drawn offline, without Onshape (or asking): `fs render` writes PNGs,
 glTF models, their metadata, and a 3D viewer page to publish as an Artifact; see `docs/rendering.md` and
-`.claude/skills/part-render/SKILL.md`. It needs `uv sync --group render`.
+`.claude/skills/part-render/SKILL.md`. Its OpenCascade is in the `render` dependency group, which `uv run` installs
+itself.
 
 Test FeatureScript which computes values (math, lookup tables, editing logic, manipulator change functions,
 sketches) with the evaluator: FeatureScript tests in `tests/featurescript`, or Python tests using `fs_eval` beside

@@ -15,32 +15,35 @@ export function testRoundedHexBoreReachesItsRound()
 
 export function testEveryBearingsProfileFitsAroundItsBore()
 {
-    for (var vendor, types in BEARINGS)
+    for (var catalog, vendors in BEARINGS)
     {
-        for (var type, bores in types)
+        for (var vendor, types in vendors)
         {
-            for (var bore, sizes in bores)
+            for (var type, bores in types)
             {
-                for (var sizeId, dimensions in sizes)
+                for (var bore, sizes in bores)
                 {
-                    const radius = boreRadius(BEARING_BORES[bore][sizeId]);
-                    for (var dimension, seals in dimensions)
+                    for (var sizeId, dimensions in sizes)
                     {
-                        for (var seal, bearing in seals)
+                        const radius = boreRadius(BEARING_BORES[bore][sizeId]);
+                        for (var dimension, seals in dimensions)
                         {
-                            const isFlanged = type == BearingType.FLANGED;
-                            const points = bearingProfile(bearing, radius, type);
-                            // Closed, on the axis
-                            expectSamePoint(points[0], points[size(points) - 1]);
-                            // Its inner race clears the bore, and its outer race is inside its outer diameter
-                            expectTrue(points[1][0] > radius, "Inner race inside the bore");
-                            expectTrue(points[3][0] < bearing.outerDiameter / 2, "Outer race past the outer diameter");
-                            expectTrue(points[1][0] < points[3][0], "Races overlap");
-                            expectNear(points[size(points) - 3][1] - points[0][1], bearing.width, 1e-9 * meter);
-                            if (isFlanged)
+                            for (var seal, bearing in seals)
                             {
-                                expectTrue(bearing.flangeDiameter > bearing.outerDiameter, "Flange inside the outer diameter");
-                                expectNear(points[size(points) - 3][1], bearing.flangeThickness, 1e-9 * meter);
+                                const isFlanged = type == BearingType.FLANGED;
+                                const points = bearingProfile(bearing, radius, type);
+                                // Closed, on the axis
+                                expectSamePoint(points[0], points[size(points) - 1]);
+                                // Its inner race clears the bore, and its outer race is inside its outer diameter
+                                expectTrue(points[1][0] > radius, "Inner race inside the bore");
+                                expectTrue(points[3][0] < bearing.outerDiameter / 2, "Outer race past the outer diameter");
+                                expectTrue(points[1][0] < points[3][0], "Races overlap");
+                                expectNear(points[size(points) - 3][1] - points[0][1], bearing.width, 1e-9 * meter);
+                                if (isFlanged)
+                                {
+                                    expectTrue(bearing.flangeDiameter > bearing.outerDiameter, "Flange inside the outer diameter");
+                                    expectNear(points[size(points) - 3][1], bearing.flangeThickness, 1e-9 * meter);
+                                }
                             }
                         }
                     }
@@ -52,7 +55,7 @@ export function testEveryBearingsProfileFitsAroundItsBore()
 
 export function testFlangedBearingSeatsOnItsFlange()
 {
-    const bearing = BEARINGS[BearingVendor.GENERIC][BearingType.FLANGED][BearingBore.ROUNDED_HEX][BearingSize.IN_1_2][BearingDimensions.OD_1_125_X_0_313][BearingSeal.SHIELDED];
+    const bearing = BEARINGS[BearingCatalog.FRC][BearingVendor.GENERIC][BearingType.FLANGED][BearingBore.ROUNDED_HEX][BearingSize.IN_1_2][BearingDimensions.OD_1_125_X_0_313][BearingSeal.SHIELDED];
     const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUNDED_HEX][BearingSize.IN_1_2]), BearingType.FLANGED);
     // Its flange's underside at the origin, the rest of it below
     expectSamePoint(points[0], vector(0 * meter, (0.063 - 0.313) * inch));
@@ -61,7 +64,7 @@ export function testFlangedBearingSeatsOnItsFlange()
 
 export function testExtendedInnerRaceStandsOutOfTheOuterRace()
 {
-    const bearing = BEARINGS[BearingVendor.GENERIC][BearingType.RADIAL][BearingBore.ROUND][BearingSize.NO_10][BearingDimensions.OD_0_375_X_0_156_EXTENDED][BearingSeal.SHIELDED];
+    const bearing = BEARINGS[BearingCatalog.FRC][BearingVendor.GENERIC][BearingType.RADIAL][BearingBore.ROUND][BearingSize.NO_10][BearingDimensions.OD_0_375_X_0_156_EXTENDED][BearingSeal.SHIELDED];
     const points = bearingProfile(bearing, boreRadius(BEARING_BORES[BearingBore.ROUND][BearingSize.NO_10]), BearingType.RADIAL);
     // The outer race, 0.125 in wide, centered on the inner race's 0.156 in
     expectSamePoint(points[5], vector(0.375 / 2 * inch, -0.1405 * inch));
@@ -80,14 +83,14 @@ export function testHiddenChoicesResolveToTheOneMade()
             "dimensions" : BearingDimensions.OD_1_125_X_0_313,
             "seal" : BearingSeal.SEALED
         };
-    const choices = resolveChoices(BEARINGS, definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]);
+    const choices = resolveChoices(BEARINGS[BearingCatalog.FRC], definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]);
     expectEqual(choices.definition.dimensions, BearingDimensions.OD_0_875_X_0_281);
     expectEqual(choices.definition.seal, BearingSeal.SHIELDED);
     expectEqual(choices.made.partNumber, "WCP-0784");
     // Where several are made, one that isn't is an error
     definition.size = BearingSize.IN_1_2;
     definition.dimensions = BearingDimensions.OD_1_375_X_0_438;
-    expectEqual(resolveChoices(BEARINGS, definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]).unmade, "dimensions");
+    expectEqual(resolveChoices(BEARINGS[BearingCatalog.FRC], definition, ["vendor", "bearingType", "bore", "size", "dimensions", "seal"]).unmade, "dimensions");
 }
 
 function expectSamePoint(actual is Vector, expected is Vector)
