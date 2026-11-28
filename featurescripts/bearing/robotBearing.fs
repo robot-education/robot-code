@@ -17,12 +17,11 @@ export enum BoreStyle
 }
 
 /**
- * The dialog follows std's hole's order: Style, the sketch points and merge scope, what goes in the holes, where they
- * start and which way they go, then the counterbore.
+ * The dialog follows std's hole's order: Style, the sketch points and merge scope, what goes in the holes, which way
+ * they go, then the counterbore.
  */
 annotation { "Feature Type Name" : "Robot bearing",
         "Feature Type Description" : "Cut bores for bearings." ~ CREDIT,
-        "Manipulator Change Function" : "robotBearingManipulatorChange",
         "Editing Logic Function" : "robotBearingEditLogic",
         "Auto Assembly" : true,
         "Icon" : RobotIcon::BLOB_DATA
@@ -47,32 +46,33 @@ export const robotBearing = defineFeature(function(context is Context, id is Id,
 
         boreFitPredicate(definition);
 
-        bearingOrientationPredicate(definition);
+        bearingDirectionPredicate(definition);
 
         if (definition.flanged && definition.boreStyle == BoreStyle.COUNTERBORE)
         {
-            annotation { "Name" : "Counterbore diameter", "UIHint" : ["SHOW_EXPRESSION"] }
-            isLength(definition.counterboreDiameter, HOLE_DIAMETER_BOUNDS);
+            // Std's hole's names, ids and icons
+            annotation { "Name" : "Counterbore diameter", "UIHint" : ["SHOW_EXPRESSION"], "Icon" : Icon.HOLE_COUNTERBORE_DIAMETER }
+            isLength(definition.cBoreDiameter, HOLE_DIAMETER_BOUNDS);
 
-            annotation { "Name" : "Counterbore depth", "UIHint" : ["SHOW_EXPRESSION"] }
-            isLength(definition.counterboreDepth, HOLE_DEPTH_BOUNDS);
+            annotation { "Name" : "Counterbore depth", "UIHint" : ["SHOW_EXPRESSION"], "Icon" : Icon.HOLE_COUNTERBORE_DEPTH }
+            isLength(definition.cBoreDepth, HOLE_DEPTH_BOUNDS);
         }
     }
     {
         const part = libraryBearing(definition);
-        const planes = bearingPlanes(context, id, definition, part);
+        const planes = bearingPlanes(context, definition);
         var bore = {
             "diameter" : part.outerDiameter + boreFitClearance(definition, part.outerDiameter),
             "autoAssemblyBody" : false
         };
         if (part.flangeDiameter != undefined && definition.boreStyle == BoreStyle.COUNTERBORE)
         {
-            if (!tolerantGreaterThan(definition.counterboreDiameter, bore.diameter))
+            if (!tolerantGreaterThan(definition.cBoreDiameter, bore.diameter))
             {
-                throw regenError("The counterbore must be wider than the bore.", ["counterboreDiameter"]);
+                throw regenError("The counterbore must be wider than the bore.", ["cBoreDiameter"]);
             }
-            bore.counterboreDiameter = definition.counterboreDiameter;
-            bore.counterboreDepth = definition.counterboreDepth;
+            bore.counterboreDiameter = definition.cBoreDiameter;
+            bore.counterboreDepth = definition.cBoreDepth;
         }
         placeBearings(context, id + "place", definition, planes, part, bore, AutoAssemblyKind.BEARING);
     });
@@ -125,11 +125,6 @@ export function flangeCounterbore(definition is map) returns map
         };
 }
 
-export function robotBearingManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
-{
-    return bearingManipulatorChange(definition, newManipulators);
-}
-
 /**
  * Sets Flanged; and when the bearing, its fit or Style changes, the counterbore to the flange's (`flangeCounterbore`), as
  * std's hole sets its from its standard.
@@ -143,8 +138,8 @@ export function robotBearingEditLogic(context is Context, id is Id, oldDefinitio
     if (definition.flanged && changed)
     {
         const counterbore = flangeCounterbore(definition);
-        definition.counterboreDiameter = counterbore.diameter;
-        definition.counterboreDepth = counterbore.depth;
+        definition.cBoreDiameter = counterbore.diameter;
+        definition.cBoreDepth = counterbore.depth;
     }
     return bearingEditLogic(context, id, oldDefinition, definition, specifiedParameters, hiddenBodies);
 }

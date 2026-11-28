@@ -13,7 +13,6 @@ import(path : "bearings/bearings.fs", version : "");
  */
 annotation { "Feature Type Name" : "Robot bushing",
         "Feature Type Description" : "Cut bores for bushings." ~ CREDIT,
-        "Manipulator Change Function" : "robotBushingManipulatorChange",
         "Editing Logic Function" : "robotBushingEditLogic",
         "Auto Assembly" : true,
         "Icon" : RobotIcon::BLOB_DATA
@@ -26,7 +25,7 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
         annotation { "Name" : "Bushing", "Lookup Table" : bushingTable, "UIHint" : ["REMEMBER_PREVIOUS_VALUE"] }
         definition.bushing is LookupTablePath;
 
-        bearingOrientationPredicate(definition);
+        bearingDirectionPredicate(definition);
 
         annotation { "Group Name" : "Other options", "Collapsed By Default" : true }
         {
@@ -35,7 +34,7 @@ export const robotBushing = defineFeature(function(context is Context, id is Id,
     }
     {
         const part = libraryBushing(definition);
-        const planes = bearingPlanes(context, id, definition, part);
+        const planes = bearingPlanes(context, definition);
         // A COTS bushing is pressed in: its bore is its outside diameter
         placeBearings(context, id + "place", definition, planes, part, {
                     "diameter" : part.outerDiameter,
@@ -64,11 +63,6 @@ function libraryBushing(definition is map) returns BearingPart
         "product" : entry.product
     };
     return part as BearingPart;
-}
-
-export function robotBushingManipulatorChange(context is Context, definition is map, newManipulators is map) returns map
-{
-    return bearingManipulatorChange(definition, newManipulators);
 }
 
 export function robotBushingEditLogic(context is Context, id is Id, oldDefinition is map, definition is map,

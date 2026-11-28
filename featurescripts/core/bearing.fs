@@ -3,10 +3,6 @@ import(path : "onshape/std/common.fs", version : "2960.0");
 
 import(path : "8b8c46128a5dbc2594925f4a", version : "0a4039e144d8b21589cb8d49");
 export import(path : "0195d390c3944cd4fab21ce0", version : "82243acdb77d04d0ca39cd49");
-// Exports startOffsetPredicate's types
-export import(path : "b82468283e5ec09720bad185", version : "142c41c73cc2f8336c28931e");
-// Exports MateConnectorAxisType, a parameter type
-export import(path : "58d66340f7b70cfc86606676", version : "da525a155390a101429f7f9a");
 // Exports Fit, a parameter type
 export import(path : "926d933eb33b11a3452660fd", version : "d69c937bc00dba371714fef9");
 export import(path : "01402b7c9eebd8bf0b5d3e52", version : "bb7c494edc43a307e631af8d");
@@ -57,55 +53,40 @@ export predicate bearingLocationPredicate(definition is map, name is string)
 }
 
 /**
- * How they sit: the starting offset, the flip, and the angle, in std's hole's order (its start, then its direction).
+ * Which way they go into the parts: std's hole's Opposite direction.
  */
-export predicate bearingOrientationPredicate(definition is map)
+export predicate bearingDirectionPredicate(definition is map)
 {
-    startOffsetPredicate(definition);
-
-    axisOrientationPredicate(definition);
-
-    angleReferencePredicate(definition);
-
-    angleOffsetPredicate(definition);
+    annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
+    definition.oppositeDirection is boolean;
 }
 
 const LOCATION_ERROR = "Select a sketch point, circle, or mate connector to use.";
 
 /**
- * The plane each one sits on: its location's, offset, turned to the angle reference and Angle, and flipped. Its normal
- * points out of the face it sits on, away from the parts; its x axis is the angle reference's. Adds the offset's and
- * angle's manipulators, on the first.
+ * The plane each one sits on: its location's, flipped by Opposite direction. Its normal points out of the face it sits
+ * on, away from the parts.
  */
-export function bearingPlanes(context is Context, id is Id, definition is map, part is BearingPart) returns array
+export function bearingPlanes(context is Context, definition is map) returns array
 {
     const locations = evaluateQuery(context, definition.locations);
     if (locations == [])
     {
         throw regenError(LOCATION_ERROR, ["locations"]);
     }
-    var planes = [];
-    for (var i, location in locations)
-    {
-        const locationPlane = selectionPlane(context, location);
-        if (locationPlane == undefined)
+    return mapArray(locations, function(location is Query)
         {
-            throw regenError(LOCATION_ERROR, ["locations"], location);
-        }
-        var plane = applyStartOffset(context, definition, locationPlane);
-        if (i == 0)
-        {
-            addStartOffsetManipulator(context, id, definition, plane);
-        }
-        plane = applyAngleReference(context, definition, plane, "locations");
-        plane = applyAxisOrientation(definition, plane);
-        if (i == 0)
-        {
-            addAngleOffsetManipulator(context, id, definition, plane, part.outerDiameter);
-        }
-        planes = append(planes, applyAngleOffset(definition, plane));
-    }
-    return planes;
+            var plane = selectionPlane(context, location);
+            if (plane == undefined)
+            {
+                throw regenError(LOCATION_ERROR, ["locations"], location);
+            }
+            if (definition.oppositeDirection)
+            {
+                plane.normal = -plane.normal;
+            }
+            return plane;
+        });
 }
 
 /**
@@ -140,7 +121,7 @@ export function placeBearings(context is Context, id is Id, definition is map, p
         const depth = -bounds.minCorner[2];
         if (!tolerantGreaterThan(depth, 0 * meter))
         {
-            throw regenError("The parts to cut aren't behind the sketch point. Flip the primary axis.", ["oppositeDirection", "scope"], definition.scope);
+            throw regenError("The parts to cut aren't behind the sketch point. Check Opposite direction.", ["oppositeDirection", "scope"], definition.scope);
         }
         // Before the cut, which can split it
         hosts = append(hosts, partBehind(context, definition.scope, plane));
@@ -271,17 +252,10 @@ function extrudeRing(context is Context, id is Id, plane is Plane, outerDiameter
             });
 }
 
-/**
- * Dragging the starting offset or the angle.
- */
-export function bearingManipulatorChange(definition is map, newManipulators is map) returns map
-{
-    return angleOffsetManipulatorChange(startOffsetManipulatorChange(definition, newManipulators), newManipulators);
-}
 
 /**
  * Std's hole heuristics, as `mountingEditLogic`'s, at every location: they set the merge scope to the parts there, and
- * Flip primary axis so the bores go into them, unless they've been set.
+ * Opposite direction so the bores go into them, unless they've been set.
  */
 export function bearingEditLogic(context is Context, id is Id, oldDefinition is map, definition is map, specifiedParameters is map, hiddenBodies is Query) returns map
 {
