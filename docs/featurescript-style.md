@@ -371,6 +371,12 @@ as touching (both unitless, in meters; see `docs/std-functions.md`). Make tools 
 their tolerance as the same (Robot lighten's Through all relies on this; it's yet to be tried in Onshape). Where something can't be smaller than a tolerance (a hole left by thickening an arc
 toward its center), compare against that tolerance.
 
+`fs check` flags a number no bigger than 0.001, other than 0, outside a bound spec (`small-constant`): it's a tolerance
+of our own. Compare with a tolerant function, or write it in terms of `TOLERANCE` (Robot lighten's `TIE_OFFSET` is ten
+times `booleanDefaultTolerance`), or a bound's minimum (`SHELL_OFFSET_BOUNDS[meter][0]`). A small number that isn't a
+tolerance says so where it's ignored, as `SOLD_LENGTH_TOLERANCE` (`core/robotProperties.fs`) does: lengths are shown
+to 0.001 in., so a part that looks like a sold length is one.
+
 ## Comparing lengths and angles
 
 Compare measured values with std's tolerant functions (`tolerantEquals`, `tolerantEqualsZero`, `tolerantLessThan`,
@@ -702,6 +708,8 @@ Onshape warns about a variable which is set but never used. Name one you don't n
 - A `"Set By"` parameter's function exists, takes the definition, and returns the parameter's type; the parameter is
   hidden; and the feature's editing logic declares `isCreating` and sets it from the function first thing (see
   "Hidden parameters set by editing logic").
+- A number no bigger than 0.001 (but 0), outside a bound spec, is flagged as a tolerance of our own; see "Tolerances,
+  not margins" (`small-constant`).
 - A feature's `vendor` is the first parameter its dialog shows after its horizontal enums, and a `<part>Vendor`
   (`screwVendor`) comes before the rest of its part's (`screwHead`); see "Vendor goes first".
 - `"Auto Assembly"` and `"Simplification"`, keys of ours in a feature's annotation (see `docs/auto-assembly.md`), are

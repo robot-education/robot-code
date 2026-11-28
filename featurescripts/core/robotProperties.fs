@@ -1,6 +1,13 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 
+/**
+ * How close a part has to be to a length it's sold in to be that length: lengths are shown to 3 decimal places of an
+ * inch, so one that looks like it is.
+ */
+// fs check: ignore small-constant: a precision lengths are shown to, not a tolerance on geometry
+export const SOLD_LENGTH_TOLERANCE = 0.001 * inch;
+
 export const ALUMINUM = material("Aluminum - 6061", 0.098 * pound / inch ^ 3);
 export const ALUMINUM_7075 = material("Aluminum - 7075", 0.102 * pound / inch ^ 3);
 export const STEEL = material("Steel", 0.284 * pound / inch ^ 3);

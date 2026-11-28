@@ -232,8 +232,7 @@ export function quickRibEditLogic(context is Context, id is Id, oldDefinition is
  * The bounds of an edge rib's Location: how far along its edge, from its start to its end, as std's fillet bounds its
  * points on edges (`EDGE_INTERIOR_PARAMETER_BOUNDS`).
  */
-const EDGE_RIB_LOCATION_RANGE = [0.001, 0.5, 0.999];
-export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : EDGE_RIB_LOCATION_RANGE } as RealBoundSpec;
+export const EDGE_RIB_LOCATION_BOUNDS = { (unitless) : [0.001, 0.5, 0.999] } as RealBoundSpec;
 const EDGE_RIB_MANIPULATOR = "edgeRib";
 
 /**
@@ -830,7 +829,7 @@ export function edgeRibManipulatorChange(context is Context, definition is map, 
         }
         const position = manipulator.base + manipulator.direction * manipulator.offset;
         const nearest = evDistance(context, { "side0" : position, "side1" : definition.edgeRibs[index].ribEdge, "arcLengthParameterization" : true });
-        definition.edgeRibs[index].edgeLocation = clamp(nearest.sides[1].parameter, EDGE_RIB_LOCATION_RANGE[0], EDGE_RIB_LOCATION_RANGE[2]);
+        definition.edgeRibs[index].edgeLocation = clamp(nearest.sides[1].parameter, EDGE_RIB_LOCATION_BOUNDS[unitless][0], EDGE_RIB_LOCATION_BOUNDS[unitless][2]);
     }
     return definition;
 }

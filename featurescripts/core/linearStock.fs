@@ -1705,8 +1705,7 @@ export function stockFor(part is Stock, length is ValueWithUnits)
 {
     for (var stock in part.stock)
     {
-        // Lengths are only shown to 3 decimal places, so a part which looks like stock length is
-        if (tolerantLessThanOrEqual(length, stock.length + 0.001 * inch))
+        if (tolerantLessThanOrEqual(length, stock.length + SOLD_LENGTH_TOLERANCE))
         {
             return stock;
         }
