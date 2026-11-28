@@ -106,7 +106,7 @@ as the part's connector it takes, so it's fastened to the same way.
 | Kind | Connectors (on the Auto Assembly body, and on the library part) |
 | --- | --- |
 | Motor, gearbox | `face`: the center of its mounting face, Z into the motor, X to the right of its face as its drawing shows it (Robot motor's tables' convention) |
-| Bearing, bushing | `mateConnector`: where it seats, as FRCDesign's bearings part set's is (`featurescripts/bearings/`): on its axis, at a flange's underside or a radial bearing's top face, Z out of the hole |
+| Bearing, bushing | `mateConnector`: where it seats, as FRCDesign's bearings part set's is (`featurescripts/bearings/`): on its axis, at a flange's underside or a radial bearing's top face, Z out of the hole. `topMateConnector` on a flange's top, Z up (a radial bearing's top is its seat), and `bottomMateConnector` on its bottom face, Z down (`bearingConnectors`) |
 | Bearing hat | `mateConnector`: the center of its bore on the face it sits on, Z out of the face, X toward a mounting hole (the bearing hats part set's) |
 | Screw | `mateConnector`: the center of the head's underside, Z from shank to head (the fasteners' convention) |
 
@@ -346,7 +346,8 @@ What they do:
    its outside diameter), extruded through the merge scope behind it, and a counterbore its depth. All are subtracted
    in one boolean, as Robot motor's pilot is. The part each plane is on, of the merge scope's, is that bore's host.
 4. **Declarations**: at each bore, a host connector on its host at the bore's center, Z out of the bore, X the plane's: the bearing set's `mateConnector`. It's on the face, or on a counterbore's
-   floor, where the flange sits. Each bore's operations are under `place.bearing<n>`, `<n>` its location's place in
+   floor, where the flange sits. Beside it go the part's other connectors, `topMateConnector` and
+   `bottomMateConnector`, where the part's are, for mating to the part's place; they declare nothing. Each bore's operations are under `place.bearing<n>`, `<n>` its location's place in
    the selection. A part's product is its set's studio, with its record's configuration; until the set is released,
    the studio has no document, and the feature declares nothing and says so.
 5. **Auto Assembly bodies** (Robot bushing): at each bore, a ring at the part's outside diameter, its hole at its

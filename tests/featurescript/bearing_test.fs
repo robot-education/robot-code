@@ -156,3 +156,21 @@ export function testAFlangedBearingsCounterboreHoldsItsFlangeFlush()
     // A path that's no whole entry isn't flanged
     expectTrue(!isFlangedBearing({ "bearing" : lookupTablePath({}) }), "an empty path is flanged");
 }
+
+export function testAHoleHasTheConnectorsOfThePartInIt()
+{
+    const seat = plane(vector(0, 0, 0) * inch, vector(0, 0, 1), vector(1, 0, 0));
+    const product = { "documentId" : "d", "elementId" : "e", "configuration" : {}, "name" : "Bearing" };
+    const flanged = bearingConnectors(seat, { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "innerDiameter" : 0.5 * inch,
+                "flangeDiameter" : 1.25 * inch, "flangeThickness" : 0.063 * inch, "product" : product } as BearingPart);
+    expectNear(norm(flanged.mateConnector.origin - vector(0, 0, 0) * inch), 0 * meter, 1e-12 * meter);
+    // The flange's top, up, and the bottom face, down, as the bearings set's
+    expectNear(norm(flanged.topMateConnector.origin - vector(0, 0, 0.063) * inch), 0 * meter, 1e-12 * meter);
+    expectNear(norm(flanged.bottomMateConnector.origin - vector(0, 0, -0.25) * inch), 0 * meter, 1e-12 * meter);
+    expectTrue(tolerantEquals(flanged.bottomMateConnector.zAxis, vector(0, 0, -1)), "the bottom doesn't point down");
+    const radial = bearingConnectors(seat, { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "innerDiameter" : 0.5 * inch,
+                "product" : product } as BearingPart);
+    // A radial bearing's top is its seat
+    expectEqual(radial.topMateConnector, undefined);
+    expectNear(norm(radial.bottomMateConnector.origin - vector(0, 0, -0.313) * inch), 0 * meter, 1e-12 * meter);
+}

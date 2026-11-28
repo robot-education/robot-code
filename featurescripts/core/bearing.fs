@@ -102,6 +102,25 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 }
 
 /**
+ * Every connector the part sets' bearings and bushings have, by name, for one seated on `seat` (see `bearingConnector`):
+ * `mateConnector` where it seats; `topMateConnector` on a flange's top, its z axis up (a radial bearing's top is its
+ * seat, so it has none); and `bottomMateConnector` on its bottom face, its z axis down.
+ */
+export function bearingConnectors(seat is Plane, part is BearingPart) returns map
+{
+    const flanged = part.flangeDiameter != undefined;
+    var connectors = {
+        "mateConnector" : bearingConnector(seat),
+        "bottomMateConnector" : coordSystem(seat.origin - seat.normal * (flanged ? part.width - part.flangeThickness : part.width), seat.x, -seat.normal)
+    };
+    if (flanged)
+    {
+        connectors.topMateConnector = coordSystem(seat.origin + seat.normal * part.flangeThickness, seat.x, seat.normal);
+    }
+    return connectors;
+}
+
+/**
  * Cuts a bore at each plane, from where Start plane starts it (`holeStartPlane`) through the merge scope behind, and a counterbore, all in one boolean; declares a part
  * in each, on the part it's in, seated on the counterbore's floor; and builds each one's Auto Assembly body.
  * @param bore {{
@@ -171,14 +190,22 @@ export function placeBearings(context is Context, id is Id, definition is map, p
         {
             seat.origin -= face.normal * bore.counterboreDepth;
         }
-        if (declaration != undefined)
+        // The part's connectors on the host, for mating to the part's place; only its seat's declares it
+        for (var name, cSys in bearingConnectors(seat, part))
         {
-            declarePart(context, bearingId + "mateConnector", {
-                        "owner" : hosts[i],
-                        "coordSystem" : bearingConnector(seat),
-                        "connector" : "mateConnector",
-                        "declaration" : declaration
-                    });
+            if (name == "mateConnector" && declaration != undefined)
+            {
+                declarePart(context, bearingId + name, {
+                            "owner" : hosts[i],
+                            "coordSystem" : cSys,
+                            "connector" : name,
+                            "declaration" : declaration
+                        });
+            }
+            else
+            {
+                opMateConnector(context, bearingId + name, { "coordSystem" : cSys, "owner" : hosts[i] });
+            }
         }
         if (bore.autoAssemblyBody)
         {
@@ -234,7 +261,7 @@ function buildBearingBody(context is Context, id is Id, plane is Plane, part is 
     }
     makeAutoAssemblyBody(context, id + "declare", {
                 "body" : qCreatedBy(id, EntityType.BODY)->qBodyType(BodyType.SOLID),
-                "connectors" : { "mateConnector" : bearingConnector(plane) },
+                "connectors" : bearingConnectors(plane, part),
                 "declaration" : declaration,
                 "name" : part.product.name
             });

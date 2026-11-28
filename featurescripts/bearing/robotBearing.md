@@ -77,8 +77,11 @@ which shows Style. Editing logic also sets Counterbore diameter and Counterbore 
         boolean.
       - At each, a `mateConnector` connector on its part (`bearingConnector`: the bore's center, z out of the bore, x
         the plane's, where the bearings set seats its bearings), carrying the bearing's declaration. With a
-        counterbore, it's on the counterbore's floor, where the flange sits. Before the set is released, the info
-        above instead.
+        counterbore, it's on the counterbore's floor, where the flange sits. Before the set is released, it declares
+        nothing, with the info above.
+      - Beside it, the bearing's other connectors (`bearingConnectors`): `topMateConnector` on the flange's top, z up
+        (a radial bearing's top is its seat, so it has none), and `bottomMateConnector` on its bottom face, z down.
+        They declare nothing.
       - Each bearing's operations are under `place.bearing<n>`, so its connector is `<featureId>.place.bearing<n>.mateConnector`.
    5. Sketches are deleted.
 

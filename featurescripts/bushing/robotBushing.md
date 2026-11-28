@@ -42,10 +42,11 @@ Style or Bore fit: a COTS bushing is pressed in, so its bore is its outside diam
 1. The bushing (`libraryBushing`): its `bushingTable` entry (Vendor, Bore, Size, Material, and Dimensions, skipping a
    level with one option), looked up in the bushings set's `BUSHINGS` for its outside diameter, width, and flange,
    with its hole at its bore's corners (the bearings' `boreRadius`), as a `BearingPart`.
-2. The planes, and `placeBearings`, declaring each as a bushing. Until the bushings set is released, its studio has no
+2. The planes, and `placeBearings`, declaring each as a bushing, with its top and bottom connectors beside it. Until the bushings set is released, its studio has no
    document, so it's declared nothing, with Robot bearing's info.
 3. With Auto assembly body, each bore's Auto Assembly body: a ring at its outside diameter, its hole at its bore's
-   corners, into the bore, and its flange on the face (`buildBearingBody`, `makeAutoAssemblyBody`).
+   corners, into the bore, and its flange on the face (`buildBearingBody`, `makeAutoAssemblyBody`), with all three of
+   the bushing's connectors.
 
 ## Issues found
 
