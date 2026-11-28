@@ -78,10 +78,10 @@ as a catalog: each configuration's files in `<set>/<studio>/<choices>` (`.png`, 
         {
             "partSet": "fasteners",
             "studio": "washer",
-            "configuration": {"vendor": "MCMASTER", "size": "NO_10_32", "type": "OD_7_16_X_0_03", "finish": "STAINLESS"},
-            "name": "#10 Washer (7/16 in OD x 0.03 in, Stainless steel)",
-            "partNumber": "92141A011",
-            "files": {"png": "fasteners/washer/MCMASTER-NO_10_32-OD_7_16_X_0_03-STAINLESS.png", "glb": "...", "step": "...", "json": "..."}
+            "configuration": {"vendor": "MCMASTER", "size": "NO_4_40", "finish": "BLACK"},
+            "name": "#4 Washer (5/16 in OD x 0.03 in)",
+            "partNumber": "96765A110",
+            "files": {"png": "fasteners/washer/MCMASTER-NO_4_40-BLACK.png", "glb": "...", "step": "...", "json": "..."}
         }
     ]
 }
@@ -94,7 +94,8 @@ or STEP file without asking Onshape. Its inputs are those shown with its choices
 The Parts catalog workflow (`.github/workflows/parts.yml`) builds it on main whenever the FeatureScript or the tooling
 changes (or by hand, from the Actions tab), at 256 px, with STEP files, and publishes it with GitHub Pages:
 `https://<owner>.github.io/<repo>/parts/index.json`, with the files beside it. It needs Pages turned on with GitHub
-Actions as its source (the repo's Settings, Pages). Every part set takes about six minutes and 100 MB; a configuration
+Actions as its source (the repo's Settings, Pages). Every part set's 2,098 configurations take about seven minutes and
+170 MB (12 MB of thumbnails, 70 of glTF, 77 of STEP, and 10 of metadata); a configuration
 that fails to build fails the workflow, so the catalog is never missing one quietly. The images are the evaluator's
 builds, not Onshape's: the tests hold them to the tables and vendors' STEP files, and the catalog is rebuilt from main
 as the FeatureScript changes.
