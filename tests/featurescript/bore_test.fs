@@ -27,7 +27,7 @@ export function testSplineXsBoreClearancesAreTheStandardFits()
 {
     for (var fit in [Fit.FREE, Fit.CLOSE, Fit.NONE])
     {
-        expectNear(SPLINE_XS_BORE_CLEARANCES[fit], standardFitClearance(fit, undefined, splineDiameter(SplineType.SPLINE_XS)), 1e-9 * meter);
+        expectTolerantEquals(SPLINE_XS_BORE_CLEARANCES[fit], standardFitClearance(fit, undefined, splineDiameter(SplineType.SPLINE_XS)));
     }
 }
 
@@ -35,10 +35,10 @@ export function testStandardHexesHaveAFit()
 {
     const half = definitionBore(bore(BoreShape.HEX, {}));
     expectEqual(half.across, 0.5 * inch);
-    expectNear(half.clearance, standardFitClearance(Fit.FREE, undefined, 0.5 * inch), 1e-12 * meter);
+    expectTolerantEquals(half.clearance, standardFitClearance(Fit.FREE, undefined, 0.5 * inch));
     const threeEighths = definitionBore(bore(BoreShape.HEX, { "boreHexSize" : BoreHexSize._3_8_IN, "fit" : Fit.CLOSE }));
     expectEqual(threeEighths.across, 0.375 * inch);
-    expectNear(threeEighths.clearance, standardFitClearance(Fit.CLOSE, undefined, 0.375 * inch), 1e-12 * meter);
+    expectTolerantEquals(threeEighths.clearance, standardFitClearance(Fit.CLOSE, undefined, 0.375 * inch));
 }
 
 export function testCustomHexesAndRoundBoresAreTheirSize()
@@ -57,7 +57,7 @@ export function testSplinesHaveAFit()
 {
     const spline = definitionBore(bore(BoreShape.SPLINE, { "fit" : Fit.CLOSE }));
     expectEqual(spline.fit, Fit.CLOSE);
-    expectNear(spline.clearance, SPLINE_XS_BORE_CLEARANCES[Fit.CLOSE], 1e-9 * meter);
+    expectTolerantEquals(spline.clearance, SPLINE_XS_BORE_CLEARANCES[Fit.CLOSE]);
 }
 
 export function testNoBore()
@@ -83,7 +83,7 @@ export function testMateBoreIsItsOwn()
             });
     const mate = definitionMateBore(definition);
     expectEqual(mate.across, 0.375 * inch);
-    expectNear(mate.clearance, standardFitClearance(Fit.CLOSE, undefined, 0.375 * inch), 1e-12 * meter);
+    expectTolerantEquals(mate.clearance, standardFitClearance(Fit.CLOSE, undefined, 0.375 * inch));
     expectEqual(mate.chamfer, 0.4 * millimeter);
     // Its errors highlight its own parameters
     expectEqual(mate.parameters, MATE_BORE_PARAMETERS);

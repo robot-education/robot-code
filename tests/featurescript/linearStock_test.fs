@@ -194,11 +194,11 @@ export function testANutStripBetweenHolesEndsAsItsSold()
     const strip = wcpNutStrip();
     // Holes 1 in. apart (one between them), lined up by the row from 1/4 in.: 1/4 in. past each
     const byX = holeEnds(strip, 0.25 * inch, 1 * inch, 0 * meter, 0 * meter);
-    expectNear(byX.length, 1.5 * inch, 1e-9 * meter);
+    expectTolerantEquals(byX.length, 1.5 * inch);
     expectEqual(rowHoles(strip, strip.yRows[0], byX), [0.5, 1]);
     // By the row from 1/2 in., 1/2 in. before the start hole, but 1/4 in. past the end hole, as a nut strip ends
     const byY = holeEnds(strip, 0.5 * inch, 1 * inch, 0 * meter, 0 * meter);
-    expectNear(byY.length, 1.75 * inch, 1e-9 * meter);
+    expectTolerantEquals(byY.length, 1.75 * inch);
     expectEqual(rowHoles(strip, strip.xRows[0], byY), [0.25, 0.75, 1.25]);
     expectEqual(rowHoles(strip, strip.yRows[0], byY), [0.5, 1, 1.5]);
 }
@@ -206,7 +206,7 @@ export function testANutStripBetweenHolesEndsAsItsSold()
 export function testAHoleTubeBetweenHolesReachesAsFarPastEach()
 {
     // Holes from 1/2 in., every 1/2 in.: 1/2 in. past each selected hole
-    expectNear(holeEnds(tube(), 0.5 * inch, 2 * inch, 0 * meter, 0 * meter).length, 3 * inch, 1e-9 * meter);
+    expectTolerantEquals(holeEnds(tube(), 0.5 * inch, 2 * inch, 0 * meter, 0 * meter).length, 3 * inch);
 }
 
 export function testANutStripsHolesGoOnIntoALongerStart()
@@ -214,7 +214,7 @@ export function testANutStripsHolesGoOnIntoALongerStart()
     const strip = wcpNutStrip();
     // Its start 0.37 in. further out: every hole of both rows which fits is there, on the selected holes
     const ends = holeEnds(strip, 0.25 * inch, 1 * inch, -0.37 * inch, 0 * meter);
-    expectNear(ends.length, 1.87 * inch, 1e-9 * meter);
+    expectTolerantEquals(ends.length, 1.87 * inch);
     expectEqual(rowHoles(strip, strip.xRows[0], ends), [0.12, 0.62, 1.12, 1.62]);
     expectEqual(rowHoles(strip, strip.yRows[0], ends), [0.37, 0.87, 1.37]);
 }
@@ -231,7 +231,7 @@ export function testAStartAWholePatternOutIsAsSold()
     // Out a whole pattern (1/2 in.): its holes are as on stock as it's sold, so it's laid out from its start
     const strip = wcpNutStrip();
     const ends = holeEnds(strip, 0.25 * inch, 1 * inch, -0.5 * inch, 0 * meter);
-    expectNear(ends.lead, 0 * meter, 1e-9 * meter);
+    expectTolerantEquals(ends.lead, 0 * meter);
     expectEqual(rowHoles(strip, strip.xRows[0], ends), [0.25, 0.75, 1.25, 1.75]);
 }
 
@@ -257,11 +257,11 @@ export function testHolesBeforeTheStartArentHalfTheTiedHoles()
 
 export function testHolePatternPeriod()
 {
-    expectNear(holePatternPeriod(wcpNutStrip()), 0.5 * inch, 1e-9 * meter);
-    expectNear(holePatternPeriod(tube()), 0.5 * inch, 1e-9 * meter);
+    expectTolerantEquals(holePatternPeriod(wcpNutStrip()), 0.5 * inch);
+    expectTolerantEquals(holePatternPeriod(tube()), 0.5 * inch);
     var max = tube();
     max.xRows = [holeRow(1.5 * inch, 2 * inch)];
-    expectNear(holePatternPeriod(max), 2 * inch, 1e-9 * meter);
+    expectTolerantEquals(holePatternPeriod(max), 2 * inch);
 }
 
 export function testTurnedOnOffsetsDefaultToExtendingBetweenHolesAndInAlongAnEdge()
@@ -272,12 +272,12 @@ export function testTurnedOnOffsetsDefaultToExtendingBetweenHolesAndInAlongAnEdg
     // Between holes, out by the strip's pattern of holes
     const holes = stockEditLogic(newContext(), newId(), mergeMaps(before, { "placement" : StockPlacement.HOLES }),
         mergeMaps(after, { "placement" : StockPlacement.HOLES }), {}, qNothing(), wcpNutStrip(), 0.25 * inch, false);
-    expectNear(holes.edgeStartOffset, 0.5 * inch, 1e-9 * meter);
+    expectTolerantEquals(holes.edgeStartOffset, 0.5 * inch);
     expectEqual(holes.edgeStartOffsetOppositeDirection, false);
     // Along an edge, in by the default offset (Opposite direction)
     const edge = stockEditLogic(newContext(), newId(), mergeMaps(before, { "placement" : StockPlacement.EDGE }),
         mergeMaps(after, { "placement" : StockPlacement.EDGE }), {}, qNothing(), wcpNutStrip(), 0.25 * inch, false);
-    expectNear(edge.edgeStartOffset, 0.25 * inch, 1e-9 * meter);
+    expectTolerantEquals(edge.edgeStartOffset, 0.25 * inch);
     expectEqual(edge.edgeStartOffsetOppositeDirection, true);
     // The end's offset, still off, is left
     expectEqual(edge.edgeEndOffsetOppositeDirection, false);

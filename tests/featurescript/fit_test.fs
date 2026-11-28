@@ -6,8 +6,8 @@ import(path : "testing.fs", version : "");
 export function testCloseAndFreeFromHalfInch()
 {
     // std's ANSI clearance holes for 1/2 in.: 0.5156 and 0.5312
-    expectNear(standardFitClearance(Fit.CLOSE, undefined, 0.5 * inch), 0.0156 * inch, 1e-9 * meter);
-    expectNear(standardFitClearance(Fit.FREE, undefined, 0.5 * inch), 0.0312 * inch, 1e-9 * meter);
+    expectTolerantEquals(standardFitClearance(Fit.CLOSE, undefined, 0.5 * inch), 0.0156 * inch);
+    expectTolerantEquals(standardFitClearance(Fit.FREE, undefined, 0.5 * inch), 0.0312 * inch);
 }
 
 export function testNoneAndCustom()
@@ -18,12 +18,12 @@ export function testNoneAndCustom()
 
 export function testFastenerHoles()
 {
-    expectNear(fastenerHoleDiameter({ "fit" : Fit.CLOSE }, "#10"), 0.196 * inch, 1e-9 * meter);
+    expectTolerantEquals(fastenerHoleDiameter({ "fit" : Fit.CLOSE }, "#10"), 0.196 * inch);
     // std's ANSI table's free hole, an H drill
-    expectNear(fastenerHoleDiameter({ "fit" : Fit.FREE }, "1/4"), 0.266 * inch, 1e-9 * meter);
+    expectTolerantEquals(fastenerHoleDiameter({ "fit" : Fit.FREE }, "1/4"), 0.266 * inch);
     // ISO has no free fit: normal stands in
-    expectNear(fastenerHoleDiameter({ "fit" : Fit.FREE }, "M3"), 3.4 * millimeter, 1e-9 * meter);
-    expectNear(fastenerHoleDiameter({ "fit" : Fit.NONE }, "M5"), 5 * millimeter, 1e-9 * meter);
+    expectTolerantEquals(fastenerHoleDiameter({ "fit" : Fit.FREE }, "M3"), 3.4 * millimeter);
+    expectTolerantEquals(fastenerHoleDiameter({ "fit" : Fit.NONE }, "M5"), 5 * millimeter);
 }
 
 export function testUnknownFastener()

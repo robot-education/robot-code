@@ -33,6 +33,6 @@ export function testFlipManipulatorSwapsSide()
 
 export function testPitchCircleTeeth()
 {
-    expectNear(pitchCircleTeeth(0.25 * inch, getSprocketRadius(0.25 * inch, 22)), 22, 1e-9);
+    expectTolerantEquals(pitchCircleTeeth(0.25 * inch, getSprocketRadius(0.25 * inch, 22)), 22);
     expectEqual(pitchCircleTeeth(0.25 * inch, 0.1 * inch), undefined);
 }

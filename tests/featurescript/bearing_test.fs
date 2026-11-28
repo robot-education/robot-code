@@ -47,11 +47,11 @@ export function testScrewHolesClearTheBore()
         for (var position in positions)
         {
             // Each hole's edge clears the bore by a wall
-            expectNear(norm(position) - 0.201 * inch / 2, 1.125 * inch / 2 + 0.03 * inch, 1e-9 * meter);
+            expectTolerantEquals(norm(position) - 0.201 * inch / 2, 1.125 * inch / 2 + 0.03 * inch);
         }
     }
     const overridden = screwPositions({ "retentionScrewCount" : ScrewCount.THREE, "overrideHoleCircle" : true, "holeCircleDiameter" : 2 * inch }, 1.125 * inch);
-    expectNear(norm(overridden[1]), 1 * inch, 1e-9 * meter);
+    expectTolerantEquals(norm(overridden[1]), 1 * inch);
 }
 
 export function testEveryCotsHatIsOneTheHatSetMakes()
@@ -79,7 +79,7 @@ export function testEveryHatReachesOverItsBearingAndHasItsHolesAtItsCenters()
         {
             expectTrue(hat.innerDiameter < hat.outerDiameter, hat.name);
             const holes = hatHoles(hat);
-            expectNear(norm(holes[1] - holes[0]), hat.centers, 1e-12 * meter);
+            expectTolerantEquals(norm(holes[1] - holes[0]), hat.centers);
             // Each hole clears the outline about the bore
             expectTrue(hat.centers / 2 - hat.holeDiameter / 2 > hat.outerDiameter / 2, hat.name);
         }
@@ -163,14 +163,14 @@ export function testAHoleHasTheConnectorsOfThePartInIt()
     const product = { "documentId" : "d", "elementId" : "e", "configuration" : {}, "name" : "Bearing" };
     const flanged = bearingConnectors(seat, { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "innerDiameter" : 0.5 * inch,
                 "flangeDiameter" : 1.25 * inch, "flangeThickness" : 0.063 * inch, "product" : product } as BearingPart);
-    expectNear(norm(flanged.mateConnector.origin - vector(0, 0, 0) * inch), 0 * meter, 1e-12 * meter);
+    expectTolerantEquals(flanged.mateConnector.origin, vector(0, 0, 0) * inch);
     // The flange's top, up, and the bottom face, down, as the bearings set's
-    expectNear(norm(flanged.topMateConnector.origin - vector(0, 0, 0.063) * inch), 0 * meter, 1e-12 * meter);
-    expectNear(norm(flanged.bottomMateConnector.origin - vector(0, 0, -0.25) * inch), 0 * meter, 1e-12 * meter);
+    expectTolerantEquals(flanged.topMateConnector.origin, vector(0, 0, 0.063) * inch);
+    expectTolerantEquals(flanged.bottomMateConnector.origin, vector(0, 0, -0.25) * inch);
     expectTrue(tolerantEquals(flanged.bottomMateConnector.zAxis, vector(0, 0, -1)), "the bottom doesn't point down");
     const radial = bearingConnectors(seat, { "outerDiameter" : 1.125 * inch, "width" : 0.313 * inch, "innerDiameter" : 0.5 * inch,
                 "product" : product } as BearingPart);
     // A radial bearing's top is its seat
     expectEqual(radial.topMateConnector, undefined);
-    expectNear(norm(radial.bottomMateConnector.origin - vector(0, 0, -0.313) * inch), 0 * meter, 1e-12 * meter);
+    expectTolerantEquals(radial.bottomMateConnector.origin, vector(0, 0, -0.313) * inch);
 }

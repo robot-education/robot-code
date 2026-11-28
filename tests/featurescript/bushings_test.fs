@@ -32,7 +32,7 @@ export function testEveryBushingsProfileCloses()
         const points = bushingProfile(bushing);
         expectEqual(points[0], points[size(points) - 1]);
         // Its flange is above the origin, as wide as its flange and as thick
-        expectNear(points[0][1], bushing.flangeThickness - bushing.width, 1e-12 * meter);
+        expectTolerantEquals(points[0][1], bushing.flangeThickness - bushing.width);
         expectTrue(bushing.flangeDiameter > bushing.outerDiameter, bushing.name ~ "'s flange isn't wider than it");
     }
 }

@@ -12,8 +12,8 @@ export function testTwoEqualCircles()
 {
     // Two straight runs, and half of each circle
     const circles = [circle(0, 0, 1, false), circle(4, 0, 1, false)];
-    expectNear(loopLength(circles, true), (8 + 2 * PI) * inch, 1e-9 * meter);
-    expectNear(loopLength(circles, false), (8 + 2 * PI) * inch, 1e-9 * meter);
+    expectTolerantEquals(loopLength(circles, true), (8 + 2 * PI) * inch);
+    expectTolerantEquals(loopLength(circles, false), (8 + 2 * PI) * inch);
 }
 
 export function testUnequalCircles()
@@ -21,7 +21,7 @@ export function testUnequalCircles()
     // The open belt formula: 2 sqrt(C^2 - (R - r)^2) + pi (R + r) + 2 (R - r) asin((R - r) / C)
     const circles = [circle(0, 0, 2, false), circle(5, 0, 1, false)];
     const expected = (2 * sqrt(25 - 1) + PI * 3 + 2 * asin(1 / 5) / radian) * inch;
-    expectNear(loopLength(circles, true), expected, 1e-9 * meter);
+    expectTolerantEquals(loopLength(circles, true), expected);
 }
 
 export function testIdlerOutsideShortensPath()
@@ -44,7 +44,7 @@ export function testNearestRoot()
             return x * x / meter - 2 * meter;
         }, 0.1 * millimeter, 1e-12 * meter);
     // Either root is as near: the first found, going up
-    expectNear(abs(root), sqrt(2) * meter, 1e-9 * meter);
+    expectTolerantEquals(abs(root), sqrt(2) * meter);
 }
 
 export function testNearestRootPicksNearer()
@@ -54,7 +54,7 @@ export function testNearestRootPicksNearer()
         {
             return (x + 1 * millimeter) * (x - 5 * millimeter) / meter;
         }, 0.1 * millimeter, 1e-12 * meter);
-    expectNear(root, -1 * millimeter, 1e-9 * meter);
+    expectTolerantEquals(root, -1 * millimeter);
 }
 
 export function testNearestRootNone()

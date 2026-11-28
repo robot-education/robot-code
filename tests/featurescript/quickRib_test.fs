@@ -22,8 +22,8 @@ export function testHubSegments()
 export function testHubCircleRadius()
 {
     // Through the first spoke, measured in the sketch's plane: a spoke above it is projected onto it
-    expectNear(hubCircleRadius(XY_PLANE, A, C), sqrt(2) * inch, 1e-9 * inch);
-    expectNear(hubCircleRadius(XY_PLANE, A, B + vector(0, 0, 3) * inch), 1 * inch, 1e-9 * inch);
+    expectTolerantEquals(hubCircleRadius(XY_PLANE, A, C), sqrt(2) * inch);
+    expectTolerantEquals(hubCircleRadius(XY_PLANE, A, B + vector(0, 0, 3) * inch), 1 * inch);
 }
 
 export function testChainSegments()
@@ -64,8 +64,8 @@ export function testEdgeRibManipulatorIndex()
 export function testRibTogglePoints()
 {
     // A line's middle, and a circle's point across from its first spoke
-    expectNear(norm(ribTogglePoint(XY_PLANE, { "line" : [A, C] }) - vector(0.5, 0.5, 0) * inch), 0 * inch, 1e-9 * inch);
-    expectNear(norm(ribTogglePoint(XY_PLANE, { "circle" : { "center" : A, "through" : B } }) - vector(-1, 0, 0) * inch), 0 * inch, 1e-9 * inch);
+    expectTolerantEquals(norm(ribTogglePoint(XY_PLANE, { "line" : [A, C] }) - vector(0.5, 0.5, 0) * inch), 0 * inch);
+    expectTolerantEquals(norm(ribTogglePoint(XY_PLANE, { "circle" : { "center" : A, "through" : B } }) - vector(-1, 0, 0) * inch), 0 * inch);
 }
 
 export function testStartAndFinishDeleting()

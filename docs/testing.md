@@ -49,7 +49,9 @@ solved, so only sketches whose entities are fully given come out right.
 Tests are FeatureScript files in `tests/featurescript` (outside the code folder, so they're never pushed), named
 `*_test.fs`: each exported function named `test...` is a test, which fails if it throws. They import what they test by
 path (`import(path : "core/loop.fs", version : "");`, and only see what it exports) and `testing.fs` beside them for
-checks (`expectEqual`, `expectNear`, `expectThrows`, ...). pytest runs them with the rest:
+checks (`expectEqual`, `expectTolerantEquals`, `expectThrows`, ...). Compare computed values with
+`expectTolerantEquals`, which uses std's `tolerantEquals` and its tolerances; `expectNear` takes a tolerance, only for a
+value rounded where it's published (a vendor's drawing), the rounding its tolerance. pytest runs them with the rest:
 
 ```
 FeatureScript 2960;
