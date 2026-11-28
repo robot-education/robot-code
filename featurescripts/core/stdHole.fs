@@ -1,6 +1,12 @@
 FeatureScript 2960;
 import(path : "onshape/std/common.fs", version : "2960.0");
 export import(path : "onshape/std/hole.fs", version : "2960.0");
+import(path : "onshape/std/cylinderCast.fs", version : "2960.0");
+
+/**
+ * Emulating std's hole: its parameters, with its names and ids, and what they do, for features that cut holes of their
+ * own.
+ */
 
 export predicate holeDiameterPredicate(definition is map)
 {
@@ -16,6 +22,60 @@ export predicate holeMergeScopePredicate(definition is map)
     annotation { "Name" : "Merge scope",
                 "Filter" : (EntityType.BODY && BodyType.SOLID && ModifiableEntityOnly.YES && AllowMeshGeometry.YES) }
     definition.scope is Query;
+}
+
+/**
+ * Std's hole's Start plane: `startStyle`, and `startBoundEntity` to start from a selected plane (see `holeStartPlane`).
+ */
+export predicate holeStartPredicate(definition is map)
+{
+    annotation { "Name" : "Start plane", "UIHint" : ["REMEMBER_PREVIOUS_VALUE", "SHOW_LABEL"] }
+    definition.startStyle is HoleStartStyle;
+
+    if (definition.startStyle == HoleStartStyle.PLANE)
+    {
+        annotation { "Name" : "Hole start plane or mate connector", "Filter" : (EntityType.FACE && GeometryType.PLANE) || BodyType.MATE_CONNECTOR, "MaxNumberOfPicks" : 1 }
+        definition.startBoundEntity is Query;
+    }
+}
+
+/**
+ * Where a hole at `plane` starts, as std's hole's Start plane puts it. `plane`'s normal points out of the parts, as the
+ * hole goes against it.
+ * - Start from sketch plane: `plane`.
+ * - Start from part: where a cylinder of `diameter` first fully enters the merge scope along the hole (std's
+ *   `cylinderCastBiDirectional`, as the hole casts its widest diameter), or `plane` where it enters none.
+ * - Start from selected plane: where the hole's axis meets `startBoundEntity`, which must be parallel to `plane`.
+ */
+export function holeStartPlane(context is Context, id is Id, definition is map, plane is Plane, diameter is ValueWithUnits) returns Plane
+{
+    if (definition.startStyle == HoleStartStyle.PLANE)
+    {
+        if (isQueryEmpty(context, definition.startBoundEntity))
+        {
+            throw regenError(ErrorStringEnum.HOLE_NO_START_BOUND, ["startBoundEntity"]);
+        }
+        const start = evPlane(context, { "face" : definition.startBoundEntity });
+        if (!parallelVectors(plane.normal, start.normal))
+        {
+            throw regenError(ErrorStringEnum.HOLE_START_BOUND_INVALID, ["startBoundEntity"], definition.startBoundEntity);
+        }
+        plane.origin = intersection(start, line(plane.origin, plane.normal)).intersection;
+    }
+    else if (definition.startStyle == HoleStartStyle.PART)
+    {
+        const cast = cylinderCastBiDirectional(context, id, {
+                    "cSys" : coordSystem(plane.origin, plane.x, -plane.normal),
+                    "diameter" : diameter,
+                    "scope" : definition.scope,
+                    "needBack" : false
+                });
+        if (cast.resultFront != [])
+        {
+            plane.origin -= plane.normal * cast.resultFront[0].distance;
+        }
+    }
+    return plane;
 }
 
 // export predicate holeEndStylePredicate(definition is map)

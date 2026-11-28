@@ -295,6 +295,13 @@ wall). An offset or distance with an Opposite direction (or a flip manipulator) 
 it, and a negative value goes the other way again, as std's extrude offsets do. Manipulator change functions that set
 one from a dragged manipulator set its absolute value and the flip, as std's do.
 
+## Holes like std's
+
+A feature that cuts holes of its own asks what std's hole asks the way the hole does: in its order, with its names and
+parameter ids (`cBoreDiameter`, `startStyle`), so its icons and behavior carry over. `core/stdHole.fs` holds them,
+with functions doing what the hole does with them (`holeStartPredicate` and `holeStartPlane` for Start plane). Add
+one there before writing it into a feature. Robot bearing is the example.
+
 ## Fits
 
 Wherever one part goes in or over another (a bore on a shaft, a pocket for a part, a hole for a screw), use the fit

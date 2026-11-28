@@ -53,10 +53,12 @@ export predicate bearingLocationPredicate(definition is map, name is string)
 }
 
 /**
- * Which way they go into the parts: std's hole's Opposite direction.
+ * Where they start, and which way they go into the parts: std's hole's Start plane and Opposite direction.
  */
 export predicate bearingDirectionPredicate(definition is map)
 {
+    holeStartPredicate(definition);
+
     annotation { "Name" : "Opposite direction", "UIHint" : UIHint.OPPOSITE_DIRECTION }
     definition.oppositeDirection is boolean;
 }
@@ -99,7 +101,7 @@ export function bearingConnector(plane is Plane) returns CoordSystem
 }
 
 /**
- * Cuts a bore at each plane through the merge scope behind it, and a counterbore, all in one boolean; declares a part
+ * Cuts a bore at each plane, from where Start plane starts it (`holeStartPlane`) through the merge scope behind, and a counterbore, all in one boolean; declares a part
  * in each, on the part it's in, seated on the counterbore's floor; and builds each one's Auto Assembly body.
  * @param bore {{
  *      @field diameter {ValueWithUnits} : The bore's.
@@ -115,8 +117,12 @@ export function placeBearings(context is Context, id is Id, definition is map, p
         throw regenError(ErrorStringEnum.HOLE_EMPTY_SCOPE, ["scope"]);
     }
     var hosts = [];
-    for (var i, plane in planes)
+    var starts = [];
+    for (var i, face in planes)
     {
+        const bearingId = id + bearingIdComponent(i);
+        const plane = holeStartPlane(context, bearingId + "start", definition, face, bore.counterboreDiameter ?? bore.diameter);
+        starts = append(starts, plane);
         const bounds = evBox3d(context, { "topology" : definition.scope, "cSys" : coordSystem(plane), "tight" : false });
         const depth = -bounds.minCorner[2];
         if (!tolerantGreaterThan(depth, 0 * meter))
@@ -126,7 +132,6 @@ export function placeBearings(context is Context, id is Id, definition is map, p
         // Before the cut, which can split it
         hosts = append(hosts, partBehind(context, definition.scope, plane));
 
-        const bearingId = id + bearingIdComponent(i);
         extrudeCircle(context, bearingId + "boreTool", plane, bore.diameter, depth);
         if (bore.counterboreDiameter != undefined)
         {
@@ -157,7 +162,7 @@ export function placeBearings(context is Context, id is Id, definition is map, p
     {
         reportFeatureInfo(context, id, "FRCDesign's library doesn't have this part yet, so it isn't declared for Auto Assembly.");
     }
-    for (var i, face in planes)
+    for (var i, face in starts)
     {
         const bearingId = id + bearingIdComponent(i);
         var seat = face;
@@ -263,14 +268,16 @@ export function bearingEditLogic(context is Context, id is Id, oldDefinition is 
             "locations" : locationPoints(context, id + "new", definition),
             "scope" : definition.scope,
             "oppositeDirection" : definition.oppositeDirection,
-            "startStyle" : HoleStartStyle.SKETCH,
+            "startStyle" : definition.startStyle,
+            "startBoundEntity" : definition.startBoundEntity,
             "endStyle" : HoleEndStyle.THROUGH
         };
     const oldHoleDefinition = oldDefinition == {} ? {} : {
                 "locations" : locationPoints(context, id + "old", oldDefinition),
                 "scope" : oldDefinition.scope,
                 "oppositeDirection" : oldDefinition.oppositeDirection,
-                "startStyle" : HoleStartStyle.SKETCH,
+                "startStyle" : oldDefinition.startStyle,
+                "startBoundEntity" : oldDefinition.startBoundEntity,
                 "endStyle" : HoleEndStyle.THROUGH
             };
     const newHoleDefinition = holeScopeFlipHeuristicsCall(context, oldHoleDefinition, holeDefinition, specifiedParameters, hiddenBodies);

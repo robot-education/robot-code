@@ -6,7 +6,7 @@ Assembly (see `docs/auto-assembly.md`), with an Auto Assembly body: Robot bearin
 | File | What it is |
 | --- | --- |
 | `robotBushing.fs` | The feature: its dialog |
-| `../core/bearing.fs` | The locations and direction, the bores, the declarations, and the Auto Assembly bodies, shared with Robot bearing |
+| `../core/bearing.fs` | The locations, start and direction, the bores, the declarations, and the Auto Assembly bodies, shared with Robot bearing |
 | `../released/bearing/robotBearingTables.py` | The bushings part set's bushings (`bushingTable`), from `../bushings/bushingTables.py` |
 | `../bushings/bushings.fs`, `bushingTables.gen.fs` | FRCDesign's bushings part set: the bushings' sizes, flanges, steps and bores (`BUSHINGS`, `BUSHING_BORES`) |
 

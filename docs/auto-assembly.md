@@ -327,7 +327,8 @@ Both cut the bores, as Robot motor cuts its face. Their dialogs follow std's hol
    Bore, Size, Dimensions and Seal (`robotBearingTable`), with Bore fit and its clearance (`boreFitPredicate`,
    `core/fit.fs`). Or **Bushing**: one of the bushings part set's (`featurescripts/bushings/`), by Vendor, Bore, Size,
    Material and Dimensions (`bushingTable`), with no fit, as a COTS bushing is pressed in.
-4. **Opposite direction**, as the hole's (`bearingDirectionPredicate`).
+4. **Start plane** and **Opposite direction**, as the hole's (`bearingDirectionPredicate`, `holeStartPredicate` in
+   `core/stdHole.fs`).
 5. **Counterbore diameter** and **Counterbore depth** (Robot bearing, with Counterbore), with the hole's names, ids
    (`cBoreDiameter`, `cBoreDepth`) and icons: set by editing logic to the flange's diameter plus Bore fit's clearance,
    and its thickness, so the flange sits flush.
@@ -339,7 +340,8 @@ What they do:
    to the parts there, and Opposite direction so the bores go into them, unless they've been set.
 2. **The planes**: each location's, flipped by Opposite direction; each normal points out of the face its bearing sits
    on, and its X axis is the location's.
-3. **The bores**: at each plane, a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at
+3. **The bores**: at each plane, from where Start plane starts it (`holeStartPlane`: the sketch plane, where it first
+   fully enters the merge scope, or the selected plane), a circle at the product's outside diameter plus Bore fit's clearance (a bushing's, at
    its outside diameter), extruded through the merge scope behind it, and a counterbore its depth. All are subtracted
    in one boolean, as Robot motor's pilot is. The part each plane is on, of the merge scope's, is that bore's host.
 4. **Declarations**: at each bore, a host connector on its host at the bore's center, Z out of the bore, X the plane's: the bearing set's `mateConnector`. It's on the face, or on a counterbore's

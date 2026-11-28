@@ -3,12 +3,13 @@
 Cuts bores for bearings from FRCDesign's library, one at each sketch point, with a counterbore for a flanged bearing's
 flange. It declares each bearing for FRCDesignApp's Auto Assembly (see `docs/auto-assembly.md`). Robot bearing
 retention holds a bearing in. Its dialog follows std's hole's order: Style, the sketch points and merge scope, the
-bearing and its fit, Opposite direction, then the counterbore (with the hole's names, ids and icons).
+bearing and its fit, Start plane and Opposite direction, then the counterbore, with the hole's names, ids and icons.
 
 | File | What it is |
 | --- | --- |
 | `robotBearing.fs` | The feature: its dialog, the bearing chosen, and its counterbore |
 | `../core/bearing.fs` | The placement Robot bushing shares: the locations and direction, the bores, and the declarations |
+| `../core/stdHole.fs` | Std's hole's Merge scope and Start plane, and where a hole starts (`holeStartPlane`) |
 | `../released/bearing/robotBearingTables.py` | The bearings part set's FRC bearings (`robotBearingTable`), from `../bearings/bearingTables.py` |
 | `../bearings/bearings.fs`, `bearingTables.gen.fs` | FRCDesign's bearings part set: the bearings' sizes, flanges and bores (`BEARINGS`, `BEARING_BORES`, `boreRadius`) |
 | `../core/autoAssembly.fs` | Declarations |
@@ -39,6 +40,8 @@ which shows Style. Editing logic also sets Counterbore diameter and Counterbore 
 | --- | --- | --- | --- | --- |
 | Choose a different bearing. | error | the saved Bearing path isn't a whole table entry | `bearing` | none |
 | Select a sketch point, circle, or mate connector to use. | error | no locations, or one with no plane | `locations`, that location | Select a sketch plane. |
+| std's `HOLE_NO_START_BOUND` | error | Start from selected plane, with none selected | `startBoundEntity` | (std's) |
+| std's `HOLE_START_BOUND_INVALID` | error | the selected start plane isn't parallel to a location's | `startBoundEntity`, it | (std's) |
 | The counterbore must be wider than the bore. | error | Counterbore, with Counterbore diameter no wider than the bore | `cBoreDiameter` | none |
 | std's "select a merge scope" (`HOLE_EMPTY_SCOPE`) | error | an empty Merge scope | `scope` | (std's) |
 | The parts to cut aren't behind the sketch point. Check Opposite direction. | error | none of the merge scope is behind a location's plane | `oppositeDirection`, `scope`, the merge scope | none |
@@ -66,8 +69,11 @@ which shows Style. Editing logic also sets Counterbore diameter and Counterbore 
       doesn't show.
    4. `placeBearings`:
       - An error for an empty merge scope, or one not behind a plane.
+      - Where each bore starts (`holeStartPlane`), as std's hole's Start plane says: the sketch plane; where the
+        bore, or its counterbore, first fully enters the merge scope (std's cylinder cast); or where its axis meets
+        the selected plane.
       - The part each bearing sits in (`partBehind`), found before any cut.
-      - Each bore extruded through the merge scope behind its plane, and each counterbore its depth. All are cut in one
+      - Each bore extruded from its start through the merge scope behind, and each counterbore its depth. All are cut in one
         boolean.
       - At each, a `mateConnector` connector on its part (`bearingConnector`: the bore's center, z out of the bore, x
         the plane's, where the bearings set seats its bearings), carrying the bearing's declaration. With a
